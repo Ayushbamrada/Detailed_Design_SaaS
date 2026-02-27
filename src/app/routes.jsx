@@ -10,6 +10,7 @@ import ProjectLogs from "../features/dailyLogs/ProjectLogs";
 import DailyLogs from "../features/dailyLogs/DailyLogs";
 import ContractorList from "../features/contractors/ContractorList";
 import ExtensionApproval from "../features/extensions/ExtensionApproval";
+import CreateProject from "../features/projects/CreateProject";
 
 
 
@@ -34,6 +35,7 @@ export default function AppRoutes() {
         <Route path="/contractors" element={<ContractorList />} />
         <Route path="/extensions" element={<ExtensionApproval />} />
         <Route path="/daily-logs" element={<DailyLogs />} />
+        <Route path="/projects/create" element={<CreateProject />} />
       </Route>
     </Routes>
   );

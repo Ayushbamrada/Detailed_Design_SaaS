@@ -193,11 +193,7 @@
 // };
 
 // export default ProjectList;
-
-
-
 import { useSelector, useDispatch } from "react-redux";
-import mockProjects from "../../mock/mockProjects";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -210,6 +206,7 @@ const StatusBadge = ({ status }) => {
     ONGOING: "bg-blue-100 text-blue-600",
     DELAYED: "bg-red-100 text-red-600",
     ONTIME: "bg-green-100 text-green-600",
+    COMPLETED: "bg-emerald-100 text-emerald-600",
   };
 
   return (
@@ -225,13 +222,16 @@ const StatusBadge = ({ status }) => {
 const ProjectCard = ({ project }) => {
   const [flipped, setFlipped] = useState(false);
   const navigate = useNavigate();
-  const deadlineStatus = getDeadlineStatus(project.deadline);
+  const deadlineStatus = project.deadline
+    ? getDeadlineStatus(project.deadline)
+    : null;
 
   return (
     <motion.div
       className="relative h-64 cursor-pointer perspective"
       onHoverStart={() => setFlipped(true)}
       onHoverEnd={() => setFlipped(false)}
+      whileHover={{ scale: 1.02 }}
     >
       <motion.div
         animate={{ rotateY: flipped ? 180 : 0 }}
@@ -248,7 +248,7 @@ const ProjectCard = ({ project }) => {
             <h3 className="font-semibold text-lg">
               {project.name}
             </h3>
-            <StatusBadge status={project.status} />
+            <StatusBadge status={project.status || "ONGOING"} />
           </div>
 
           {/* Deadline Warning */}
@@ -265,28 +265,28 @@ const ProjectCard = ({ project }) => {
           )}
 
           <p className="text-sm text-gray-500 mt-2">
-            Contractor: {project.contractor}
+            Company: {project.company || "N/A"}
           </p>
 
           <p className="text-sm mt-1">
-            Start: {project.startDate}
+            Start: {project.loaDate || "N/A"}
           </p>
 
           <p className="text-sm">
-            Deadline: {project.deadline}
+            Deadline: {project.completionDate || "N/A"}
           </p>
 
           {/* Progress */}
           <div className="mt-4">
             <div className="flex justify-between text-xs mb-1">
               <span>Progress</span>
-              <span>{project.progress}%</span>
+              <span>{project.progress || 0}%</span>
             </div>
 
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${project.progress}%` }}
+                style={{ width: `${project.progress || 0}%` }}
               />
             </div>
           </div>
@@ -306,11 +306,11 @@ const ProjectCard = ({ project }) => {
             </h3>
 
             <p className="text-sm mt-3">
-              Remaining: {100 - project.progress}%
+              Remaining: {100 - (project.progress || 0)}%
             </p>
 
             <p className="text-sm">
-              Status: {project.status}
+              Status: {project.status || "ONGOING"}
             </p>
           </div>
 
@@ -332,12 +332,18 @@ const ProjectCard = ({ project }) => {
 /* ================= PROJECT LIST ================= */
 const ProjectList = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
-  // ✅ Deadline snackbar logic INSIDE component
+  // ✅ GET PROJECTS FROM REDUX (IMPORTANT CHANGE)
+  const projects = useSelector((state) => state.projects.projects);
+
+  /* ================= DEADLINE SNACKBAR LOGIC ================= */
   useEffect(() => {
-    mockProjects.forEach((project) => {
-      const status = getDeadlineStatus(project.deadline);
+    projects.forEach((project) => {
+      if (!project.completionDate) return;
+
+      const status = getDeadlineStatus(project.completionDate);
 
       if (status === "WARNING") {
         dispatch(
@@ -357,7 +363,7 @@ const ProjectList = () => {
         );
       }
     });
-  }, [dispatch]);
+  }, [dispatch, projects]);
 
   return (
     <div className="space-y-6">
@@ -368,14 +374,34 @@ const ProjectList = () => {
 
         {(user?.role === "ADMIN" ||
           user?.role === "SUPER_ADMIN") && (
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-md shadow hover:bg-blue-700 transition">
-            + Add Project
+          <button
+            onClick={() => navigate("/projects/create")}
+            className="
+              relative inline-flex items-center gap-2
+              bg-gradient-to-r from-blue-600 to-blue-700
+              text-white px-5 py-2.5 rounded-lg
+              shadow-md hover:shadow-xl
+              hover:from-blue-700 hover:to-blue-800
+              transform hover:-translate-y-0.5
+              active:scale-95
+              transition-all duration-300
+              font-medium
+            "
+          >
+            <span className="text-lg">＋</span>
+            Add Project
           </button>
         )}
       </div>
 
+      {projects.length === 0 && (
+        <div className="text-center py-16 text-gray-400">
+          No projects created yet.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockProjects.map((project) => (
+        {projects.map((project) => (
           <ProjectCard
             key={project.id}
             project={project}

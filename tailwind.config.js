@@ -18,6 +18,7 @@ export default {
       borderRadius: {
         xl2: "1rem",
       },
+      
     },
   },
 };

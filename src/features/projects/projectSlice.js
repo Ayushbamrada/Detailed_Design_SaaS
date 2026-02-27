@@ -244,6 +244,19 @@ const projectSlice = createSlice({
       }
     },
 
+    addProject: (state, action) => {
+  const newProject = action.payload;
+
+  state.projects.push({
+    ...newProject,
+    id: Date.now().toString(),
+    status: "ONGOING",
+    progress: 0,
+    extensionRequested: false,
+    dailyLogs: []
+  });
+},
+
     /* -------- Approve Extension -------- */
     approveExtension: (state, action) => {
       const project = state.projects.find(
@@ -264,7 +277,8 @@ export const {
   toggleSubActivity,
   addDailyLog,
   requestExtension,
-  approveExtension
+  approveExtension,
+  addProject
 } = projectSlice.actions;
 
 export default projectSlice.reducer;
