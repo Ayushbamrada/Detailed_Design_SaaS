@@ -7,5 +7,6 @@ export const getDeadlineStatus = (deadline) => {
 
   if (diffDays < 0) return "OVERDUE";
   if (diffDays <= 2) return "WARNING";
+  if (diffDays <= 7) return "UPCOMING";
   return "SAFE";
 };

@@ -52,7 +52,7 @@ const ProjectLogs = () => {
 
         {status === "NOT_WORKED" && (
           <textarea
-            placeholder="Reason..."
+            placeholder="Reason..." 
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="border p-2 rounded-md w-full"
