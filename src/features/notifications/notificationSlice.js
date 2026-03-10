@@ -19,7 +19,6 @@
 //   notificationSlice.actions;
 // export default notificationSlice.reducer;
 
-
 import { createSlice } from "@reduxjs/toolkit";
 
 const notificationSlice = createSlice({
@@ -42,7 +41,5 @@ const notificationSlice = createSlice({
   },
 });
 
-export const { showSnackbar, hideSnackbar } =
-  notificationSlice.actions;
-
+export const { showSnackbar, hideSnackbar } = notificationSlice.actions;
 export default notificationSlice.reducer;
