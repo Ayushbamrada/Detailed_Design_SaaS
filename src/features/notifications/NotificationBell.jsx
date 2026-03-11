@@ -3,9 +3,36 @@ import { useSelector, useDispatch } from "react-redux";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { hideSnackbar } from "./notificationSlice";
+import { useNavigate } from "react-router-dom";
+
+// Helper function to calculate days until deadline
+const getDaysUntilDeadline = (deadline) => {
+  if (!deadline) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlineDate = new Date(deadline);
+  deadlineDate.setHours(0, 0, 0, 0);
+  
+  const diffTime = deadlineDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+// Get deadline status
+const getDeadlineStatus = (deadline) => {
+  const days = getDaysUntilDeadline(deadline);
+  if (days === null) return "UNKNOWN";
+  if (days < 0) return "OVERDUE";
+  if (days === 0) return "TODAY";
+  if (days <= 2) return "CRITICAL";
+  if (days <= 7) return "WARNING";
+  if (days <= 14) return "UPCOMING";
+  return "SAFE";
+};
 
 const NotificationBell = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   
@@ -16,54 +43,101 @@ const NotificationBell = () => {
   useEffect(() => {
     const newNotifications = [];
     const today = new Date();
-    const threeDaysFromNow = new Date(today);
-    threeDaysFromNow.setDate(today.getDate() + 3);
+    today.setHours(0, 0, 0, 0);
 
     projects.forEach(project => {
       // Project level notifications
-      const projectDeadline = new Date(project.completionDate);
-      const daysToProjectDeadline = Math.ceil((projectDeadline - today) / (1000 * 60 * 60 * 24));
+      const projectDeadlineStatus = getDeadlineStatus(project.completionDate);
+      const daysToProjectDeadline = getDaysUntilDeadline(project.completionDate);
 
-      if (daysToProjectDeadline <= 3 && daysToProjectDeadline > 0 && project.progress < 100) {
+      // Critical deadlines (0-2 days)
+      if ((projectDeadlineStatus === "TODAY" || projectDeadlineStatus === "CRITICAL") && project.progress < 100) {
         newNotifications.push({
-          id: `project-${project.id}`,
-          type: 'warning',
-          title: 'Project Deadline Approaching',
-          message: `${project.name} deadline in ${daysToProjectDeadline} days`,
+          id: `project-critical-${project.id}`,
+          type: 'error',
+          title: daysToProjectDeadline === 0 ? 'Project Deadline TODAY!' : `Project Deadline in ${daysToProjectDeadline} days`,
+          message: `${project.name} - ${project.progress}% complete`,
           projectId: project.id,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          priority: 1
+        });
+      }
+      // Warning deadlines (3-7 days)
+      else if (projectDeadlineStatus === "WARNING" && project.progress < 100) {
+        newNotifications.push({
+          id: `project-warning-${project.id}`,
+          type: 'warning',
+          title: `Project Deadline in ${daysToProjectDeadline} days`,
+          message: `${project.name} - ${project.progress}% complete`,
+          projectId: project.id,
+          date: new Date().toISOString(),
+          priority: 2
+        });
+      }
+      // Upcoming deadlines (8-14 days)
+      else if (projectDeadlineStatus === "UPCOMING" && project.progress < 100) {
+        newNotifications.push({
+          id: `project-upcoming-${project.id}`,
+          type: 'info',
+          title: `Project Deadline in ${daysToProjectDeadline} days`,
+          message: `${project.name} - ${project.progress}% complete`,
+          projectId: project.id,
+          date: new Date().toISOString(),
+          priority: 3
         });
       }
 
       // Activity level notifications
       project.activities?.forEach(activity => {
-        const activityDeadline = new Date(activity.endDate);
-        const daysToActivityDeadline = Math.ceil((activityDeadline - today) / (1000 * 60 * 60 * 24));
+        const activityDeadlineStatus = getDeadlineStatus(activity.endDate);
+        const daysToActivityDeadline = getDaysUntilDeadline(activity.endDate);
 
-        if (daysToActivityDeadline <= 2 && daysToActivityDeadline > 0 && activity.progress < 100) {
+        if (activityDeadlineStatus === "TODAY" && activity.progress < 100) {
           newNotifications.push({
-            id: `activity-${activity.id}`,
-            type: 'info',
-            title: 'Activity Deadline Near',
-            message: `${activity.name} due in ${daysToActivityDeadline} days`,
+            id: `activity-today-${activity.id}`,
+            type: 'error',
+            title: 'Activity Due TODAY!',
+            message: `${activity.name} in ${project.name}`,
             projectId: project.id,
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            priority: 1
+          });
+        } else if (activityDeadlineStatus === "CRITICAL" && activity.progress < 100) {
+          newNotifications.push({
+            id: `activity-critical-${activity.id}`,
+            type: 'warning',
+            title: `Activity Due in ${daysToActivityDeadline} days`,
+            message: `${activity.name} in ${project.name}`,
+            projectId: project.id,
+            date: new Date().toISOString(),
+            priority: 2
           });
         }
 
         // Sub-activity level notifications
         activity.subActivities?.forEach(sub => {
-          const subDeadline = new Date(sub.endDate);
-          const daysToSubDeadline = Math.ceil((subDeadline - today) / (1000 * 60 * 60 * 24));
+          const subDeadlineStatus = getDeadlineStatus(sub.endDate);
+          const daysToSubDeadline = getDaysUntilDeadline(sub.endDate);
 
-          if (daysToSubDeadline <= 1 && daysToSubDeadline > 0 && sub.progress < 100) {
+          if (subDeadlineStatus === "TODAY" && sub.progress < 100) {
             newNotifications.push({
-              id: `sub-${sub.id}`,
-              type: 'urgent',
-              title: 'Task Due Tomorrow',
-              message: `${sub.name} due tomorrow`,
+              id: `sub-today-${sub.id}`,
+              type: 'error',
+              title: 'Task Due TODAY!',
+              message: `${sub.name} in ${activity.name}`,
               projectId: project.id,
-              date: new Date().toISOString()
+              date: new Date().toISOString(),
+              priority: 1
+            });
+          } else if (subDeadlineStatus === "CRITICAL" && sub.progress < 100) {
+            newNotifications.push({
+              id: `sub-critical-${sub.id}`,
+              type: 'warning',
+              title: `Task Due in ${daysToSubDeadline} days`,
+              message: `${sub.name} in ${activity.name}`,
+              projectId: project.id,
+              date: new Date().toISOString(),
+              priority: 2
             });
           }
         });
@@ -77,12 +151,15 @@ const NotificationBell = () => {
           title: 'Project Delayed',
           message: `${project.name} is behind schedule`,
           projectId: project.id,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          priority: 1
         });
       }
     });
 
-    setNotifications(newNotifications.slice(0, 5)); // Show only 5 most recent
+    // Sort by priority (1 = highest)
+    const sortedNotifications = newNotifications.sort((a, b) => a.priority - b.priority);
+    setNotifications(sortedNotifications.slice(0, 10)); // Show 10 most important
   }, [projects]);
 
   // Handle snackbar from Redux
@@ -99,19 +176,19 @@ const NotificationBell = () => {
     switch(type) {
       case 'error': return <AlertCircle className="text-red-500" size={20} />;
       case 'warning': return <AlertCircle className="text-yellow-500" size={20} />;
-      case 'urgent': return <Clock className="text-orange-500" size={20} />;
+      case 'info': return <Calendar className="text-blue-500" size={20} />;
       case 'success': return <CheckCircle className="text-green-500" size={20} />;
-      default: return <Calendar className="text-blue-500" size={20} />;
+      default: return <Bell className="text-gray-500" size={20} />;
     }
   };
 
   const getBgColor = (type) => {
     switch(type) {
-      case 'error': return 'bg-red-50 border-red-200';
-      case 'warning': return 'bg-yellow-50 border-yellow-200';
-      case 'urgent': return 'bg-orange-50 border-orange-200';
-      case 'success': return 'bg-green-50 border-green-200';
-      default: return 'bg-blue-50 border-blue-200';
+      case 'error': return 'bg-red-50 border-red-200 hover:bg-red-100';
+      case 'warning': return 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100';
+      case 'info': return 'bg-blue-50 border-blue-200 hover:bg-blue-100';
+      case 'success': return 'bg-green-50 border-green-200 hover:bg-green-100';
+      default: return 'bg-gray-50 border-gray-200 hover:bg-gray-100';
     }
   };
 
@@ -189,7 +266,13 @@ const NotificationBell = () => {
                   notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${getBgColor(notification.type)}`}
+                      onClick={() => {
+                        if (notification.projectId) {
+                          navigate(`/projects/${notification.projectId}`);
+                          setOpen(false);
+                        }
+                      }}
+                      className={`p-4 border-b border-gray-100 cursor-pointer transition-colors ${getBgColor(notification.type)}`}
                     >
                       <div className="flex gap-3">
                         {getIcon(notification.type)}
@@ -212,8 +295,11 @@ const NotificationBell = () => {
               </div>
 
               <div className="p-3 bg-gray-50 text-center">
-                <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                  View all notifications
+                <button 
+                  onClick={() => setOpen(false)}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Close
                 </button>
               </div>
             </motion.div>

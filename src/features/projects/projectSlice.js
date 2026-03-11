@@ -1,110 +1,3 @@
-// import { createSlice } from "@reduxjs/toolkit";
-
-// const initialState = {
-//   projects: [
-//     {
-//       id: "1",
-//       name: "100 KM Highway",
-//       contractor: "ABC Constructions",
-//       startDate: "2026-01-01",
-//       deadline: "2026-03-05",
-//       status: "ONGOING",
-//       progress: 0,
-//       activities: [
-//         {
-//           id: "a1",
-//           name: "Earthwork",
-//           completed: false,
-//           subActivities: [
-//             { id: "s1", name: "Excavation", completed: true },
-//             { id: "s2", name: "Soil Compaction", completed: false }
-//           ]
-//         }
-//       ],
-//       dailyLogs: []
-//     }
-//   ]
-// };
-
-// const calculateProgress = (activities) => {
-//   let totalSub = 0;
-//   let completedSub = 0;
-
-//   activities.forEach((activity) => {
-//     activity.subActivities.forEach((sub) => {
-//       totalSub++;
-//       if (sub.completed) completedSub++;
-//     });
-//   });
-
-//   return totalSub === 0 ? 0 : Math.round((completedSub / totalSub) * 100);
-// };
-
-// const projectSlice = createSlice({
-//   name: "projects",
-//   initialState,
-//   reducers: {
-
-//     toggleSubActivity: (state, action) => {
-//       const { projectId, activityId, subId } = action.payload;
-
-//       const project = state.projects.find(p => p.id === projectId);
-//       if (!project) return;
-
-//       const activity = project.activities.find(a => a.id === activityId);
-//       if (!activity) return;
-
-//       const sub = activity.subActivities.find(s => s.id === subId);
-//       if (!sub) return;
-
-//       // Toggle sub activity
-//       sub.completed = !sub.completed;
-
-//       // Auto mark activity completed if all subs completed
-//       activity.completed = activity.subActivities.every(s => s.completed);
-
-//       // Recalculate project progress
-//       project.progress = calculateProgress(project.activities);
-
-//       // Auto complete project
-//       if (project.progress === 100) {
-//         project.status = "COMPLETED";
-//       }
-//     },
-
-//     addDailyLog: (state, action) => {
-//       const { projectId, log } = action.payload;
-
-//       const project = state.projects.find(p => p.id === projectId);
-//       if (!project) return;
-
-//       project.dailyLogs.push(log);
-
-//       // Automatic delay detection
-//       if (log.status === "NOT_WORKED") {
-//         project.status = "DELAYED";
-//       }
-//     },
-
-//     requestExtension: (state, action) => {
-//       const { projectId, newDeadline } = action.payload;
-//       const project = state.projects.find(p => p.id === projectId);
-//       if (!project) return;
-
-//       project.deadline = newDeadline;
-//       project.status = "ONGOING";
-//     }
-//   }
-// });
-
-// export const {
-//   toggleSubActivity,
-//   addDailyLog,
-//   requestExtension
-// } = projectSlice.actions;
-
-// export default projectSlice.reducer;
-
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
@@ -127,41 +20,42 @@ const initialState = {
       totalLength: "100",
       cost: "2500",
       loaDate: "2026-01-01",
-      completionDate: "2026-12-31",
+      completionDate: "2026-01-10",
       directorProposalDate: "2026-01-15",
       projectConfirmationDate: "2026-02-01",
       extensionRequested: false,
       newRequestedDeadline: null,
       activities: [
         {
-          id: "a1_1741532400000",
+          id: "a1",
           name: "Field Team Mobilization Advance",
           startDate: "2026-01-01",
           endDate: "2026-01-15",
           progress: 100,
           subActivities: [
             { 
-              id: "s1_1741532400000", 
+              id: "s1", 
               name: "Mobilization", 
-              unit: "Complete",
+              unit: "status",
               plannedQty: 1,
               completedQty: 1,
               progress: 100,
               startDate: "2026-01-01",
               endDate: "2026-01-15",
-              status: "COMPLETED"
+              status: "COMPLETED",
+              statusType: "status"
             }
           ]
         },
         {
-          id: "a2_1741532400000",
+          id: "a2",
           name: "Field Activities",
           startDate: "2026-01-16",
           endDate: "2026-03-30",
           progress: 30,
           subActivities: [
             { 
-              id: "s2_1741532400000", 
+              id: "s2", 
               name: "Topo Survey", 
               unit: "Km",
               plannedQty: 50,
@@ -172,7 +66,7 @@ const initialState = {
               status: "ONGOING"
             },
             { 
-              id: "s3_1741532400000", 
+              id: "s3", 
               name: "Traffic Survey and Soil Sampling", 
               unit: "Nos.",
               plannedQty: 100,
@@ -193,6 +87,17 @@ const initialState = {
 /* ================= PROGRESS CALCULATIONS ================= */
 
 const calculateSubActivityProgress = (sub) => {
+  if (sub.unit === "status") {
+    const statusProgress = {
+      "PENDING": 0,
+      "ONGOING": 50,
+      "COMPLETED": 100,
+      "DELAYED": 25,
+      "HOLD": 10
+    };
+    return statusProgress[sub.status] || 0;
+  }
+  
   if (!sub.plannedQty || sub.plannedQty === 0) return 0;
   const progress = (sub.completedQty / sub.plannedQty) * 100;
   return Math.min(100, Math.round(progress * 10) / 10);
@@ -243,12 +148,13 @@ const projectSlice = createSlice({
     addProject: (state, action) => {
       const newProject = action.payload;
       
-      // Calculate initial progress
       const projectProgress = calculateProjectProgress(newProject.activities);
+      
+      const newId = (state.projects.length + 1).toString();
       
       state.projects.push({
         ...newProject,
-        id: Date.now().toString(),
+        id: newId,
         status: projectProgress === 100 ? "COMPLETED" : "ONGOING",
         progress: projectProgress,
         extensionRequested: false,
@@ -259,7 +165,7 @@ const projectSlice = createSlice({
 
     /* -------- Update Sub Activity Progress -------- */
     updateSubActivityProgress: (state, action) => {
-      const { projectId, activityId, subId, completedQty } = action.payload;
+      const { projectId, activityId, subId, completedQty, status } = action.payload;
 
       const project = state.projects.find(p => p.id === projectId);
       if (!project) return;
@@ -270,23 +176,81 @@ const projectSlice = createSlice({
       const sub = activity.subActivities.find(s => s.id === subId);
       if (!sub) return;
 
-      // Update completed quantity
-      sub.completedQty = completedQty;
+      if (sub.unit === "status") {
+        if (status) sub.status = status;
+      } else {
+        if (completedQty !== undefined) sub.completedQty = completedQty;
+      }
       
-      // Recalculate sub-activity progress
       sub.progress = calculateSubActivityProgress(sub);
       
-      // Update sub-activity status
-      sub.status = sub.progress === 100 ? "COMPLETED" : "ONGOING";
-
-      // Recalculate activity progress
       activity.progress = calculateActivityProgress(activity);
-
-      // Recalculate project progress
       project.progress = calculateProjectProgress(project.activities);
 
-      // Check delay status
       checkDelayStatus(project);
+    },
+
+    /* -------- Update Sub Activity Status -------- */
+    updateSubActivityStatus: (state, action) => {
+      const { projectId, activityId, subId, status } = action.payload;
+
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      const activity = project.activities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      const sub = activity.subActivities.find(s => s.id === subId);
+      if (!sub) return;
+
+      sub.status = status;
+      
+      if (sub.unit === "status") {
+        sub.progress = calculateSubActivityProgress(sub);
+      }
+
+      activity.progress = calculateActivityProgress(activity);
+      project.progress = calculateProjectProgress(project.activities);
+      
+      // Add to daily logs
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "STATUS_UPDATE",
+        date: new Date().toISOString().split('T')[0],
+        description: `${sub.name} status updated to ${status}`,
+        user: "System"
+      });
+    },
+
+    /* -------- Update Activity Dates -------- */
+    updateActivityDates: (state, action) => {
+      const { projectId, activityId, startDate, endDate } = action.payload;
+
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      const activity = project.activities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      if (startDate !== undefined) activity.startDate = startDate;
+      if (endDate !== undefined) activity.endDate = endDate;
+      
+      // Update all sub-activity dates to match
+      activity.subActivities.forEach(sub => {
+        if (startDate !== undefined) sub.startDate = startDate;
+        if (endDate !== undefined) sub.endDate = endDate;
+      });
+      
+      // Add to daily logs
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "DATE_UPDATE",
+        date: new Date().toISOString().split('T')[0],
+        description: `Updated dates for ${activity.name}`,
+        user: "System"
+      });
     },
 
     /* -------- Update Sub Activity Dates -------- */
@@ -304,11 +268,20 @@ const projectSlice = createSlice({
 
       if (startDate !== undefined) sub.startDate = startDate;
       if (endDate !== undefined) sub.endDate = endDate;
+      
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "DATE_UPDATE",
+        date: new Date().toISOString().split('T')[0],
+        description: `Updated dates for ${sub.name}`,
+        user: "System"
+      });
     },
 
-    /* -------- Update Activity Dates -------- */
-    updateActivityDates: (state, action) => {
-      const { projectId, activityId, startDate, endDate } = action.payload;
+    /* -------- Add Sub Activity -------- */
+    addSubActivity: (state, action) => {
+      const { projectId, activityId, subActivity } = action.payload;
 
       const project = state.projects.find(p => p.id === projectId);
       if (!project) return;
@@ -316,8 +289,83 @@ const projectSlice = createSlice({
       const activity = project.activities.find(a => a.id === activityId);
       if (!activity) return;
 
-      if (startDate !== undefined) activity.startDate = startDate;
-      if (endDate !== undefined) activity.endDate = endDate;
+      const newSubId = `s${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      
+      activity.subActivities.push({
+        id: newSubId,
+        ...subActivity,
+        completedQty: subActivity.unit === "status" ? 0 : (subActivity.completedQty || 0),
+        progress: 0,
+        status: "PENDING",
+        startDate: subActivity.startDate || activity.startDate,
+        endDate: subActivity.endDate || activity.endDate
+      });
+
+      activity.progress = calculateActivityProgress(activity);
+      project.progress = calculateProjectProgress(project.activities);
+      
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "SUBACTIVITY_ADDED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Added sub-activity: ${subActivity.name} to ${activity.name}`,
+        user: "System"
+      });
+    },
+
+    /* -------- Delete Activity -------- */
+    deleteActivity: (state, action) => {
+      const { projectId, activityId, userRole } = action.payload;
+      
+      if (userRole !== "SUPER_ADMIN") return;
+
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      const activity = project.activities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      project.activities = project.activities.filter(a => a.id !== activityId);
+      project.progress = calculateProjectProgress(project.activities);
+      
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "ACTIVITY_DELETED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Deleted activity: ${activity.name}`,
+        user: "SUPER_ADMIN"
+      });
+    },
+
+    /* -------- Delete Sub Activity -------- */
+    deleteSubActivity: (state, action) => {
+      const { projectId, activityId, subId, userRole } = action.payload;
+      
+      if (userRole !== "SUPER_ADMIN") return;
+
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      const activity = project.activities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      const sub = activity.subActivities.find(s => s.id === subId);
+      if (!sub) return;
+
+      activity.subActivities = activity.subActivities.filter(s => s.id !== subId);
+      activity.progress = calculateActivityProgress(activity);
+      project.progress = calculateProjectProgress(project.activities);
+      
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "SUBACTIVITY_DELETED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Deleted sub-activity: ${sub.name} from ${activity.name}`,
+        user: "SUPER_ADMIN"
+      });
     },
 
     /* -------- Add Daily Log -------- */
@@ -327,13 +375,13 @@ const projectSlice = createSlice({
       const project = state.projects.find(p => p.id === projectId);
       if (!project) return;
 
+      project.dailyLogs = project.dailyLogs || [];
       project.dailyLogs.push({
         ...log,
-        id: Date.now().toString(),
-        date: new Date().toISOString().split('T')[0]
+        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        timestamp: new Date().toISOString()
       });
 
-      // Check delay status
       checkDelayStatus(project);
     },
 
@@ -347,30 +395,61 @@ const projectSlice = createSlice({
         project.extensionRequested = true;
         project.newRequestedDeadline = newDeadline;
         project.extensionReason = reason;
+        
+        project.dailyLogs = project.dailyLogs || [];
+        project.dailyLogs.push({
+          id: `log_${Date.now()}`,
+          type: "EXTENSION_REQUEST",
+          date: new Date().toISOString().split('T')[0],
+          description: `Extension requested to ${newDeadline}. Reason: ${reason}`,
+          user: "System"
+        });
       }
     },
 
     /* -------- Approve Extension -------- */
     approveExtension: (state, action) => {
-      const project = state.projects.find(p => p.id === action.payload);
+      const { projectId, approvedBy } = action.payload;
+      const project = state.projects.find(p => p.id === projectId);
 
       if (project && project.newRequestedDeadline) {
+        const oldDeadline = project.completionDate;
         project.completionDate = project.newRequestedDeadline;
         project.extensionRequested = false;
         project.newRequestedDeadline = null;
         project.extensionReason = null;
+        
+        project.dailyLogs = project.dailyLogs || [];
+        project.dailyLogs.push({
+          id: `log_${Date.now()}`,
+          type: "EXTENSION_APPROVED",
+          date: new Date().toISOString().split('T')[0],
+          description: `Extension approved from ${oldDeadline} to ${project.completionDate}`,
+          user: approvedBy
+        });
+        
         checkDelayStatus(project);
       }
     },
 
     /* -------- Reject Extension -------- */
     rejectExtension: (state, action) => {
-      const project = state.projects.find(p => p.id === action.payload);
+      const { projectId, rejectedBy, reason } = action.payload;
+      const project = state.projects.find(p => p.id === projectId);
 
       if (project) {
         project.extensionRequested = false;
         project.newRequestedDeadline = null;
         project.extensionReason = null;
+        
+        project.dailyLogs = project.dailyLogs || [];
+        project.dailyLogs.push({
+          id: `log_${Date.now()}`,
+          type: "EXTENSION_REJECTED",
+          date: new Date().toISOString().split('T')[0],
+          description: `Extension rejected. Reason: ${reason}`,
+          user: rejectedBy
+        });
       }
     }
   }
@@ -379,8 +458,12 @@ const projectSlice = createSlice({
 export const {
   addProject,
   updateSubActivityProgress,
-  updateSubActivityDates,
+  updateSubActivityStatus,
   updateActivityDates,
+  updateSubActivityDates,
+  addSubActivity,
+  deleteActivity,
+  deleteSubActivity,
   addDailyLog,
   requestExtension,
   approveExtension,

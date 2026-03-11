@@ -1,166 +1,17 @@
-
-
-// // export default ProjectDetails;
-// import { useParams, useNavigate } from "react-router-dom";
-// import { useSelector, useDispatch } from "react-redux";
-// import { motion } from "framer-motion";
-// import { toggleSubActivity } from "./projectSlice";
-// import { Calendar, ClipboardList } from "lucide-react";
-
-// const ProjectDetails = () => {
-//   const { id } = useParams();
-//   const navigate = useNavigate();
-//   const dispatch = useDispatch();
-
-//   const { user } = useSelector((state) => state.auth);
-
-//   const project = useSelector((state) =>
-//     state.projects.projects.find((p) => p.id === id)
-//   );
-
-//   if (!project) {
-//     return <div className="p-6">Project not found</div>;
-//   }
-
-//   const remaining = 100 - project.progress;
-
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0 }}
-//       animate={{ opacity: 1 }}
-//       className="space-y-8"
-//     >
-//       {/* ===== HEADER ===== */}
-//       <div className="flex justify-between items-center">
-//         <h2 className="text-3xl font-bold">{project.name}</h2>
-
-//         <div className="flex gap-3">
-//           <button
-//             onClick={() =>
-//               navigate(`/projects/${project.id}/logs`)
-//             }
-//             className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:scale-105 transition"
-//           >
-//             View Logs
-//           </button>
-
-//           {(user.role === "ADMIN" ||
-//             user.role === "SUPER_ADMIN") && (
-//             <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:scale-105 transition">
-//               Extend Deadline
-//             </button>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* ===== SUMMARY CARD ===== */}
-//       <motion.div
-//         whileHover={{ scale: 1.02 }}
-//         className="bg-white shadow-xl rounded-2xl p-8 grid md:grid-cols-2 gap-8"
-//       >
-//         <div className="space-y-4 text-sm">
-//           <p><strong>Contractor:</strong> {project.contractor}</p>
-//           <p><strong>Start Date:</strong> {project.startDate}</p>
-//           <p><strong>Deadline:</strong> {project.deadline}</p>
-//           <p>
-//             <strong>Status:</strong>{" "}
-//             <span
-//               className={`px-3 py-1 rounded-full text-xs font-semibold ${
-//                 project.status === "DELAYED"
-//                   ? "bg-red-100 text-red-600"
-//                   : project.status === "COMPLETED"
-//                   ? "bg-green-100 text-green-600"
-//                   : "bg-blue-100 text-blue-600"
-//               }`}
-//             >
-//               {project.status}
-//             </span>
-//           </p>
-//         </div>
-
-//         {/* Progress */}
-//         <div>
-//           <h4 className="font-semibold mb-3">Progress</h4>
-
-//           <div className="flex justify-between text-sm mb-1">
-//             <span>{project.progress}% Completed</span>
-//             <span>{remaining}% Remaining</span>
-//           </div>
-
-//           <div className="w-full bg-gray-200 rounded-full h-4">
-//             <motion.div
-//               initial={{ width: 0 }}
-//               animate={{ width: `${project.progress}%` }}
-//               transition={{ duration: 1 }}
-//               className="bg-gradient-to-r from-blue-500 to-indigo-600 h-4 rounded-full"
-//             />
-//           </div>
-//         </div>
-//       </motion.div>
-
-//       {/* ===== ACTIVITIES SECTION ===== */}
-//       <div className="space-y-6">
-//         <h3 className="text-xl font-semibold">
-//           Activities & Sub-Activities
-//         </h3>
-
-//         {project.activities?.map((activity) => (
-//           <motion.div
-//             key={activity.id}
-//             whileHover={{ scale: 1.01 }}
-//             className="bg-white shadow-lg rounded-xl p-6"
-//           >
-//             <h4 className="font-semibold mb-4">
-//               {activity.name}
-//             </h4>
-
-//             {activity.subActivities.map((sub) => (
-//               <div
-//                 key={sub.id}
-//                 className="flex items-center justify-between mb-2"
-//               >
-//                 <div className="flex items-center gap-3">
-//                   <input
-//                     type="checkbox"
-//                     checked={sub.completed}
-//                     onChange={() =>
-//                       dispatch(
-//                         toggleSubActivity({
-//                           projectId: project.id,
-//                           activityId: activity.id,
-//                           subId: sub.id,
-//                         })
-//                       )
-//                     }
-//                   />
-//                   <span>{sub.name}</span>
-//                 </div>
-
-//                 {sub.completed && (
-//                   <span className="text-green-600 text-xs">
-//                     Completed
-//                   </span>
-//                 )}
-//               </div>
-//             ))}
-//           </motion.div>
-//         ))}
-//       </div>
-//     </motion.div>
-//   );
-// };
-
-// export default ProjectDetails;
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
-  updateSubActivityProgress, 
+  updateSubActivityProgress,
+  updateSubActivityStatus,
+  updateActivityDates,
   updateSubActivityDates,
-  updateActivityDates 
+  addSubActivity,
+  deleteActivity,
+  deleteSubActivity
 } from "./projectSlice";
+import { showSnackbar } from "../notifications/notificationSlice";
 import { 
   Calendar, 
   ClipboardList, 
@@ -175,8 +26,37 @@ import {
   CheckCircle2,
   XCircle,
   PenLine,
-  Save
+  Save,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  FileText
 } from "lucide-react";
+
+// Helper function to calculate days until deadline
+const getDaysUntilDeadline = (deadline) => {
+  if (!deadline) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlineDate = new Date(deadline);
+  deadlineDate.setHours(0, 0, 0, 0);
+  
+  const diffTime = deadlineDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+// Get deadline status
+const getDeadlineStatus = (deadline) => {
+  const days = getDaysUntilDeadline(deadline);
+  if (days === null) return "UNKNOWN";
+  if (days < 0) return "OVERDUE";
+  if (days === 0) return "TODAY";
+  if (days <= 2) return "CRITICAL";
+  if (days <= 7) return "WARNING";
+  if (days <= 14) return "UPCOMING";
+  return "SAFE";
+};
 
 const ProjectDetails = () => {
   const { id } = useParams();
@@ -191,6 +71,19 @@ const ProjectDetails = () => {
   const [expandedActivities, setExpandedActivities] = useState({});
   const [editingSubActivity, setEditingSubActivity] = useState(null);
   const [editValue, setEditValue] = useState(0);
+  const [showAddSubModal, setShowAddSubModal] = useState(false);
+  const [selectedActivityForSub, setSelectedActivityForSub] = useState(null);
+  const [newSubActivity, setNewSubActivity] = useState({
+    name: "",
+    unit: "Km",
+    plannedQty: 0
+  });
+
+  useEffect(() => {
+    if (project) {
+      console.log("Project loaded:", project);
+    }
+  }, [project]);
 
   if (!project) {
     return (
@@ -198,6 +91,7 @@ const ProjectDetails = () => {
         <div className="text-center">
           <XCircle size={48} className="text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800">Project not found</h2>
+          <p className="text-gray-600 mb-4">Project ID: {id}</p>
           <button
             onClick={() => navigate("/projects")}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -230,16 +124,125 @@ const ProjectDetails = () => {
       subId,
       completedQty: editValue
     }));
+    
+    dispatch(showSnackbar({
+      message: "Progress updated successfully",
+      type: "success"
+    }));
+    
     setEditingSubActivity(null);
     setEditValue(0);
   };
 
+  const handleStatusUpdate = (activityId, subId, status) => {
+    dispatch(updateSubActivityStatus({
+      projectId: project.id,
+      activityId,
+      subId,
+      status
+    }));
+    
+    dispatch(showSnackbar({
+      message: `Status updated to ${status}`,
+      type: "success"
+    }));
+  };
+
+  const handleAddSubActivity = (e) => {
+    e.preventDefault();
+    
+    if (!newSubActivity.name.trim()) {
+      alert("Please enter sub-activity name");
+      return;
+    }
+
+    if (newSubActivity.unit !== "status" && (!newSubActivity.plannedQty || newSubActivity.plannedQty <= 0)) {
+      alert("Please enter planned quantity");
+      return;
+    }
+
+    const activity = project.activities.find(a => a.id === selectedActivityForSub);
+    
+    dispatch(addSubActivity({
+      projectId: project.id,
+      activityId: selectedActivityForSub,
+      subActivity: {
+        name: newSubActivity.name,
+        unit: newSubActivity.unit,
+        plannedQty: newSubActivity.unit !== "status" ? newSubActivity.plannedQty : 1,
+        startDate: activity?.startDate,
+        endDate: activity?.endDate
+      }
+    }));
+
+    dispatch(showSnackbar({
+      message: "Sub-activity added successfully",
+      type: "success"
+    }));
+
+    setShowAddSubModal(false);
+    setNewSubActivity({
+      name: "",
+      unit: "Km",
+      plannedQty: 0
+    });
+  };
+
+  const handleDeleteActivity = (activityId, activityName) => {
+    if (user?.role !== "SUPER_ADMIN") {
+      dispatch(showSnackbar({
+        message: "Only Super Admin can delete activities",
+        type: "error"
+      }));
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete activity "${activityName}"?`)) {
+      dispatch(deleteActivity({
+        projectId: project.id,
+        activityId,
+        userRole: user?.role
+      }));
+
+      dispatch(showSnackbar({
+        message: "Activity deleted successfully",
+        type: "success"
+      }));
+    }
+  };
+
+  const handleDeleteSubActivity = (activityId, subId, subName) => {
+    if (user?.role !== "SUPER_ADMIN") {
+      dispatch(showSnackbar({
+        message: "Only Super Admin can delete sub-activities",
+        type: "error"
+      }));
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete sub-activity "${subName}"?`)) {
+      dispatch(deleteSubActivity({
+        projectId: project.id,
+        activityId,
+        subId,
+        userRole: user?.role
+      }));
+
+      dispatch(showSnackbar({
+        message: "Sub-activity deleted successfully",
+        type: "success"
+      }));
+    }
+  };
+
   const getStatusColor = (status) => {
     switch(status) {
-      case "COMPLETED": return "text-green-600 bg-green-100";
-      case "DELAYED": return "text-red-600 bg-red-100";
-      case "ONGOING": return "text-blue-600 bg-blue-100";
-      default: return "text-gray-600 bg-gray-100";
+      case "COMPLETED": return "bg-green-100 text-green-600 border-green-200";
+      case "ONGOING": return "bg-blue-100 text-blue-600 border-blue-200";
+      case "DELAYED": return "bg-red-100 text-red-600 border-red-200";
+      case "HOLD": return "bg-yellow-100 text-yellow-600 border-yellow-200";
+      case "PENDING": return "bg-gray-100 text-gray-600 border-gray-200";
+      default: return "bg-gray-100 text-gray-600";
     }
   };
 
@@ -263,10 +266,22 @@ const ProjectDetails = () => {
   const calculateDaysLeft = (endDate) => {
     if (!endDate) return null;
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
     const diffTime = end - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const getDeadlineBadge = (endDate) => {
+    const days = calculateDaysLeft(endDate);
+    if (days === null) return null;
+    if (days < 0) return <span className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">Overdue</span>;
+    if (days === 0) return <span className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">Due Today</span>;
+    if (days <= 2) return <span className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full">{days} days left</span>;
+    if (days <= 7) return <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-600 rounded-full">{days} days left</span>;
+    return <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">{days} days left</span>;
   };
 
   return (
@@ -275,42 +290,125 @@ const ProjectDetails = () => {
       animate={{ opacity: 1 }}
       className="max-w-7xl mx-auto space-y-8 px-4 py-6"
     >
-      {/* ===== HEADER ===== */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-800">{project.name}</h1>
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-sm text-gray-500">Code: {project.code}</span>
-            <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-            <span className="text-sm text-gray-500">Short Name: {project.shortName}</span>
+      {/* Add Sub-Activity Modal */}
+      <AnimatePresence>
+        {showAddSubModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowAddSubModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <form onSubmit={handleAddSubActivity}>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold">Add Sub-Activity</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSubModal(false)}
+                    className="p-1 hover:bg-gray-100 rounded-lg"
+                  >
+                    <XCircle size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="Sub-activity name"
+                    value={newSubActivity.name}
+                    onChange={(e) => setNewSubActivity({...newSubActivity, name: e.target.value})}
+                    className="w-full p-3 border rounded-xl"
+                    required
+                  />
+                  
+                  <select
+                    value={newSubActivity.unit}
+                    onChange={(e) => setNewSubActivity({...newSubActivity, unit: e.target.value})}
+                    className="w-full p-3 border rounded-xl"
+                  >
+                    <option value="Km">Kilometer (Km)</option>
+                    <option value="Nos.">Numbers (Nos.)</option>
+                    <option value="Percentage">Percentage (%)</option>
+                    <option value="status">Status Based (Pending/Ongoing/Completed)</option>
+                  </select>
+                  
+                  {newSubActivity.unit !== "status" && (
+                    <input
+                      type="number"
+                      placeholder="Planned quantity"
+                      value={newSubActivity.plannedQty}
+                      onChange={(e) => setNewSubActivity({...newSubActivity, plannedQty: parseFloat(e.target.value)})}
+                      className="w-full p-3 border rounded-xl"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  )}
+                </div>
+                
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSubModal(false)}
+                    className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Add Sub-Activity
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/projects")}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">{project.name}</h1>
+            <p className="text-sm text-gray-500">Code: {project.code} | Short Name: {project.shortName}</p>
           </div>
         </div>
 
         <div className="flex gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={() => navigate(`/projects/${project.id}/logs`)}
-            className="bg-gray-800 text-white px-6 py-3 rounded-xl hover:bg-gray-900 transition-all flex items-center gap-2 shadow-lg"
+            className="bg-gray-800 text-white px-4 py-2 rounded-xl hover:bg-gray-900 transition-all flex items-center gap-2"
           >
-            <ClipboardList size={18} />
+            <FileText size={18} />
             View Logs
-          </motion.button>
+          </button>
 
           {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg"
-            >
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2">
               <Calendar size={18} />
               Extend Deadline
-            </motion.button>
+            </button>
           )}
         </div>
       </div>
 
-      {/* ===== STATUS BANNER ===== */}
+      {/* Status Banner */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -337,7 +435,9 @@ const ProjectDetails = () => {
               }>{project.status}</span>
             </p>
             <p className="text-sm text-gray-600">
-              {project.status === "DELAYED" ? "Project is behind schedule" :
+              {getDeadlineStatus(project.completionDate) === "OVERDUE" ? "Project is overdue" :
+               getDeadlineStatus(project.completionDate) === "TODAY" ? "Project due today!" :
+               getDeadlineStatus(project.completionDate) === "CRITICAL" ? "Project deadline critical" :
                project.status === "COMPLETED" ? "Project completed successfully" :
                "Project is on track"}
             </p>
@@ -346,16 +446,17 @@ const ProjectDetails = () => {
         <div className="text-right">
           <p className="text-sm text-gray-600">Completion Date</p>
           <p className="font-semibold">{formatDate(project.completionDate)}</p>
+          {getDeadlineBadge(project.completionDate)}
         </div>
       </motion.div>
 
-      {/* ===== SUMMARY CARD ===== */}
+      {/* Summary Card */}
       <motion.div
         whileHover={{ scale: 1.01 }}
         className="bg-white shadow-2xl rounded-3xl p-8 border border-gray-100"
       >
         <div className="grid md:grid-cols-2 gap-8">
-          {/* LEFT DETAILS */}
+          {/* Left Details */}
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Building2 size={20} className="text-blue-600" />
@@ -421,7 +522,7 @@ const ProjectDetails = () => {
             </div>
           </div>
 
-          {/* RIGHT PROGRESS */}
+          {/* Right Progress */}
           <div className="border-l border-gray-100 pl-8">
             <h4 className="text-xl font-semibold text-gray-800 mb-6">Progress Overview</h4>
             
@@ -476,12 +577,14 @@ const ProjectDetails = () => {
         </div>
       </motion.div>
 
-      {/* ===== ACTIVITIES SECTION ===== */}
+      {/* Activities Section */}
       <div className="space-y-6">
-        <h3 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-          <ClipboardList size={24} className="text-blue-600" />
-          Activities & Sub-Activities
-        </h3>
+        <div className="flex justify-between items-center">
+          <h3 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+            <ClipboardList size={24} className="text-blue-600" />
+            Activities & Sub-Activities
+          </h3>
+        </div>
 
         {project.activities?.map((activity) => {
           const isExpanded = expandedActivities[activity.id];
@@ -495,21 +598,28 @@ const ProjectDetails = () => {
               className="bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100"
             >
               {/* Activity Header */}
-              <div
-                onClick={() => toggleActivity(activity.id)}
-                className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-              >
+              <div className="p-6 bg-gradient-to-r from-gray-50 to-white">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h4 className="text-lg font-semibold text-gray-800">{activity.name}</h4>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(
-                        activityProgress === 100 ? "COMPLETED" : 
-                        daysLeft < 0 ? "DELAYED" : "ONGOING"
-                      )}`}>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        activityProgress === 100 ? "bg-green-100 text-green-600" : 
+                        daysLeft < 0 ? "bg-red-100 text-red-600" : 
+                        "bg-blue-100 text-blue-600"
+                      }`}>
                         {activityProgress === 100 ? "Completed" : 
                          daysLeft < 0 ? "Delayed" : "Ongoing"}
                       </span>
+                      {user?.role === "SUPER_ADMIN" && (
+                        <button
+                          onClick={() => handleDeleteActivity(activity.id, activity.name)}
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete activity"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
 
                     {/* Activity Dates */}
@@ -522,12 +632,7 @@ const ProjectDetails = () => {
                         <Calendar size={14} />
                         <span>End: {formatDate(activity.endDate)}</span>
                       </div>
-                      {daysLeft !== null && daysLeft > 0 && (
-                        <div className="flex items-center gap-1 text-blue-600">
-                          <Clock size={14} />
-                          <span>{daysLeft} days left</span>
-                        </div>
-                      )}
+                      {getDeadlineBadge(activity.endDate)}
                     </div>
                   </div>
 
@@ -551,7 +656,12 @@ const ProjectDetails = () => {
                       {activity.subActivities?.length || 0} sub-activities
                     </div>
                     
-                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    <button
+                      onClick={() => toggleActivity(activity.id)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -565,108 +675,197 @@ const ProjectDetails = () => {
                     exit={{ height: 0, opacity: 0 }}
                     className="border-t border-gray-100 bg-gray-50"
                   >
-                    <div className="p-6 space-y-4">
-                      {activity.subActivities?.map((sub) => {
-                        const subDaysLeft = calculateDaysLeft(sub.endDate);
-                        const isEditing = editingSubActivity === sub.id;
-                        
-                        return (
-                          <div
-                            key={sub.id}
-                            className="bg-white p-4 rounded-xl shadow-sm border border-gray-100"
-                          >
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                              {/* Sub Activity Info */}
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h5 className="font-medium text-gray-800">{sub.name}</h5>
-                                  <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                    {sub.unit}
-                                  </span>
-                                  <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(sub.status || "PENDING")}`}>
-                                    {sub.status || "PENDING"}
-                                  </span>
-                                </div>
+                    <div className="p-6">
+                      {/* Add Sub-Activity Button */}
+                      <div className="mb-4 flex justify-end">
+                        <button
+                          onClick={() => {
+                            setSelectedActivityForSub(activity.id);
+                            setShowAddSubModal(true);
+                          }}
+                          className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-1"
+                        >
+                          <Plus size={16} />
+                          Add Sub-Activity
+                        </button>
+                      </div>
 
-                                {/* Sub Activity Dates */}
-                                <div className="flex items-center gap-3 text-xs text-gray-500">
-                                  <span>Start: {formatDate(sub.startDate)}</span>
-                                  <span>End: {formatDate(sub.endDate)}</span>
-                                  {subDaysLeft !== null && subDaysLeft > 0 && sub.status !== "COMPLETED" && (
-                                    <span className="text-blue-600">{subDaysLeft} days left</span>
+                      {/* Sub Activities List */}
+                      <div className="space-y-4">
+                        {activity.subActivities?.map((sub) => {
+                          const subDaysLeft = calculateDaysLeft(sub.endDate);
+                          const isEditing = editingSubActivity === sub.id;
+                          
+                          return (
+                            <div
+                              key={sub.id}
+                              className="bg-white p-4 rounded-xl shadow-sm border border-gray-100"
+                            >
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                {/* Sub Activity Info */}
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                    <h5 className="font-medium text-gray-800">{sub.name}</h5>
+                                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                      {sub.unit === "status" ? "Status Based" : sub.unit}
+                                    </span>
+                                    
+                                    {/* Status Dropdown for status-based items */}
+                                    {sub.unit === "status" ? (
+                                      <select
+                                        value={sub.status || "PENDING"}
+                                        onChange={(e) => {
+                                          dispatch(updateSubActivityStatus({
+                                            projectId: project.id,
+                                            activityId: activity.id,
+                                            subId: sub.id,
+                                            status: e.target.value
+                                          }));
+                                          dispatch(showSnackbar({
+                                            message: `${sub.name} status updated to ${e.target.value}`,
+                                            type: "success"
+                                          }));
+                                        }}
+                                        className={`text-xs px-2 py-1 rounded-full border font-semibold ${getStatusColor(sub.status)}`}
+                                      >
+                                        <option value="PENDING">Pending</option>
+                                        <option value="ONGOING">Ongoing</option>
+                                        <option value="COMPLETED">Completed</option>
+                                        <option value="DELAYED">Delayed</option>
+                                        <option value="HOLD">On Hold</option>
+                                      </select>
+                                    ) : (
+                                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(sub.status)}`}>
+                                        {sub.status || "PENDING"}
+                                      </span>
+                                    )}
+
+                                    {user?.role === "SUPER_ADMIN" && (
+                                      <button
+                                        onClick={() => handleDeleteSubActivity(activity.id, sub.id, sub.name)}
+                                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Delete sub-activity"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Sub Activity Dates */}
+                                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                                    <span>Start: {formatDate(sub.startDate)}</span>
+                                    <span>End: {formatDate(sub.endDate)}</span>
+                                    {subDaysLeft !== null && subDaysLeft > 0 && sub.status !== "COMPLETED" && (
+                                      <span className={`${
+                                        subDaysLeft <= 2 ? "text-red-600 font-semibold" : 
+                                        subDaysLeft <= 7 ? "text-yellow-600" : "text-blue-600"
+                                      }`}>
+                                        {subDaysLeft} days left
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Quantity Info - Only show for non-status units */}
+                                  {sub.unit !== "status" && (
+                                    <div className="mt-2 text-sm">
+                                      <span className="text-gray-600">Planned: {sub.plannedQty} {sub.unit}</span>
+                                      <span className="mx-2">|</span>
+                                      <span className="text-gray-600">Completed: {sub.completedQty || 0} {sub.unit}</span>
+                                    </div>
                                   )}
                                 </div>
 
-                                {/* Quantity Info */}
-                                <div className="mt-2 text-sm">
-                                  <span className="text-gray-600">Planned: {sub.plannedQty} {sub.unit}</span>
-                                  <span className="mx-2">|</span>
-                                  <span className="text-gray-600">Completed: {sub.completedQty || 0} {sub.unit}</span>
-                                </div>
-                              </div>
+                                {/* Progress and Edit */}
+                                <div className="flex items-center gap-4">
+                                  {/* Progress Bar */}
+                                  <div className="w-32">
+                                    <div className="flex justify-between text-xs mb-1">
+                                      <span>Progress</span>
+                                      <span className="font-bold">{sub.progress || 0}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${sub.progress || 0}%` }}
+                                        className={`h-2 rounded-full ${
+                                          sub.progress === 100 ? "bg-green-500" :
+                                          sub.progress >= 75 ? "bg-blue-500" :
+                                          sub.progress >= 50 ? "bg-yellow-500" :
+                                          sub.progress >= 25 ? "bg-orange-500" :
+                                          "bg-red-500"
+                                        }`}
+                                      />
+                                    </div>
+                                  </div>
 
-                              {/* Progress and Edit */}
-                              <div className="flex items-center gap-4">
-                                {/* Progress Bar */}
-                                <div className="w-32">
-                                  <div className="flex justify-between text-xs mb-1">
-                                    <span>Progress</span>
-                                    <span className="font-bold">{sub.progress || 0}%</span>
-                                  </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <motion.div
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${sub.progress || 0}%` }}
-                                      className={`h-2 rounded-full ${getProgressColor(sub.progress || 0)}`}
-                                    />
-                                  </div>
+                                  {/* Edit Button or Input */}
+                                  {isEditing ? (
+                                    <div className="flex items-center gap-2">
+                                      {sub.unit !== "status" ? (
+                                        <input
+                                          type="number"
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(parseFloat(e.target.value) || 0)}
+                                          className="w-20 px-2 py-1 border rounded text-sm"
+                                          min="0"
+                                          max={sub.plannedQty}
+                                          step="0.01"
+                                          autoFocus
+                                        />
+                                      ) : (
+                                        <select
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          className="w-24 px-2 py-1 border rounded text-sm"
+                                          autoFocus
+                                        >
+                                          <option value="PENDING">Pending</option>
+                                          <option value="ONGOING">Ongoing</option>
+                                          <option value="COMPLETED">Completed</option>
+                                          <option value="DELAYED">Delayed</option>
+                                          <option value="HOLD">Hold</option>
+                                        </select>
+                                      )}
+                                      <button
+                                        onClick={() => {
+                                          if (sub.unit !== "status") {
+                                            handleProgressUpdate(activity.id, sub.id, sub.plannedQty);
+                                          } else {
+                                            handleStatusUpdate(activity.id, sub.id, editValue);
+                                            setEditingSubActivity(null);
+                                          }
+                                        }}
+                                        className="p-1 bg-green-500 text-white rounded hover:bg-green-600"
+                                        title="Save"
+                                      >
+                                        <Save size={16} />
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingSubActivity(null)}
+                                        className="p-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                                        title="Cancel"
+                                      >
+                                        <XCircle size={16} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setEditingSubActivity(sub.id);
+                                        setEditValue(sub.unit !== "status" ? sub.completedQty || 0 : sub.status || "PENDING");
+                                      }}
+                                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                      title="Update Progress"
+                                    >
+                                      <PenLine size={18} />
+                                    </button>
+                                  )}
                                 </div>
-
-                                {/* Edit Button or Input */}
-                                {isEditing ? (
-                                  <div className="flex items-center gap-2">
-                                    <input
-                                      type="number"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(parseFloat(e.target.value) || 0)}
-                                      className="w-20 px-2 py-1 border rounded text-sm"
-                                      min="0"
-                                      max={sub.plannedQty}
-                                      step="0.01"
-                                      autoFocus
-                                    />
-                                    <button
-                                      onClick={() => handleProgressUpdate(activity.id, sub.id, sub.plannedQty)}
-                                      className="p-1 bg-green-500 text-white rounded hover:bg-green-600"
-                                      title="Save"
-                                    >
-                                      <Save size={16} />
-                                    </button>
-                                    <button
-                                      onClick={() => setEditingSubActivity(null)}
-                                      className="p-1 bg-gray-500 text-white rounded hover:bg-gray-600"
-                                      title="Cancel"
-                                    >
-                                      <XCircle size={16} />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => {
-                                      setEditingSubActivity(sub.id);
-                                      setEditValue(sub.completedQty || 0);
-                                    }}
-                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                    title="Update Progress"
-                                  >
-                                    <PenLine size={18} />
-                                  </button>
-                                )}
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   </motion.div>
                 )}
