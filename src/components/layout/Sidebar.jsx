@@ -822,11 +822,11 @@ const Sidebar = () => {
                 className="flex items-center gap-2 min-w-0"
               >
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shrink-0">
-                  <span className="text-white font-bold text-lg">CT</span>
+                  <span className="text-white font-bold text-lg">DD</span>
                 </div>
                 <div className="min-w-0">
                   <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent block leading-tight">
-                    CivilTrack
+                    Detailed Design
                   </span>
                   <span className="block text-xs text-gray-400">Enterprise Suite</span>
                 </div>
@@ -837,7 +837,7 @@ const Sidebar = () => {
                 animate={{ scale: 1 }}
                 className="w-10 h-10 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center"
               >
-                <span className="text-white font-bold text-lg">CT</span>
+                <span className="text-white font-bold text-lg">DD</span>
               </motion.div>
             )}
 

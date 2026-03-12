@@ -97,7 +97,7 @@ const Login = () => {
         className="bg-white p-8 rounded-xl shadow-lg w-96"
       >
         <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          CivilTrack Login
+          Detailed Design Login
         </h2>
 
         <div className="space-y-4">
