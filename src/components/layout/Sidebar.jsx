@@ -355,20 +355,38 @@ const Sidebar = () => {
             )}
 
             {!isMobile && (
+              // <button
+              //   onClick={() => dispatch(toggleDesktopCollapse())}
+              //   className="
+              //     absolute top-1/2 -translate-y-1/2
+              //     right-2
+              //     w-8 h-8 rounded-full
+              //     bg-gray-700 hover:bg-gray-600
+              //     border border-gray-600
+              //     flex items-center justify-center
+              //     text-white shadow-lg
+              //     transition-all duration-200
+              //     z-30
+              //   "
+              // >
               <button
-                onClick={() => dispatch(toggleDesktopCollapse())}
-                className="
-                  absolute top-1/2 -translate-y-1/2
-                  right-2
-                  w-8 h-8 rounded-full
-                  bg-gray-700 hover:bg-gray-600
-                  border border-gray-600
-                  flex items-center justify-center
-                  text-white shadow-lg
-                  transition-all duration-200
-                  z-30
-                "
-              >
+  onClick={() => dispatch(toggleDesktopCollapse())}
+  className="
+    absolute
+    top-1/2
+    -right-4
+    -translate-y-1/2
+    w-8
+    h-8
+    rounded-full
+    bg-gray-700 hover:bg-gray-600
+    border border-gray-600
+    flex items-center justify-center
+    text-white
+    shadow-lg
+    z-50
+  "
+>
                 {desktopCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
               </button>
             )}
@@ -594,3 +612,293 @@ const MenuItem = ({
 };
 
 export default Sidebar;
+
+
+// import { NavLink, useLocation } from "react-router-dom";
+// import { useDispatch, useSelector } from "react-redux";
+// import { closeSidebar, toggleDesktopCollapse } from "../../features/ui/uiSlice";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { useState, useEffect } from "react";
+
+// import {
+//   LayoutDashboard,
+//   FolderKanban,
+//   ClipboardList,
+//   FileClock,
+//   ChevronLeft,
+//   ChevronRight,
+//   Settings,
+//   TrendingUp,
+//   UserCog,
+//   Shield,
+//   HardHat,
+//   Truck,
+//   Wrench,
+// } from "lucide-react";
+
+// const Sidebar = () => {
+//   const dispatch = useDispatch();
+//   const location = useLocation();
+
+//   const { sidebarOpen, desktopCollapsed } = useSelector((state) => state.ui);
+//   const { user } = useSelector((state) => state.auth);
+
+//   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+//   useEffect(() => {
+//     const handleResize = () => setIsMobile(window.innerWidth < 768);
+
+//     window.addEventListener("resize", handleResize);
+//     return () => window.removeEventListener("resize", handleResize);
+//   }, []);
+
+//   useEffect(() => {
+//     if (isMobile) dispatch(closeSidebar());
+//   }, [location]);
+
+//   const menuItems = [
+//     {
+//       name: "Dashboard",
+//       icon: LayoutDashboard,
+//       path: "/dashboard",
+//       roles: ["SUPER_ADMIN", "ADMIN", "USER"],
+//     },
+//     {
+//       name: "Projects",
+//       icon: FolderKanban,
+//       path: "/projects",
+//       roles: ["SUPER_ADMIN", "ADMIN", "USER"],
+//     },
+//     {
+//       name: "Daily Logs",
+//       icon: ClipboardList,
+//       path: "/daily-logs",
+//       roles: ["SUPER_ADMIN", "ADMIN", "USER"],
+//     },
+//     {
+//       name: "Contractors",
+//       icon: HardHat,
+//       path: "/contractors",
+//       roles: ["SUPER_ADMIN", "ADMIN"],
+//     },
+//     {
+//       name: "Extensions",
+//       icon: FileClock,
+//       path: "/extensions",
+//       roles: ["SUPER_ADMIN", "ADMIN"],
+//     },
+//     {
+//       name: "Equipment",
+//       icon: Wrench,
+//       path: "/equipment",
+//       roles: ["SUPER_ADMIN", "ADMIN"],
+//     },
+//     {
+//       name: "Materials",
+//       icon: Truck,
+//       path: "/materials",
+//       roles: ["SUPER_ADMIN", "ADMIN"],
+//     },
+//     {
+//       name: "Analytics",
+//       icon: TrendingUp,
+//       path: "/analytics",
+//       roles: ["SUPER_ADMIN"],
+//     },
+//     {
+//       name: "User Management",
+//       icon: UserCog,
+//       path: "/users",
+//       roles: ["SUPER_ADMIN"],
+//     },
+//     {
+//       name: "Settings",
+//       icon: Settings,
+//       path: "/settings",
+//       roles: ["SUPER_ADMIN"],
+//     },
+//   ];
+
+//   const filteredMenu = menuItems.filter((i) => i.roles.includes(user?.role));
+
+//   const getWidth = () => {
+//     if (isMobile) return 280;
+//     return desktopCollapsed ? 88 : 280;
+//   };
+
+//   return (
+//     <>
+//       {/* Mobile overlay */}
+//       {sidebarOpen && isMobile && (
+//         <div
+//           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+//           onClick={() => dispatch(closeSidebar())}
+//         />
+//       )}
+
+//       <motion.aside
+//         animate={{
+//           width: getWidth(),
+//           x: isMobile ? (sidebarOpen ? 0 : -280) : 0,
+//         }}
+//         transition={{ type: "spring", damping: 18 }}
+//         className="fixed top-0 left-0 h-full z-50
+//         bg-gradient-to-b from-gray-900 to-gray-800
+//         text-white shadow-2xl"
+//       >
+//         <div className="h-full flex flex-col">
+
+//           {/* HEADER */}
+//           <div className="relative flex items-center justify-center h-20 border-b border-gray-700">
+
+//             {!desktopCollapsed || isMobile ? (
+//               <div className="flex items-center gap-2">
+//                 <div className="w-9 h-9 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center font-bold">
+//                   CT
+//                 </div>
+
+//                 <div>
+//                   <p className="font-bold text-lg">CivilTrack</p>
+//                   <p className="text-xs text-gray-400">
+//                     Enterprise Suite
+//                   </p>
+//                 </div>
+//               </div>
+//             ) : (
+//               <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center font-bold">
+//                 CT
+//               </div>
+//             )}
+
+//             {/* collapse button */}
+//             {!isMobile && (
+//               <button
+//                 onClick={() => dispatch(toggleDesktopCollapse())}
+//                 className="absolute -right-4 top-1/2 -translate-y-1/2
+//                 w-8 h-8 rounded-full
+//                 bg-gray-700 hover:bg-gray-600
+//                 border border-gray-600
+//                 flex items-center justify-center
+//                 shadow-lg z-50"
+//               >
+//                 {desktopCollapsed ? (
+//                   <ChevronRight size={16} />
+//                 ) : (
+//                   <ChevronLeft size={16} />
+//                 )}
+//               </button>
+//             )}
+//           </div>
+
+//           {/* NAVIGATION */}
+//           <nav className="flex-1 px-3 py-6 space-y-2 overflow-visible">
+
+//             {filteredMenu.map((item) => (
+//               <MenuItem
+//                 key={item.name}
+//                 item={item}
+//                 collapsed={desktopCollapsed && !isMobile}
+//               />
+//             ))}
+
+//           </nav>
+
+//           {/* USER */}
+//           <div className="border-t border-gray-700 p-4">
+
+//             {!desktopCollapsed ? (
+//               <div className="flex items-center gap-3">
+//                 <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center font-bold">
+//                   {user?.name?.charAt(0)}
+//                 </div>
+
+//                 <div>
+//                   <p className="text-sm font-semibold">{user?.name}</p>
+//                   <p className="text-xs text-gray-400 flex items-center gap-1">
+//                     <Shield size={12} /> {user?.role}
+//                   </p>
+//                 </div>
+//               </div>
+//             ) : (
+//               <div className="flex justify-center">
+//                 <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center font-bold">
+//                   {user?.name?.charAt(0)}
+//                 </div>
+//               </div>
+//             )}
+
+//           </div>
+//         </div>
+//       </motion.aside>
+//     </>
+//   );
+// };
+
+// const MenuItem = ({ item, collapsed }) => {
+//   const Icon = item.icon;
+//   const location = useLocation();
+//   const [showTooltip, setShowTooltip] = useState(false);
+
+//   const active =
+//     location.pathname === item.path ||
+//     location.pathname.startsWith(item.path);
+
+//   return (
+//     <NavLink to={item.path}>
+//       <div
+//         onMouseEnter={() => setShowTooltip(true)}
+//         onMouseLeave={() => setShowTooltip(false)}
+//         className="relative"
+//       >
+//         <motion.div
+//           whileHover={{ scale: 1.03 }}
+//           whileTap={{ scale: 0.97 }}
+//           className={`flex items-center
+//           ${collapsed ? "justify-center" : "gap-3"}
+//           px-3 py-2.5 rounded-xl
+//           cursor-pointer transition-all
+
+//           ${
+//             active
+//               ? "bg-gradient-to-r from-blue-600 to-purple-600"
+//               : "hover:bg-gray-700/60"
+//           }`}
+//         >
+//           <Icon
+//             size={collapsed ? 22 : 20}
+//             className="transition-transform group-hover:scale-110"
+//           />
+
+//           {!collapsed && (
+//             <span className="text-sm font-medium">
+//               {item.name}
+//             </span>
+//           )}
+//         </motion.div>
+
+//         {/* Tooltip when collapsed */}
+//         <AnimatePresence>
+//           {collapsed && showTooltip && (
+//             <motion.div
+//               initial={{ opacity: 0, x: 10 }}
+//               animate={{ opacity: 1, x: 0 }}
+//               exit={{ opacity: 0, x: 10 }}
+//               className="fixed px-3 py-2
+//               bg-gray-900 text-white text-sm
+//               rounded-lg shadow-xl whitespace-nowrap
+//               pointer-events-none z-[9999]"
+//               style={{
+//                 left: 95,
+//                 top: "auto",
+//               }}
+//             >
+//               {item.name}
+//             </motion.div>
+//           )}
+//         </AnimatePresence>
+//       </div>
+//     </NavLink>
+//   );
+// };
+
+// export default Sidebar;

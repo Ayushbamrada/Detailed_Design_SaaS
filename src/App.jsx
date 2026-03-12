@@ -26,15 +26,18 @@
 // }
 
 // export default App;
-
 import AppRoutes from "./app/routes";
 import Snackbar from "./features/notifications/Snackbar";
 import NotificationManager from "./components/NotificationManager";
+import { useSelector } from "react-redux";
 
 function App() {
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
   return (
     <>
-      <NotificationManager />
+      {/* Only show NotificationManager when authenticated */}
+      {isAuthenticated && <NotificationManager />}
       <AppRoutes />
       <Snackbar />
     </>
