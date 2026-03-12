@@ -23,8 +23,12 @@ const initialState = {
       completionDate: "2026-01-10",
       directorProposalDate: "2026-01-15",
       projectConfirmationDate: "2026-02-01",
+      assignedUsers: ["1"], // User IDs who have access to this project
       extensionRequested: false,
       newRequestedDeadline: null,
+      extensionReason: null,
+      extensionDocuments: [],
+      extensionHistory: [],
       activities: [
         {
           id: "a1",
@@ -42,8 +46,7 @@ const initialState = {
               progress: 100,
               startDate: "2026-01-01",
               endDate: "2026-01-15",
-              status: "COMPLETED",
-              statusType: "status"
+              status: "COMPLETED"
             }
           ]
         },
@@ -81,7 +84,8 @@ const initialState = {
       ],
       dailyLogs: []
     }
-  ]
+  ],
+  extensionRequests: []
 };
 
 /* ================= PROGRESS CALCULATIONS ================= */
@@ -155,17 +159,21 @@ const projectSlice = createSlice({
       state.projects.push({
         ...newProject,
         id: newId,
+        assignedUsers: newProject.assignedUsers || [],
         status: projectProgress === 100 ? "COMPLETED" : "ONGOING",
         progress: projectProgress,
         extensionRequested: false,
         newRequestedDeadline: null,
+        extensionReason: null,
+        extensionDocuments: [],
+        extensionHistory: [],
         dailyLogs: []
       });
     },
 
     /* -------- Update Sub Activity Progress -------- */
     updateSubActivityProgress: (state, action) => {
-      const { projectId, activityId, subId, completedQty, status } = action.payload;
+      const { projectId, activityId, subId, completedQty } = action.payload;
 
       const project = state.projects.find(p => p.id === projectId);
       if (!project) return;
@@ -176,13 +184,14 @@ const projectSlice = createSlice({
       const sub = activity.subActivities.find(s => s.id === subId);
       if (!sub) return;
 
-      if (sub.unit === "status") {
-        if (status) sub.status = status;
-      } else {
-        if (completedQty !== undefined) sub.completedQty = completedQty;
-      }
-      
+      sub.completedQty = completedQty;
       sub.progress = calculateSubActivityProgress(sub);
+      
+      if (sub.progress === 100) {
+        sub.status = "COMPLETED";
+      } else if (sub.progress > 0) {
+        sub.status = "ONGOING";
+      }
       
       activity.progress = calculateActivityProgress(activity);
       project.progress = calculateProjectProgress(project.activities);
@@ -207,10 +216,15 @@ const projectSlice = createSlice({
       
       if (sub.unit === "status") {
         sub.progress = calculateSubActivityProgress(sub);
+        if (status === "COMPLETED") {
+          sub.completedQty = sub.plannedQty;
+        }
       }
 
       activity.progress = calculateActivityProgress(activity);
       project.progress = calculateProjectProgress(project.activities);
+      
+      checkDelayStatus(project);
       
       // Add to daily logs
       project.dailyLogs = project.dailyLogs || [];
@@ -220,6 +234,177 @@ const projectSlice = createSlice({
         date: new Date().toISOString().split('T')[0],
         description: `${sub.name} status updated to ${status}`,
         user: "System"
+      });
+    },
+
+    /* -------- Request Extension -------- */
+    requestExtension: (state, action) => {
+      const { projectId, newDeadline, reason, documents, requestedBy } = action.payload;
+
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      // Create extension request
+      const extensionRequest = {
+        id: `ext_${Date.now()}`,
+        projectId,
+        projectName: project.name,
+        currentDeadline: project.completionDate,
+        requestedDeadline: newDeadline,
+        reason,
+        documents: documents || [],
+        requestedBy,
+        requestedByRole: requestedBy.role,
+        status: "PENDING",
+        createdAt: new Date().toISOString(),
+        comments: []
+      };
+
+      // Add to extension requests list
+      state.extensionRequests = state.extensionRequests || [];
+      state.extensionRequests.push(extensionRequest);
+
+      // Update project
+      project.extensionRequested = true;
+      project.newRequestedDeadline = newDeadline;
+      project.extensionReason = reason;
+      project.extensionDocuments = documents || [];
+      
+      // Add to extension history
+      project.extensionHistory = project.extensionHistory || [];
+      project.extensionHistory.push({
+        id: `hist_${Date.now()}`,
+        type: "REQUESTED",
+        oldDeadline: project.completionDate,
+        newDeadline,
+        reason,
+        requestedBy: requestedBy.name,
+        date: new Date().toISOString(),
+        status: "PENDING"
+      });
+      
+      // Add to daily logs
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "EXTENSION_REQUESTED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Extension requested from ${project.completionDate} to ${newDeadline}. Reason: ${reason}`,
+        user: requestedBy.name
+      });
+    },
+
+    /* -------- Approve Extension -------- */
+    approveExtension: (state, action) => {
+      const { requestId, approvedBy, comments } = action.payload;
+
+      const requestIndex = state.extensionRequests?.findIndex(r => r.id === requestId);
+      if (requestIndex === -1 || !requestIndex) return;
+
+      const request = state.extensionRequests[requestIndex];
+      const project = state.projects.find(p => p.id === request.projectId);
+      if (!project) return;
+
+      // Update request status
+      state.extensionRequests[requestIndex].status = "APPROVED";
+      state.extensionRequests[requestIndex].approvedBy = approvedBy;
+      state.extensionRequests[requestIndex].approvedAt = new Date().toISOString();
+      state.extensionRequests[requestIndex].comments = comments || [];
+
+      // Update project
+      const oldDeadline = project.completionDate;
+      project.completionDate = request.requestedDeadline;
+      project.extensionRequested = false;
+      project.newRequestedDeadline = null;
+      project.extensionReason = null;
+      
+      // Add to extension history
+      project.extensionHistory = project.extensionHistory || [];
+      project.extensionHistory.push({
+        id: `hist_${Date.now()}`,
+        type: "APPROVED",
+        oldDeadline,
+        newDeadline: request.requestedDeadline,
+        approvedBy: approvedBy.name,
+        date: new Date().toISOString(),
+        comments
+      });
+      
+      // Add to daily logs
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "EXTENSION_APPROVED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Extension approved from ${oldDeadline} to ${request.requestedDeadline}`,
+        user: approvedBy.name
+      });
+      
+      checkDelayStatus(project);
+    },
+
+    /* -------- Reject Extension -------- */
+    rejectExtension: (state, action) => {
+      const { requestId, rejectedBy, reason } = action.payload;
+
+      const requestIndex = state.extensionRequests?.findIndex(r => r.id === requestId);
+      if (requestIndex === -1 || !requestIndex) return;
+
+      const request = state.extensionRequests[requestIndex];
+      const project = state.projects.find(p => p.id === request.projectId);
+      if (!project) return;
+
+      // Update request status
+      state.extensionRequests[requestIndex].status = "REJECTED";
+      state.extensionRequests[requestIndex].rejectedBy = rejectedBy;
+      state.extensionRequests[requestIndex].rejectedAt = new Date().toISOString();
+      state.extensionRequests[requestIndex].rejectionReason = reason;
+
+      // Update project
+      project.extensionRequested = false;
+      project.newRequestedDeadline = null;
+      project.extensionReason = null;
+      
+      // Add to extension history
+      project.extensionHistory = project.extensionHistory || [];
+      project.extensionHistory.push({
+        id: `hist_${Date.now()}`,
+        type: "REJECTED",
+        requestedDeadline: request.requestedDeadline,
+        rejectedBy: rejectedBy.name,
+        reason,
+        date: new Date().toISOString()
+      });
+      
+      // Add to daily logs
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "EXTENSION_REJECTED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Extension request rejected. Reason: ${reason}`,
+        user: rejectedBy.name
+      });
+    },
+
+    /* -------- Delete Extension (Admin/Super Admin only) -------- */
+    deleteExtension: (state, action) => {
+      const { projectId, historyId, deletedBy } = action.payload;
+
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      // Remove from extension history
+      project.extensionHistory = project.extensionHistory.filter(h => h.id !== historyId);
+      
+      // Add to daily logs
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "EXTENSION_DELETED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Extension record deleted by ${deletedBy.name}`,
+        user: deletedBy.name
       });
     },
 
@@ -236,45 +421,17 @@ const projectSlice = createSlice({
       if (startDate !== undefined) activity.startDate = startDate;
       if (endDate !== undefined) activity.endDate = endDate;
       
-      // Update all sub-activity dates to match
       activity.subActivities.forEach(sub => {
         if (startDate !== undefined) sub.startDate = startDate;
         if (endDate !== undefined) sub.endDate = endDate;
       });
       
-      // Add to daily logs
       project.dailyLogs = project.dailyLogs || [];
       project.dailyLogs.push({
         id: `log_${Date.now()}`,
         type: "DATE_UPDATE",
         date: new Date().toISOString().split('T')[0],
         description: `Updated dates for ${activity.name}`,
-        user: "System"
-      });
-    },
-
-    /* -------- Update Sub Activity Dates -------- */
-    updateSubActivityDates: (state, action) => {
-      const { projectId, activityId, subId, startDate, endDate } = action.payload;
-
-      const project = state.projects.find(p => p.id === projectId);
-      if (!project) return;
-
-      const activity = project.activities.find(a => a.id === activityId);
-      if (!activity) return;
-
-      const sub = activity.subActivities.find(s => s.id === subId);
-      if (!sub) return;
-
-      if (startDate !== undefined) sub.startDate = startDate;
-      if (endDate !== undefined) sub.endDate = endDate;
-      
-      project.dailyLogs = project.dailyLogs || [];
-      project.dailyLogs.push({
-        id: `log_${Date.now()}`,
-        type: "DATE_UPDATE",
-        date: new Date().toISOString().split('T')[0],
-        description: `Updated dates for ${sub.name}`,
         user: "System"
       });
     },
@@ -291,18 +448,28 @@ const projectSlice = createSlice({
 
       const newSubId = `s${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       
-      activity.subActivities.push({
+      const newSub = {
         id: newSubId,
-        ...subActivity,
-        completedQty: subActivity.unit === "status" ? 0 : (subActivity.completedQty || 0),
+        name: subActivity.name,
+        unit: subActivity.unit,
+        plannedQty: subActivity.unit !== "status" ? subActivity.plannedQty : 1,
+        completedQty: 0,
         progress: 0,
-        status: "PENDING",
         startDate: subActivity.startDate || activity.startDate,
-        endDate: subActivity.endDate || activity.endDate
-      });
+        endDate: subActivity.endDate || activity.endDate,
+        status: "PENDING"
+      };
+
+      if (!activity.subActivities) {
+        activity.subActivities = [];
+      }
+
+      activity.subActivities.push(newSub);
 
       activity.progress = calculateActivityProgress(activity);
       project.progress = calculateProjectProgress(project.activities);
+      
+      checkDelayStatus(project);
       
       project.dailyLogs = project.dailyLogs || [];
       project.dailyLogs.push({
@@ -316,9 +483,7 @@ const projectSlice = createSlice({
 
     /* -------- Delete Activity -------- */
     deleteActivity: (state, action) => {
-      const { projectId, activityId, userRole } = action.payload;
-      
-      if (userRole !== "SUPER_ADMIN") return;
+      const { projectId, activityId } = action.payload;
 
       const project = state.projects.find(p => p.id === projectId);
       if (!project) return;
@@ -329,21 +494,21 @@ const projectSlice = createSlice({
       project.activities = project.activities.filter(a => a.id !== activityId);
       project.progress = calculateProjectProgress(project.activities);
       
+      checkDelayStatus(project);
+      
       project.dailyLogs = project.dailyLogs || [];
       project.dailyLogs.push({
         id: `log_${Date.now()}`,
         type: "ACTIVITY_DELETED",
         date: new Date().toISOString().split('T')[0],
         description: `Deleted activity: ${activity.name}`,
-        user: "SUPER_ADMIN"
+        user: "System"
       });
     },
 
     /* -------- Delete Sub Activity -------- */
     deleteSubActivity: (state, action) => {
-      const { projectId, activityId, subId, userRole } = action.payload;
-      
-      if (userRole !== "SUPER_ADMIN") return;
+      const { projectId, activityId, subId } = action.payload;
 
       const project = state.projects.find(p => p.id === projectId);
       if (!project) return;
@@ -358,13 +523,15 @@ const projectSlice = createSlice({
       activity.progress = calculateActivityProgress(activity);
       project.progress = calculateProjectProgress(project.activities);
       
+      checkDelayStatus(project);
+      
       project.dailyLogs = project.dailyLogs || [];
       project.dailyLogs.push({
         id: `log_${Date.now()}`,
         type: "SUBACTIVITY_DELETED",
         date: new Date().toISOString().split('T')[0],
         description: `Deleted sub-activity: ${sub.name} from ${activity.name}`,
-        user: "SUPER_ADMIN"
+        user: "System"
       });
     },
 
@@ -375,7 +542,10 @@ const projectSlice = createSlice({
       const project = state.projects.find(p => p.id === projectId);
       if (!project) return;
 
-      project.dailyLogs = project.dailyLogs || [];
+      if (!project.dailyLogs) {
+        project.dailyLogs = [];
+      }
+
       project.dailyLogs.push({
         ...log,
         id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -383,74 +553,6 @@ const projectSlice = createSlice({
       });
 
       checkDelayStatus(project);
-    },
-
-    /* -------- Request Extension -------- */
-    requestExtension: (state, action) => {
-      const { projectId, newDeadline, reason } = action.payload;
-
-      const project = state.projects.find(p => p.id === projectId);
-
-      if (project) {
-        project.extensionRequested = true;
-        project.newRequestedDeadline = newDeadline;
-        project.extensionReason = reason;
-        
-        project.dailyLogs = project.dailyLogs || [];
-        project.dailyLogs.push({
-          id: `log_${Date.now()}`,
-          type: "EXTENSION_REQUEST",
-          date: new Date().toISOString().split('T')[0],
-          description: `Extension requested to ${newDeadline}. Reason: ${reason}`,
-          user: "System"
-        });
-      }
-    },
-
-    /* -------- Approve Extension -------- */
-    approveExtension: (state, action) => {
-      const { projectId, approvedBy } = action.payload;
-      const project = state.projects.find(p => p.id === projectId);
-
-      if (project && project.newRequestedDeadline) {
-        const oldDeadline = project.completionDate;
-        project.completionDate = project.newRequestedDeadline;
-        project.extensionRequested = false;
-        project.newRequestedDeadline = null;
-        project.extensionReason = null;
-        
-        project.dailyLogs = project.dailyLogs || [];
-        project.dailyLogs.push({
-          id: `log_${Date.now()}`,
-          type: "EXTENSION_APPROVED",
-          date: new Date().toISOString().split('T')[0],
-          description: `Extension approved from ${oldDeadline} to ${project.completionDate}`,
-          user: approvedBy
-        });
-        
-        checkDelayStatus(project);
-      }
-    },
-
-    /* -------- Reject Extension -------- */
-    rejectExtension: (state, action) => {
-      const { projectId, rejectedBy, reason } = action.payload;
-      const project = state.projects.find(p => p.id === projectId);
-
-      if (project) {
-        project.extensionRequested = false;
-        project.newRequestedDeadline = null;
-        project.extensionReason = null;
-        
-        project.dailyLogs = project.dailyLogs || [];
-        project.dailyLogs.push({
-          id: `log_${Date.now()}`,
-          type: "EXTENSION_REJECTED",
-          date: new Date().toISOString().split('T')[0],
-          description: `Extension rejected. Reason: ${reason}`,
-          user: rejectedBy
-        });
-      }
     }
   }
 });
@@ -467,7 +569,8 @@ export const {
   addDailyLog,
   requestExtension,
   approveExtension,
-  rejectExtension
+  rejectExtension,
+  deleteExtension
 } = projectSlice.actions;
 
 export default projectSlice.reducer;

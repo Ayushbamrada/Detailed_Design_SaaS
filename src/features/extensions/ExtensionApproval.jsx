@@ -1,45 +1,337 @@
+import { useSelector, useDispatch } from "react-redux";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  FileText,
+  Download,
+  Calendar,
+  User,
+  MessageCircle,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle
+} from "lucide-react";
+import { approveExtension, rejectExtension } from "../projects/projectSlice";
+import { showSnackbar } from "../notifications/notificationSlice";
+
 const ExtensionApproval = () => {
-  const requests = [
-    {
-      project: "State Road Widening",
-      requestedDate: "2026-03-15",
-      reason: "Rain Delay",
-    },
-  ];
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { extensionRequests = [], projects } = useSelector((state) => state.projects);
+  
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [approvalComments, setApprovalComments] = useState("");
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [expandedRequest, setExpandedRequest] = useState(null);
+
+  // Filter requests based on user role
+  const filteredRequests = extensionRequests.filter(req => {
+    if (user?.role === "SUPER_ADMIN") return true;
+    if (user?.role === "ADMIN") return true;
+    return false; // Users don't see approval page
+  });
+
+  const handleApprove = (request) => {
+    dispatch(approveExtension({
+      requestId: request.id,
+      approvedBy: {
+        id: user.id,
+        name: user.name,
+        role: user.role
+      },
+      comments: approvalComments
+    }));
+
+    dispatch(showSnackbar({
+      message: "Extension approved successfully",
+      type: "success"
+    }));
+
+    setSelectedRequest(null);
+    setApprovalComments("");
+  };
+
+  const handleReject = (request) => {
+    if (!rejectionReason.trim()) {
+      dispatch(showSnackbar({
+        message: "Please provide a reason for rejection",
+        type: "error"
+      }));
+      return;
+    }
+
+    dispatch(rejectExtension({
+      requestId: request.id,
+      rejectedBy: {
+        id: user.id,
+        name: user.name,
+        role: user.role
+      },
+      reason: rejectionReason
+    }));
+
+    dispatch(showSnackbar({
+      message: "Extension rejected",
+      type: "warning"
+    }));
+
+    setShowRejectModal(false);
+    setSelectedRequest(null);
+    setRejectionReason("");
+  };
+
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case "PENDING":
+        return <span className="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-full text-xs font-semibold flex items-center gap-1">
+          <Clock size={12} /> Pending
+        </span>;
+      case "APPROVED":
+        return <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-semibold flex items-center gap-1">
+          <CheckCircle size={12} /> Approved
+        </span>;
+      case "REJECTED":
+        return <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-semibold flex items-center gap-1">
+          <XCircle size={12} /> Rejected
+        </span>;
+      default:
+        return null;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (filteredRequests.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Extension Requests</h1>
+        <div className="bg-white rounded-2xl p-12 text-center">
+          <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+          <p className="text-gray-500 text-lg">No extension requests found</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold">
-        Extension Requests
-      </h2>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold text-gray-800 mb-8">Extension Requests</h1>
 
-      {requests.map((req, i) => (
-        <div
-          key={i}
-          className="bg-white shadow rounded-xl p-6 flex justify-between"
-        >
-          <div>
-            <h4 className="font-semibold">
-              {req.project}
-            </h4>
-            <p className="text-sm text-gray-500">
-              Requested Date: {req.requestedDate}
-            </p>
-            <p className="text-xs text-red-500">
-              Reason: {req.reason}
-            </p>
-          </div>
+      <div className="space-y-6">
+        {filteredRequests.map((request) => {
+          const project = projects.find(p => p.id === request.projectId);
+          const isExpanded = expandedRequest === request.id;
 
-          <div className="flex gap-3">
-            <button className="bg-green-600 text-white px-3 py-1 rounded">
-              Approve
-            </button>
-            <button className="bg-red-600 text-white px-3 py-1 rounded">
-              Reject
-            </button>
-          </div>
-        </div>
-      ))}
+          return (
+            <motion.div
+              key={request.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`bg-white rounded-2xl shadow-xl border-2 overflow-hidden transition-all ${
+                request.status === "PENDING" ? "border-yellow-200" :
+                request.status === "APPROVED" ? "border-green-200" :
+                "border-red-200"
+              }`}
+            >
+              {/* Header */}
+              <div className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-xl font-semibold text-gray-800">{project?.name}</h3>
+                      {getStatusBadge(request.status)}
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Current Deadline</p>
+                        <p className="font-medium text-gray-700">
+                          {new Date(request.currentDeadline).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Requested Deadline</p>
+                        <p className="font-medium text-blue-600">
+                          {new Date(request.requestedDeadline).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Requested By</p>
+                        <p className="font-medium text-gray-700">{request.requestedBy?.name}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-xl">
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Reason:</span> {request.reason}
+                      </p>
+                    </div>
+
+                    {/* Documents */}
+                    {request.documents && request.documents.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Attachments:</p>
+                        <div className="flex gap-2">
+                          {request.documents.map((doc, index) => (
+                            <button
+                              key={index}
+                              className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                              <FileText size={14} className="text-blue-600" />
+                              <span className="text-xs">{doc.name}</span>
+                              <Download size={12} className="text-gray-500" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  {request.status === "PENDING" && (
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          handleApprove(request);
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2"
+                      >
+                        <CheckCircle size={18} />
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setShowRejectModal(true);
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors flex items-center gap-2"
+                      >
+                        <XCircle size={18} />
+                        Reject
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setExpandedRequest(isExpanded ? null : request.id)}
+                    className="p-2 hover:bg-gray-100 rounded-lg ml-2"
+                  >
+                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
+                </div>
+
+                {/* Expanded Details */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="mt-6 pt-6 border-t border-gray-200"
+                    >
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-semibold text-gray-700 mb-3">Request Details</h4>
+                          <div className="space-y-2 text-sm">
+                            <p><span className="text-gray-500">Request ID:</span> {request.id}</p>
+                            <p><span className="text-gray-500">Created At:</span> {formatDate(request.createdAt)}</p>
+                            <p><span className="text-gray-500">Requested By:</span> {request.requestedBy?.name} ({request.requestedBy?.role})</p>
+                          </div>
+                        </div>
+
+                        {request.status !== "PENDING" && (
+                          <div>
+                            <h4 className="font-semibold text-gray-700 mb-3">Action Details</h4>
+                            <div className="space-y-2 text-sm">
+                              {request.approvedBy && (
+                                <>
+                                  <p><span className="text-gray-500">Approved By:</span> {request.approvedBy?.name}</p>
+                                  <p><span className="text-gray-500">Approved At:</span> {formatDate(request.approvedAt)}</p>
+                                </>
+                              )}
+                              {request.rejectedBy && (
+                                <>
+                                  <p><span className="text-gray-500">Rejected By:</span> {request.rejectedBy?.name}</p>
+                                  <p><span className="text-gray-500">Rejected At:</span> {formatDate(request.rejectedAt)}</p>
+                                  <p><span className="text-gray-500">Reason:</span> {request.rejectionReason}</p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Reject Modal */}
+      <AnimatePresence>
+        {showRejectModal && selectedRequest && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowRejectModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold mb-4">Reject Extension Request</h3>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                Are you sure you want to reject the extension request for <span className="font-semibold">{selectedRequest.projectName}</span>?
+              </p>
+
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Please provide a reason for rejection..."
+                rows={4}
+                className="w-full p-3 border border-gray-200 rounded-xl mb-4"
+                autoFocus
+              />
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowRejectModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleReject(selectedRequest)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Confirm Rejection
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
