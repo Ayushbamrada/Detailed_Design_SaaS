@@ -23,7 +23,7 @@ const initialState = {
       completionDate: "2026-01-10",
       directorProposalDate: "2026-01-15",
       projectConfirmationDate: "2026-02-01",
-      assignedUsers: ["1"], // User IDs who have access to this project
+      assignedUsers: ["1"],
       extensionRequested: false,
       newRequestedDeadline: null,
       extensionReason: null,
@@ -143,6 +143,32 @@ const checkDelayStatus = (project) => {
   }
 };
 
+/* ================= UPDATE PROJECT DEADLINE BASED ON ACTIVITIES ================= */
+const updateProjectDeadlineFromActivities = (project) => {
+  if (!project.activities || project.activities.length === 0) return;
+  
+  // Find the latest end date among all activities
+  const latestActivityDate = project.activities.reduce((latest, activity) => {
+    const activityDate = new Date(activity.endDate);
+    return activityDate > latest ? activityDate : latest;
+  }, new Date(project.activities[0].endDate));
+  
+  // Find the latest sub-activity end date
+  const latestSubActivityDate = project.activities.reduce((latest, activity) => {
+    if (!activity.subActivities || activity.subActivities.length === 0) return latest;
+    
+    const activityLatest = activity.subActivities.reduce((subLatest, sub) => {
+      const subDate = new Date(sub.endDate);
+      return subDate > subLatest ? subDate : subLatest;
+    }, new Date(activity.subActivities[0].endDate));
+    
+    return activityLatest > latest ? activityLatest : latest;
+  }, latestActivityDate);
+  
+  // Update project completion date to the latest activity/sub-activity date
+  project.completionDate = latestSubActivityDate.toISOString().split('T')[0];
+};
+
 /* ================= SLICE ================= */
 const projectSlice = createSlice({
   name: "projects",
@@ -197,6 +223,16 @@ const projectSlice = createSlice({
       project.progress = calculateProjectProgress(project.activities);
 
       checkDelayStatus(project);
+      
+      // Add to daily logs
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "PROGRESS_UPDATE",
+        date: new Date().toISOString().split('T')[0],
+        description: `${sub.name} progress updated to ${sub.progress}%`,
+        user: "System"
+      });
     },
 
     /* -------- Update Sub Activity Status -------- */
@@ -226,7 +262,6 @@ const projectSlice = createSlice({
       
       checkDelayStatus(project);
       
-      // Add to daily logs
       project.dailyLogs = project.dailyLogs || [];
       project.dailyLogs.push({
         id: `log_${Date.now()}`,
@@ -237,180 +272,9 @@ const projectSlice = createSlice({
       });
     },
 
-    /* -------- Request Extension -------- */
-    requestExtension: (state, action) => {
-      const { projectId, newDeadline, reason, documents, requestedBy } = action.payload;
-
-      const project = state.projects.find(p => p.id === projectId);
-      if (!project) return;
-
-      // Create extension request
-      const extensionRequest = {
-        id: `ext_${Date.now()}`,
-        projectId,
-        projectName: project.name,
-        currentDeadline: project.completionDate,
-        requestedDeadline: newDeadline,
-        reason,
-        documents: documents || [],
-        requestedBy,
-        requestedByRole: requestedBy.role,
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
-        comments: []
-      };
-
-      // Add to extension requests list
-      state.extensionRequests = state.extensionRequests || [];
-      state.extensionRequests.push(extensionRequest);
-
-      // Update project
-      project.extensionRequested = true;
-      project.newRequestedDeadline = newDeadline;
-      project.extensionReason = reason;
-      project.extensionDocuments = documents || [];
-      
-      // Add to extension history
-      project.extensionHistory = project.extensionHistory || [];
-      project.extensionHistory.push({
-        id: `hist_${Date.now()}`,
-        type: "REQUESTED",
-        oldDeadline: project.completionDate,
-        newDeadline,
-        reason,
-        requestedBy: requestedBy.name,
-        date: new Date().toISOString(),
-        status: "PENDING"
-      });
-      
-      // Add to daily logs
-      project.dailyLogs = project.dailyLogs || [];
-      project.dailyLogs.push({
-        id: `log_${Date.now()}`,
-        type: "EXTENSION_REQUESTED",
-        date: new Date().toISOString().split('T')[0],
-        description: `Extension requested from ${project.completionDate} to ${newDeadline}. Reason: ${reason}`,
-        user: requestedBy.name
-      });
-    },
-
-    /* -------- Approve Extension -------- */
-    approveExtension: (state, action) => {
-      const { requestId, approvedBy, comments } = action.payload;
-
-      const requestIndex = state.extensionRequests?.findIndex(r => r.id === requestId);
-      if (requestIndex === -1 || !requestIndex) return;
-
-      const request = state.extensionRequests[requestIndex];
-      const project = state.projects.find(p => p.id === request.projectId);
-      if (!project) return;
-
-      // Update request status
-      state.extensionRequests[requestIndex].status = "APPROVED";
-      state.extensionRequests[requestIndex].approvedBy = approvedBy;
-      state.extensionRequests[requestIndex].approvedAt = new Date().toISOString();
-      state.extensionRequests[requestIndex].comments = comments || [];
-
-      // Update project
-      const oldDeadline = project.completionDate;
-      project.completionDate = request.requestedDeadline;
-      project.extensionRequested = false;
-      project.newRequestedDeadline = null;
-      project.extensionReason = null;
-      
-      // Add to extension history
-      project.extensionHistory = project.extensionHistory || [];
-      project.extensionHistory.push({
-        id: `hist_${Date.now()}`,
-        type: "APPROVED",
-        oldDeadline,
-        newDeadline: request.requestedDeadline,
-        approvedBy: approvedBy.name,
-        date: new Date().toISOString(),
-        comments
-      });
-      
-      // Add to daily logs
-      project.dailyLogs = project.dailyLogs || [];
-      project.dailyLogs.push({
-        id: `log_${Date.now()}`,
-        type: "EXTENSION_APPROVED",
-        date: new Date().toISOString().split('T')[0],
-        description: `Extension approved from ${oldDeadline} to ${request.requestedDeadline}`,
-        user: approvedBy.name
-      });
-      
-      checkDelayStatus(project);
-    },
-
-    /* -------- Reject Extension -------- */
-    rejectExtension: (state, action) => {
-      const { requestId, rejectedBy, reason } = action.payload;
-
-      const requestIndex = state.extensionRequests?.findIndex(r => r.id === requestId);
-      if (requestIndex === -1 || !requestIndex) return;
-
-      const request = state.extensionRequests[requestIndex];
-      const project = state.projects.find(p => p.id === request.projectId);
-      if (!project) return;
-
-      // Update request status
-      state.extensionRequests[requestIndex].status = "REJECTED";
-      state.extensionRequests[requestIndex].rejectedBy = rejectedBy;
-      state.extensionRequests[requestIndex].rejectedAt = new Date().toISOString();
-      state.extensionRequests[requestIndex].rejectionReason = reason;
-
-      // Update project
-      project.extensionRequested = false;
-      project.newRequestedDeadline = null;
-      project.extensionReason = null;
-      
-      // Add to extension history
-      project.extensionHistory = project.extensionHistory || [];
-      project.extensionHistory.push({
-        id: `hist_${Date.now()}`,
-        type: "REJECTED",
-        requestedDeadline: request.requestedDeadline,
-        rejectedBy: rejectedBy.name,
-        reason,
-        date: new Date().toISOString()
-      });
-      
-      // Add to daily logs
-      project.dailyLogs = project.dailyLogs || [];
-      project.dailyLogs.push({
-        id: `log_${Date.now()}`,
-        type: "EXTENSION_REJECTED",
-        date: new Date().toISOString().split('T')[0],
-        description: `Extension request rejected. Reason: ${reason}`,
-        user: rejectedBy.name
-      });
-    },
-
-    /* -------- Delete Extension (Admin/Super Admin only) -------- */
-    deleteExtension: (state, action) => {
-      const { projectId, historyId, deletedBy } = action.payload;
-
-      const project = state.projects.find(p => p.id === projectId);
-      if (!project) return;
-
-      // Remove from extension history
-      project.extensionHistory = project.extensionHistory.filter(h => h.id !== historyId);
-      
-      // Add to daily logs
-      project.dailyLogs = project.dailyLogs || [];
-      project.dailyLogs.push({
-        id: `log_${Date.now()}`,
-        type: "EXTENSION_DELETED",
-        date: new Date().toISOString().split('T')[0],
-        description: `Extension record deleted by ${deletedBy.name}`,
-        user: deletedBy.name
-      });
-    },
-
-    /* -------- Update Activity Dates -------- */
-    updateActivityDates: (state, action) => {
-      const { projectId, activityId, startDate, endDate } = action.payload;
+    /* -------- Extend Activity Deadline -------- */
+    extendActivityDeadline: (state, action) => {
+      const { projectId, activityId, newEndDate, reason, extendedBy } = action.payload;
 
       const project = state.projects.find(p => p.id === projectId);
       if (!project) return;
@@ -418,22 +282,95 @@ const projectSlice = createSlice({
       const activity = project.activities.find(a => a.id === activityId);
       if (!activity) return;
 
-      if (startDate !== undefined) activity.startDate = startDate;
-      if (endDate !== undefined) activity.endDate = endDate;
+      const oldDate = activity.endDate;
+      activity.endDate = newEndDate;
       
+      // Update all sub-activities under this activity to match new date
       activity.subActivities.forEach(sub => {
-        if (startDate !== undefined) sub.startDate = startDate;
-        if (endDate !== undefined) sub.endDate = endDate;
+        sub.endDate = newEndDate;
+      });
+      
+      // Update project deadline based on latest activity
+      updateProjectDeadlineFromActivities(project);
+      
+      // Add to extension history
+      project.extensionHistory = project.extensionHistory || [];
+      project.extensionHistory.push({
+        id: `hist_${Date.now()}`,
+        type: "ACTIVITY_EXTENDED",
+        itemType: "activity",
+        itemName: activity.name,
+        oldDeadline: oldDate,
+        newDeadline: newEndDate,
+        reason,
+        date: new Date().toISOString(),
+        extendedBy
       });
       
       project.dailyLogs = project.dailyLogs || [];
       project.dailyLogs.push({
         id: `log_${Date.now()}`,
-        type: "DATE_UPDATE",
+        type: "ACTIVITY_EXTENDED",
         date: new Date().toISOString().split('T')[0],
-        description: `Updated dates for ${activity.name}`,
-        user: "System"
+        description: `Activity ${activity.name} deadline extended from ${oldDate} to ${newEndDate}. Reason: ${reason}`,
+        user: extendedBy
       });
+      
+      checkDelayStatus(project);
+    },
+
+    /* -------- Extend Sub-Activity Deadline -------- */
+    extendSubActivityDeadline: (state, action) => {
+      const { projectId, activityId, subId, newEndDate, reason, extendedBy } = action.payload;
+
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      const activity = project.activities.find(a => a.id === activityId);
+      if (!activity) return;
+
+      const sub = activity.subActivities.find(s => s.id === subId);
+      if (!sub) return;
+
+      const oldDate = sub.endDate;
+      sub.endDate = newEndDate;
+      
+      // Check if this sub-activity's new date is later than activity's date
+      const activityDate = new Date(activity.endDate);
+      const newSubDate = new Date(newEndDate);
+      
+      if (newSubDate > activityDate) {
+        // Update activity date to match the latest sub-activity
+        activity.endDate = newEndDate;
+      }
+      
+      // Update project deadline based on latest activity/sub-activity
+      updateProjectDeadlineFromActivities(project);
+      
+      project.extensionHistory = project.extensionHistory || [];
+      project.extensionHistory.push({
+        id: `hist_${Date.now()}`,
+        type: "SUBACTIVITY_EXTENDED",
+        itemType: "subactivity",
+        itemName: sub.name,
+        parentActivity: activity.name,
+        oldDeadline: oldDate,
+        newDeadline: newEndDate,
+        reason,
+        date: new Date().toISOString(),
+        extendedBy
+      });
+      
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "SUBACTIVITY_EXTENDED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Sub-activity ${sub.name} deadline extended from ${oldDate} to ${newEndDate}. Reason: ${reason}`,
+        user: extendedBy
+      });
+      
+      checkDelayStatus(project);
     },
 
     /* -------- Add Sub Activity -------- */
@@ -553,6 +490,143 @@ const projectSlice = createSlice({
       });
 
       checkDelayStatus(project);
+    },
+
+    /* -------- Request Extension (Project Level) -------- */
+    requestExtension: (state, action) => {
+      const { projectId, newDeadline, reason, documents, requestedBy } = action.payload;
+
+      const project = state.projects.find(p => p.id === projectId);
+      if (!project) return;
+
+      const extensionRequest = {
+        id: `ext_${Date.now()}`,
+        projectId,
+        projectName: project.name,
+        currentDeadline: project.completionDate,
+        requestedDeadline: newDeadline,
+        reason,
+        documents: documents || [],
+        requestedBy,
+        requestedByRole: requestedBy?.role,
+        status: "PENDING",
+        createdAt: new Date().toISOString(),
+        comments: []
+      };
+
+      state.extensionRequests = state.extensionRequests || [];
+      state.extensionRequests.push(extensionRequest);
+
+      project.extensionRequested = true;
+      project.newRequestedDeadline = newDeadline;
+      project.extensionReason = reason;
+      project.extensionDocuments = documents || [];
+      
+      project.extensionHistory = project.extensionHistory || [];
+      project.extensionHistory.push({
+        id: `hist_${Date.now()}`,
+        type: "PROJECT_EXTENSION_REQUESTED",
+        oldDeadline: project.completionDate,
+        newDeadline,
+        reason,
+        requestedBy: requestedBy?.name,
+        date: new Date().toISOString(),
+        status: "PENDING"
+      });
+      
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "PROJECT_EXTENSION_REQUESTED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Project extension requested from ${project.completionDate} to ${newDeadline}. Reason: ${reason}`,
+        user: requestedBy?.name
+      });
+    },
+
+    /* -------- Approve Extension -------- */
+    approveExtension: (state, action) => {
+      const { requestId, approvedBy, comments } = action.payload;
+
+      const requestIndex = state.extensionRequests?.findIndex(r => r.id === requestId);
+      if (requestIndex === -1) return;
+
+      const request = state.extensionRequests[requestIndex];
+      const project = state.projects.find(p => p.id === request.projectId);
+      if (!project) return;
+
+      state.extensionRequests[requestIndex].status = "APPROVED";
+      state.extensionRequests[requestIndex].approvedBy = approvedBy;
+      state.extensionRequests[requestIndex].approvedAt = new Date().toISOString();
+      state.extensionRequests[requestIndex].comments = comments || [];
+
+      const oldDeadline = project.completionDate;
+      project.completionDate = request.requestedDeadline;
+      project.extensionRequested = false;
+      project.newRequestedDeadline = null;
+      project.extensionReason = null;
+      
+      project.extensionHistory = project.extensionHistory || [];
+      project.extensionHistory.push({
+        id: `hist_${Date.now()}`,
+        type: "EXTENSION_APPROVED",
+        oldDeadline,
+        newDeadline: request.requestedDeadline,
+        approvedBy: approvedBy?.name,
+        date: new Date().toISOString(),
+        comments
+      });
+      
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "EXTENSION_APPROVED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Extension approved from ${oldDeadline} to ${request.requestedDeadline}`,
+        user: approvedBy?.name
+      });
+      
+      checkDelayStatus(project);
+    },
+
+    /* -------- Reject Extension -------- */
+    rejectExtension: (state, action) => {
+      const { requestId, rejectedBy, reason } = action.payload;
+
+      const requestIndex = state.extensionRequests?.findIndex(r => r.id === requestId);
+      if (requestIndex === -1) return;
+
+      const request = state.extensionRequests[requestIndex];
+      const project = state.projects.find(p => p.id === request.projectId);
+      if (!project) return;
+
+      state.extensionRequests[requestIndex].status = "REJECTED";
+      state.extensionRequests[requestIndex].rejectedBy = rejectedBy;
+      state.extensionRequests[requestIndex].rejectedAt = new Date().toISOString();
+      state.extensionRequests[requestIndex].rejectionReason = reason;
+
+      project.extensionRequested = false;
+      project.newRequestedDeadline = null;
+      project.extensionReason = null;
+      
+      project.extensionHistory = project.extensionHistory || [];
+      project.extensionHistory.push({
+        id: `hist_${Date.now()}`,
+        type: "EXTENSION_REJECTED",
+        requestedDeadline: request.requestedDeadline,
+        rejectedBy: rejectedBy?.name,
+        reason,
+        date: new Date().toISOString()
+      });
+      
+      project.dailyLogs = project.dailyLogs || [];
+      project.dailyLogs.push({
+        id: `log_${Date.now()}`,
+        type: "EXTENSION_REJECTED",
+        date: new Date().toISOString().split('T')[0],
+        description: `Extension request rejected. Reason: ${reason}`,
+        user: rejectedBy?.name
+      });
     }
   }
 });
@@ -561,16 +635,15 @@ export const {
   addProject,
   updateSubActivityProgress,
   updateSubActivityStatus,
-  updateActivityDates,
-  updateSubActivityDates,
   addSubActivity,
   deleteActivity,
   deleteSubActivity,
   addDailyLog,
+  extendActivityDeadline,
+  extendSubActivityDeadline,
   requestExtension,
   approveExtension,
-  rejectExtension,
-  deleteExtension
+  rejectExtension
 } = projectSlice.actions;
 
 export default projectSlice.reducer;

@@ -135,7 +135,6 @@
 // };
 
 // export default Layout;
-
 import { Outlet, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleSidebar } from "../../features/ui/uiSlice";
@@ -177,6 +176,7 @@ const Layout = () => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path.includes("/projects")) return "Project Management";
+    if (path.includes("/my-projects")) return "My Projects";
     if (path.includes("/dashboard")) return "Dashboard";
     if (path.includes("/daily-logs")) return "Daily Logs";
     if (path.includes("/contractors")) return "Contractor Management";
@@ -199,7 +199,7 @@ const Layout = () => {
 
   const getMarginLeft = () => {
     if (isMobile) return 0;
-    return desktopCollapsed ? 88 : 280;
+    return desktopCollapsed ? 80 : 260;
   };
 
   return (
@@ -211,29 +211,29 @@ const Layout = () => {
         animate={{
           marginLeft: getMarginLeft(),
         }}
-        transition={{ type: "spring", damping: 20, stiffness: 200 }}
-        className="flex-1 flex flex-col min-h-screen w-full"
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="flex-1 flex flex-col min-h-screen w-full transition-all duration-300"
       >
         <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="flex items-center justify-between px-4 md:px-6 py-4">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between px-3 md:px-6 py-3">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => dispatch(toggleSidebar())}
-                className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                className="md:hidden p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                <Menu size={22} className="text-gray-600 dark:text-gray-300" />
+                <Menu size={20} className="text-gray-600 dark:text-gray-300" />
               </button>
 
               <div>
                 <motion.h1
                   key={location.pathname}
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+                  className="text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
                 >
                   {getPageTitle()}
                 </motion.h1>
-                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">
                   {new Date().toLocaleDateString("en-IN", {
                     weekday: "long",
                     year: "numeric",
@@ -244,12 +244,12 @@ const Layout = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-1 md:gap-2">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setDarkMode(!darkMode)}
-                className="relative p-2 md:p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="relative p-1.5 md:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 <AnimatePresence mode="wait">
                   {darkMode ? (
@@ -259,7 +259,7 @@ const Layout = () => {
                       animate={{ rotate: 0, opacity: 1 }}
                       exit={{ rotate: 90, opacity: 0 }}
                     >
-                      <Sun size={18} className="text-yellow-500" />
+                      <Sun size={16} className="text-yellow-500" />
                     </motion.div>
                   ) : (
                     <motion.div
@@ -268,7 +268,7 @@ const Layout = () => {
                       animate={{ rotate: 0, opacity: 1 }}
                       exit={{ rotate: -90, opacity: 0 }}
                     >
-                      <Moon size={18} className="text-gray-600" />
+                      <Moon size={16} className="text-gray-600" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -277,14 +277,14 @@ const Layout = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="relative p-2 md:p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="relative p-1.5 md:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
-                <Bell size={18} className="text-gray-600 dark:text-gray-300" />
+                <Bell size={16} className="text-gray-600 dark:text-gray-300" />
                 {notifications > 0 && (
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold"
+                    className="absolute -top-1 -right-1 w-3.5 h-3.5 md:w-4 md:h-4 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[8px] md:text-[10px] rounded-full flex items-center justify-center font-bold"
                   >
                     {notifications}
                   </motion.span>
@@ -304,13 +304,13 @@ const Layout = () => {
           />
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-3 md:p-6 overflow-auto">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
             className="h-full"
           >
             <Outlet />
@@ -340,11 +340,11 @@ const UserDropdown = () => {
   const getRoleIcon = () => {
     switch (user?.role) {
       case "SUPER_ADMIN":
-        return <Shield size={14} className="text-purple-500" />;
+        return <Shield size={12} className="text-purple-500" />;
       case "ADMIN":
-        return <UserCog size={14} className="text-blue-500" />;
+        return <UserCog size={12} className="text-blue-500" />;
       default:
-        return <User size={14} className="text-green-500" />;
+        return <User size={12} className="text-green-500" />;
     }
   };
 
@@ -354,19 +354,19 @@ const UserDropdown = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 md:gap-3 p-1.5 md:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-1.5 md:gap-2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       >
         <div className="relative">
-          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-center font-bold text-sm md:text-lg shadow-lg">
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-center font-bold text-xs md:text-sm shadow-md">
             {user?.name?.charAt(0)?.toUpperCase() || "U"}
           </div>
-          <div className="absolute -bottom-1 -right-1 w-2 h-2 md:w-3 md:h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
+          <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full border-2 border-white dark:border-gray-800" />
         </div>
         <div className="hidden md:block text-left">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">
             {user?.name || "User"}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
             {getRoleIcon()}
             {user?.role || "USER"}
           </p>
@@ -376,20 +376,20 @@ const UserDropdown = () => {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ type: "spring", damping: 20 }}
-            className="absolute right-0 mt-3 w-56 md:w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-48 md:w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden"
           >
-            <div className="p-3 md:p-4 bg-gradient-to-r from-blue-600 to-purple-600">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-xl flex items-center justify-center text-white font-bold text-lg md:text-xl backdrop-blur-sm">
+            <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 rounded-lg flex items-center justify-center text-white font-bold text-sm md:text-base backdrop-blur-sm">
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
                 </div>
                 <div className="text-white">
-                  <p className="font-semibold text-sm md:text-base">{user?.name || "User"}</p>
-                  <p className="text-xs opacity-90 flex items-center gap-1">
+                  <p className="font-semibold text-xs md:text-sm">{user?.name || "User"}</p>
+                  <p className="text-[10px] opacity-90 flex items-center gap-0.5">
                     {getRoleIcon()}
                     {user?.role || "USER"}
                   </p>
@@ -397,34 +397,34 @@ const UserDropdown = () => {
               </div>
             </div>
 
-            <div className="p-2">
-              <button className="w-full flex items-center gap-3 px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
-                <User size={16} className="text-gray-500" />
+            <div className="p-1.5">
+              <button className="w-full flex items-center gap-2 px-2.5 md:px-3 py-1.5 md:py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                <User size={14} className="text-gray-500" />
                 Profile Settings
               </button>
 
-              <button className="w-full flex items-center gap-3 px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
-                <Bell size={16} className="text-gray-500" />
-                Notification Preferences
+              <button className="w-full flex items-center gap-2 px-2.5 md:px-3 py-1.5 md:py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                <Bell size={14} className="text-gray-500" />
+                Notifications
               </button>
 
               {user?.role === "SUPER_ADMIN" && (
-                <button className="w-full flex items-center gap-3 px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
-                  <Settings size={16} className="text-gray-500" />
+                <button className="w-full flex items-center gap-2 px-2.5 md:px-3 py-1.5 md:py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                  <Settings size={14} className="text-gray-500" />
                   System Settings
                 </button>
               )}
 
-              <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
+              <div className="border-t border-gray-200 dark:border-gray-700 my-1.5" />
 
               <button
                 onClick={() => {
                   dispatch(logout());
                   setOpen(false);
                 }}
-                className="w-full flex items-center gap-3 px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                className="w-full flex items-center gap-2 px-2.5 md:px-3 py-1.5 md:py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
               >
-                <LogOut size={16} />
+                <LogOut size={14} />
                 Logout
               </button>
             </div>
