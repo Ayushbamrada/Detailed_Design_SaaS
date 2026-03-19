@@ -1435,7 +1435,6 @@
 
 
 
-
 // import { useState, useEffect, useRef } from "react";
 // import { motion, AnimatePresence } from "framer-motion";
 // import { useDispatch, useSelector } from "react-redux";
@@ -1548,22 +1547,22 @@
 //     loading 
 //   } = useSelector((state) => state.api);
 
-//   // Form state
+//   // Form state - Updated field names to match Django models
 //   const [form, setForm] = useState({
-//     code: "",
-//     name: "",
-//     shortName: "",
+//     project_code: "",
+//     project_name: "",
+//     short_name: "",
 //     company: "",
-//     subCompany: "",
+//     sub_company: "",
 //     location: "",
 //     sector: "",
-//     department: "",
-//     totalLength: "",
-//     cost: "",
-//     directorProposalDate: "",
-//     projectConfirmationDate: "",
-//     loaDate: "",
-//     completionDate: "",
+//     client: "",
+//     total_length: "",
+//     workorder_cost: "",
+//     director_proposal_date: "",
+//     project_confirmation_date: "",
+//     loa_date: "",
+//     completion_date: "",
 //   });
 
 //   // Mobile responsive state
@@ -1617,7 +1616,7 @@
 //           dispatch(fetchSectors()),
 //           dispatch(fetchClients()),
 //           dispatch(fetchActivities()),
-//           dispatch(fetchSubActivities()) // ✅ Fetch sub-activities too
+//           dispatch(fetchSubActivities())
 //         ]);
 //       } catch (error) {
 //         console.log("Using fallback data due to API error");
@@ -1665,7 +1664,7 @@
 //     }
 //   }, [clients]);
 
-//   // ✅ FIXED: Update activities when data loads - mapping API fields correctly
+//   // Update activities when data loads
 //   useEffect(() => {
 //     console.log("Activities from API:", activities);
 //     console.log("SubActivities from API:", subActivities);
@@ -1674,22 +1673,21 @@
 //       // Format activities from API
 //       const formattedActivities = activities.map(activity => {
 //         // Find sub-activities that belong to this activity
-//         // You'll need to know how sub-activities are linked to activities
-//         // This assumes subActivities have an 'activity_id' field
+//         // This assumes subActivities have an 'activity' field with activity ID
 //         const activitySubs = subActivities.filter(
-//           sub => sub.activity_id === activity.id
+//           sub => sub.activity === activity.id
 //         ) || [];
         
 //         return {
 //           id: activity.id,
-//           name: activity.activity_name || activity.name, // Handle both field names
+//           name: activity.activity_name || activity.name,
 //           subActivities: activitySubs.length > 0 
 //             ? activitySubs.map(sub => ({
 //                 id: sub.id,
-//                 name: sub.sub_activity_name || sub.name,
+//                 name: sub.subactivity_name || sub.name,
 //                 unit: sub.unit || "Km"
 //               }))
-//             : [], // If no sub-activities, use empty array
+//             : [],
 //           isCustom: false
 //         };
 //       });
@@ -1949,10 +1947,10 @@
 
 //   const validateDates = () => {
 //     const dates = [
-//       { name: "Director Proposal", value: form.directorProposalDate },
-//       { name: "Project Confirmation", value: form.projectConfirmationDate },
-//       { name: "LOA", value: form.loaDate },
-//       { name: "Completion", value: form.completionDate }
+//       { name: "Director Proposal", value: form.director_proposal_date },
+//       { name: "Project Confirmation", value: form.project_confirmation_date },
+//       { name: "LOA", value: form.loa_date },
+//       { name: "Completion", value: form.completion_date }
 //     ];
 
 //     for (let i = 0; i < dates.length - 1; i++) {
@@ -1970,7 +1968,7 @@
 //   };
 
 //   const validate = () => {
-//     if (!form.code || !form.name || !form.shortName) {
+//     if (!form.project_code || !form.project_name || !form.short_name) {
 //       dispatch(showSnackbar({
 //         message: "Please fill mandatory fields: Project Code, Name, and Short Name",
 //         type: "error"
@@ -1984,7 +1982,7 @@
 //       }));
 //       return false;
 //     }
-//     if (!form.totalLength || form.totalLength <= 0) {
+//     if (!form.total_length || form.total_length <= 0) {
 //       dispatch(showSnackbar({
 //         message: "Please enter a valid Total Length",
 //         type: "error"
@@ -2068,67 +2066,57 @@
 
 //     const allActivities = getAllActivities();
     
-//     const formattedActivities = selectedActivities.map((actName, actIndex) => {
+//     // Prepare activities data with proper field names for Django
+//     const activitiesData = selectedActivities.map((actName) => {
 //       const activityObj = allActivities.find((a) => a.name === actName);
 //       const dates = activityDates[actName];
 //       const weightage = activityWeightages[actName] || 0;
 //       const selectedSubs = selectedSubActivities[actName] || [];
 
 //       return {
-//         name: actName,
+//         activity_name: actName,
 //         weightage: weightage,
-//         startDate: dates.startDate,
-//         endDate: dates.endDate,
-//         subActivities: selectedSubs.map((subName, subIndex) => {
+//         start_date: dates.startDate,
+//         end_date: dates.endDate,
+//         sub_activities: selectedSubs.map((subName) => {
 //           const subObj = activityObj.subActivities.find(s => s.name === subName);
 //           const key = `${actName}_${subName}`;
 //           const unit = subActivityUnits[key] || subObj.unit;
 //           const plannedQty = subActivityPlannedQtys[key] || 0;
 
 //           return {
-//             name: subName,
+//             subactivity_name: subName,
 //             unit: unit,
-//             plannedQty: unit !== "status" ? plannedQty : 1,
-//             startDate: dates.startDate,
-//             endDate: dates.endDate,
+//             total_quantity: unit !== "status" ? plannedQty : 1,
+//             range: unit === "status" ? "status" : null,
 //           };
 //         }),
 //       };
 //     });
 
+//     // Find IDs for selected options
 //     const selectedCompany = companies.find(c => c.name === form.company);
-//     const selectedSubCompany = subCompanies.find(c => c.name === form.subCompany);
+//     const selectedSubCompany = subCompanies.find(c => c.name === form.sub_company);
 //     const sectorId = sectorsMap[form.sector] || null;
-//     const clientId = clientsMap[form.department] || null;
+//     const clientId = clientsMap[form.client] || null;
 
+//     // Prepare project data with proper field names for Django
 //     const projectData = {
-//       project_code: form.code,
-//       project_name: form.name,
-//       short_name: form.shortName,
+//       project_code: form.project_code,
+//       project_name: form.project_name,
+//       short_name: form.short_name,
 //       company: selectedCompany?.id || null,
 //       sub_company: selectedSubCompany?.id || null,
 //       sector: sectorId,
 //       client: clientId,
 //       location: form.location,
-//       total_length: parseFloat(form.totalLength),
-//       cost: parseFloat(form.cost) || 0,
-//       director_proposal_date: form.directorProposalDate,
-//       project_confirmation_date: form.projectConfirmationDate,
-//       loa_date: form.loaDate,
-//       completion_date: form.completionDate,
-//       activities: formattedActivities.map(act => ({
-//         name: act.name,
-//         weightage: act.weightage,
-//         start_date: act.startDate,
-//         end_date: act.endDate,
-//         sub_activities: act.subActivities.map(sub => ({
-//           name: sub.name,
-//           unit: sub.unit,
-//           planned_qty: sub.plannedQty,
-//           start_date: sub.startDate,
-//           end_date: sub.endDate,
-//         }))
-//       })),
+//       total_length: parseFloat(form.total_length),
+//       workorder_cost: parseFloat(form.workorder_cost) || 0,
+//       director_proposal_date: form.director_proposal_date,
+//       project_confirmation_date: form.project_confirmation_date,
+//       loa_date: form.loa_date,
+//       completion_date: form.completion_date,
+//       activities_data: activitiesData,
 //     };
 
 //     console.log("Sending project data:", JSON.stringify(projectData, null, 2));
@@ -2137,20 +2125,55 @@
 //       const apiResult = await dispatch(createProjectApi(projectData)).unwrap();
 //       console.log("API Response:", apiResult);
       
+//       // Also update local Redux store for immediate UI update
 //       dispatch(addProject({
-//         ...form,
-//         activities: formattedActivities.map((act, idx) => ({
-//           id: `a${idx + 1}_${Date.now()}`,
-//           ...act,
-//           progress: 0,
-//           subActivities: act.subActivities.map((sub, subIdx) => ({
-//             id: `s${idx + 1}_${subIdx + 1}_${Date.now()}`,
-//             ...sub,
-//             completedQty: 0,
+//         id: apiResult.id || `temp_${Date.now()}`,
+//         code: form.project_code,
+//         name: form.project_name,
+//         shortName: form.short_name,
+//         company: form.company,
+//         subCompany: form.sub_company,
+//         location: form.location,
+//         sector: form.sector,
+//         department: form.client,
+//         totalLength: form.total_length,
+//         cost: form.workorder_cost,
+//         directorProposalDate: form.director_proposal_date,
+//         projectConfirmationDate: form.project_confirmation_date,
+//         loaDate: form.loa_date,
+//         completionDate: form.completion_date,
+//         activities: selectedActivities.map((actName, idx) => {
+//           const activityObj = allActivities.find((a) => a.name === actName);
+//           const dates = activityDates[actName];
+//           const selectedSubs = selectedSubActivities[actName] || [];
+          
+//           return {
+//             id: `a${idx + 1}_${Date.now()}`,
+//             name: actName,
+//             weightage: activityWeightages[actName] || 0,
+//             startDate: dates.startDate,
+//             endDate: dates.endDate,
 //             progress: 0,
-//             status: "PENDING",
-//           })),
-//         })),
+//             subActivities: selectedSubs.map((subName, subIdx) => {
+//               const subObj = activityObj.subActivities.find(s => s.name === subName);
+//               const key = `${actName}_${subName}`;
+//               const unit = subActivityUnits[key] || subObj.unit;
+//               const plannedQty = subActivityPlannedQtys[key] || 0;
+              
+//               return {
+//                 id: `s${idx + 1}_${subIdx + 1}_${Date.now()}`,
+//                 name: subName,
+//                 unit: unit,
+//                 plannedQty: unit !== "status" ? plannedQty : 1,
+//                 completedQty: 0,
+//                 progress: 0,
+//                 startDate: dates.startDate,
+//                 endDate: dates.endDate,
+//                 status: "PENDING",
+//               };
+//             }),
+//           };
+//         }),
 //       }));
       
 //       dispatch(showSnackbar({
@@ -2160,12 +2183,41 @@
       
 //       navigate("/projects");
 //     } catch (error) {
-//       console.error("Project creation error:", error.response?.data || error.message);
+//       console.error("Project creation error:", error);
       
-//       dispatch(showSnackbar({
-//         message: error.response?.data?.message || error.message || "Failed to create project",
-//         type: "error"
-//       }));
+//       // Log detailed error response
+//       if (error.response) {
+//         console.error("Error response data:", error.response.data);
+//         console.error("Error response status:", error.response.status);
+        
+//         // Format error message from Django
+//         let errorMessage = "Failed to create project";
+//         if (error.response.data) {
+//           if (typeof error.response.data === 'string') {
+//             errorMessage = error.response.data;
+//           } else if (error.response.data.message) {
+//             errorMessage = error.response.data.message;
+//           } else if (error.response.data.error) {
+//             errorMessage = error.response.data.error;
+//           } else {
+//             // Handle Django field errors
+//             const errors = Object.entries(error.response.data)
+//               .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+//               .join(', ');
+//             if (errors) errorMessage = errors;
+//           }
+//         }
+        
+//         dispatch(showSnackbar({
+//           message: errorMessage,
+//           type: "error"
+//         }));
+//       } else {
+//         dispatch(showSnackbar({
+//           message: error.message || "Failed to create project",
+//           type: "error"
+//         }));
+//       }
 //     }
 //   };
 
@@ -2373,26 +2425,65 @@
 //           </h3>
 
 //           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-//             {[
-//               { label: "Project Code *", name: "code", icon: <Hash size={18} />, type: "text" },
-//               { label: "Project Name *", name: "name", icon: <Briefcase size={18} />, type: "text" },
-//               { label: "Short Name *", name: "shortName", icon: <span className="text-lg">🔤</span>, type: "text" },
-//               { label: "Location", name: "location", icon: <MapPin size={18} />, type: "text" },
-//             ].map((field) => (
-//               <div key={field.name} className="relative">
-//                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                   {field.icon}
-//                 </div>
-//                 <input
-//                   type={field.type}
-//                   name={field.name}
-//                   placeholder={field.label}
-//                   value={form[field.name]}
-//                   onChange={handleChange}
-//                   className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
-//                 />
+//             {/* Project Code */}
+//             <div className="relative">
+//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+//                 <Hash size={18} />
 //               </div>
-//             ))}
+//               <input
+//                 type="text"
+//                 name="project_code"
+//                 placeholder="Project Code *"
+//                 value={form.project_code}
+//                 onChange={handleChange}
+//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+//               />
+//             </div>
+
+//             {/* Project Name */}
+//             <div className="relative">
+//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+//                 <Briefcase size={18} />
+//               </div>
+//               <input
+//                 type="text"
+//                 name="project_name"
+//                 placeholder="Project Name *"
+//                 value={form.project_name}
+//                 onChange={handleChange}
+//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+//               />
+//             </div>
+
+//             {/* Short Name */}
+//             <div className="relative">
+//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+//                 <span className="text-lg">🔤</span>
+//               </div>
+//               <input
+//                 type="text"
+//                 name="short_name"
+//                 placeholder="Short Name *"
+//                 value={form.short_name}
+//                 onChange={handleChange}
+//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+//               />
+//             </div>
+
+//             {/* Location */}
+//             <div className="relative">
+//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+//                 <MapPin size={18} />
+//               </div>
+//               <input
+//                 type="text"
+//                 name="location"
+//                 placeholder="Location"
+//                 value={form.location}
+//                 onChange={handleChange}
+//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+//               />
+//             </div>
 
 //             {/* Company Selection */}
 //             <div className="relative">
@@ -2420,10 +2511,10 @@
 //                 <Building2 size={18} />
 //               </div>
 //               <select
-//                 name="subCompany"
+//                 name="sub_company"
 //                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50 hover:bg-white appearance-none"
 //                 onChange={handleChange}
-//                 value={form.subCompany}
+//                 value={form.sub_company}
 //               >
 //                 <option value="">Select Sub Company</option>
 //                 {subCompanies.map((subCompany) => (
@@ -2483,6 +2574,7 @@
 //               </button>
 //             </div>
 
+//             {/* Add New Sector Input */}
 //             <input
 //               type="text"
 //               placeholder="Add New Sector"
@@ -2499,6 +2591,7 @@
 //               <input
 //                 type="text"
 //                 placeholder="Search Client"
+//                 name="client"
 //                 value={clientSearch}
 //                 onClick={() => setShowClientDropdown(true)}
 //                 onChange={(e) => {
@@ -2522,7 +2615,7 @@
 //                         <div
 //                           key={`client-${index}-${client}`}
 //                           onClick={() => {
-//                             setForm({...form, department: client});
+//                             setForm({...form, client: client});
 //                             setClientSearch(client);
 //                             setShowClientDropdown(false);
 //                           }}
@@ -2616,26 +2709,26 @@
 //               </div>
 //               <input
 //                 type="number"
-//                 name="totalLength"
+//                 name="total_length"
 //                 step="0.01"
 //                 placeholder="Total Length *"
-//                 value={form.totalLength}
+//                 value={form.total_length}
 //                 onChange={handleChange}
 //                 className="w-full pl-10 pr-16 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
 //               />
 //               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs md:text-sm">km</span>
 //             </div>
 
-//             {/* Cost */}
+//             {/* Workorder Cost */}
 //             <div className="relative">
 //               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
 //                 <IndianRupee size={18} />
 //               </div>
 //               <input
 //                 type="number"
-//                 name="cost"
+//                 name="workorder_cost"
 //                 placeholder="Workorder Cost"
-//                 value={form.cost}
+//                 value={form.workorder_cost}
 //                 onChange={handleChange}
 //                 className="w-full pl-10 pr-16 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
 //               />
@@ -2649,8 +2742,8 @@
 //               </label>
 //               <input
 //                 type="date"
-//                 name="directorProposalDate"
-//                 value={form.directorProposalDate}
+//                 name="director_proposal_date"
+//                 value={form.director_proposal_date}
 //                 onChange={handleChange}
 //                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
 //                 required
@@ -2663,8 +2756,8 @@
 //               </label>
 //               <input
 //                 type="date"
-//                 name="projectConfirmationDate"
-//                 value={form.projectConfirmationDate}
+//                 name="project_confirmation_date"
+//                 value={form.project_confirmation_date}
 //                 onChange={handleChange}
 //                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
 //                 required
@@ -2677,8 +2770,8 @@
 //               </label>
 //               <input
 //                 type="date"
-//                 name="loaDate"
-//                 value={form.loaDate}
+//                 name="loa_date"
+//                 value={form.loa_date}
 //                 onChange={handleChange}
 //                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
 //                 required
@@ -2691,8 +2784,8 @@
 //               </label>
 //               <input
 //                 type="date"
-//                 name="completionDate"
-//                 value={form.completionDate}
+//                 name="completion_date"
+//                 value={form.completion_date}
 //                 onChange={handleChange}
 //                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
 //                 required
@@ -3127,10 +3220,7 @@
 
 ///////////////
 
-
-
-
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -3168,35 +3258,34 @@ import {
   fetchSubActivities,
   createSector,
   createClient,
+  createActivity,
+  createSubActivity,
+  createActivitiesBulk,
+  createSubActivitiesBulk,
   createProject as createProjectApi,
+  clearActivities,
+  clearSubActivities
 } from "../api/apiSlice";
 import { showSnackbar } from "../notifications/notificationSlice";
 import { addProject } from "./projectSlice";
+import { UNIT_OPTIONS } from '../../utils/unitMapping';
 
-// ==================== CONSTANTS ====================
-// Pre-defined master activities that will ALWAYS show in the UI
-const MASTER_ACTIVITIES = [
+// Initial master activities as fallback (will be used if API fails)
+const INITIAL_MASTER_ACTIVITIES = [
   {
-    id: "master-1",
     name: "Field Team Mobilization Advance",
-    subActivities: [
-      { id: "master-s1", name: "Mobilization", unit: "status" }
-    ],
-    isPredefined: true
+    subActivities: [{ name: "Mobilization", unit: "status" }],
   },
   {
-    id: "master-2",
     name: "Field Activities",
     subActivities: [
-      { id: "master-s2-1", name: "Topo Survey", unit: "Km" },
-      { id: "master-s2-2", name: "Traffic Survey and Soil Sampling", unit: "Nos." },
-      { id: "master-s2-3", name: "Geotech Investigations", unit: "Nos." },
-      { id: "master-s2-4", name: "FWD", unit: "Km" },
+      { name: "Topo Survey", unit: "Km" },
+      { name: "Traffic Survey and Soil Sampling", unit: "Nos." },
+      { name: "Geotech Investigations", unit: "Nos." },
+      { name: "FWD", unit: "Km" },
     ],
-    isPredefined: true
   },
   {
-    id: "master-3",
     name: "Design Scope",
     subActivities: [
       { name: "TCS", unit: "Nos." },
@@ -3231,57 +3320,54 @@ const MASTER_ACTIVITIES = [
       { name: "Miscellaneous Structure", unit: "Percentage" },
       { name: "Approval from Proof and Safety", unit: "Percentage" },
       { name: "Approval from Authority", unit: "Percentage" },
-    ].map((sub, index) => ({ ...sub, id: `master-s3-${index}` })),
-    isPredefined: true
+    ],
   },
 ];
 
-// ==================== COMPONENT ====================
 const CreateProject = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // ==================== REDUX STATE ====================
+  // Get data from Redux store
   const { 
     companies = [], 
     subCompanies = [], 
     sectors = [], 
     clients = [], 
-    activities: apiActivities = [],
-    subActivities: apiSubActivities = [],
+    activities = [],
+    subActivities = [],
     loading 
   } = useSelector((state) => state.api);
 
-  // ==================== LOCAL STATE ====================
+  // Form state - Updated field names to match Django models
   const [form, setForm] = useState({
-    code: "",
-    name: "",
-    shortName: "",
+    project_code: "",
+    project_name: "",
+    short_name: "",
     company: "",
-    subCompany: "",
+    sub_company: "",
     location: "",
     sector: "",
-    department: "",
-    totalLength: "",
-    cost: "",
-    directorProposalDate: "",
-    projectConfirmationDate: "",
-    loaDate: "",
-    completionDate: "",
+    client: "",
+    total_length: "",
+    workorder_cost: "",
+    director_proposal_date: "",
+    project_confirmation_date: "",
+    loa_date: "",
+    completion_date: "",
   });
 
   // Mobile responsive state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Data states
   const [sectorsList, setSectorsList] = useState([]);
   const [sectorsMap, setSectorsMap] = useState({});
   const [clientsList, setClientsList] = useState([]);
   const [clientsMap, setClientsMap] = useState({});
-  
-  // Activities state - Initialize with MASTER_ACTIVITIES
-  const [availableActivities, setAvailableActivities] = useState(MASTER_ACTIVITIES);
+  const [masterActivities, setMasterActivities] = useState(INITIAL_MASTER_ACTIVITIES);
   const [customActivities, setCustomActivities] = useState([]);
   
   // Search states
@@ -3313,27 +3399,11 @@ const CreateProject = () => {
     unit: "Km"
   });
 
-  // ==================== MEMOIZED VALUES ====================
-  const allActivities = useMemo(() => {
-    return [...availableActivities, ...customActivities];
-  }, [availableActivities, customActivities]);
-
-  const totalWeightage = useMemo(() => {
-    return Object.values(activityWeightages).reduce((sum, w) => sum + (w || 0), 0);
-  }, [activityWeightages]);
-
-  const filteredClients = useMemo(() => {
-    return clientsList.filter(client =>
-      client.toLowerCase().includes(clientSearch.toLowerCase())
-    );
-  }, [clientsList, clientSearch]);
-
-  // ==================== EFFECTS ====================
   // Fetch initial data on component mount
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        await Promise.allSettled([
+        await Promise.all([
           dispatch(fetchCompanies()),
           dispatch(fetchSubCompanies()),
           dispatch(fetchSectors()),
@@ -3342,84 +3412,108 @@ const CreateProject = () => {
           dispatch(fetchSubActivities())
         ]);
       } catch (error) {
-        console.log("Some API calls failed, using fallback data");
+        console.log("Using fallback data due to API error");
       }
     };
 
     fetchInitialData();
+
+    // Cleanup function to clear data when component unmounts
+    return () => {
+      dispatch(clearActivities());
+      dispatch(clearSubActivities());
+    };
   }, [dispatch]);
 
-  // Merge API activities with master activities
+  // Update sectors list and map when data loads
   useEffect(() => {
-    if (apiActivities.length > 0) {
-      // Transform API activities to match our format
-      const apiActivitiesFormatted = apiActivities.map(activity => {
-        // Find related sub-activities from API
-        const activitySubs = apiSubActivities.filter(
-          sub => sub.activity === activity.id || sub.activity_id === activity.id
-        ).map(sub => ({
-          id: sub.id,
-          name: sub.sub_activity_name || sub.name,
-          unit: sub.unit || "Km",
-          fromApi: true
-        }));
-
-        return {
-          id: activity.id,
-          name: activity.activity_name || activity.name,
-          subActivities: activitySubs.length > 0 ? activitySubs : [],
-          isPredefined: false,
-          fromApi: true
-        };
-      });
-
-      // Merge with master activities, avoiding duplicates by name
-      const mergedActivities = [...MASTER_ACTIVITIES];
-      
-      apiActivitiesFormatted.forEach(apiActivity => {
-        const exists = mergedActivities.some(a => a.name === apiActivity.name);
-        if (!exists) {
-          mergedActivities.push(apiActivity);
-        }
-      });
-
-      setAvailableActivities(mergedActivities);
-    }
-  }, [apiActivities, apiSubActivities]);
-
-  // Update sectors list and map
-  useEffect(() => {
-    if (sectors.length > 0) {
+    if (sectors && sectors.length > 0) {
       const map = {};
-      const list = [];
       sectors.forEach(sector => {
         map[sector.name] = sector.id;
-        list.push(sector.name);
       });
       setSectorsMap(map);
-      setSectorsList([...new Set(list)]);
+      
+      const uniqueSectors = [...new Set(sectors.map(s => s.name))];
+      setSectorsList(uniqueSectors);
+    } else {
+      setSectorsList(["Highway", "Bridge", "Metro", "Railway", "Building"]);
     }
   }, [sectors]);
 
-  // Update clients list and map
+  // Update clients list and map when data loads
   useEffect(() => {
-    if (clients.length > 0) {
+    if (clients && clients.length > 0) {
       const map = {};
-      const list = [];
       clients.forEach(client => {
         map[client.name] = client.id;
-        list.push(client.name);
       });
       setClientsMap(map);
-      setClientsList([...new Set(list)]);
+      
+      const uniqueClients = [...new Set(clients.map(c => c.name))];
+      setClientsList(uniqueClients);
+    } else {
+      setClientsList([
+        "A S Traders", "AGIPL", "Ajay Parkash", "AMAG", "Ambar Infra", 
+        "Ambay Infra", "Amit Chopra", "Apco", "Arcons", "Arnac",
+        "BCC", "BRO", "Ceigall", "DCC", "Gawar",
+        "HG Infra", "KCC", "MRG", "PNC", "RKC",
+        "Sadbhav", "SKS Infra", "VRC"
+      ]);
     }
   }, [clients]);
 
-  // Handle resize
+  // Update activities when data loads - FIXED to prevent duplicates
+  useEffect(() => {
+    console.log("Activities from API:", activities);
+    console.log("SubActivities from API:", subActivities);
+    
+    if (activities && activities.length > 0) {
+      // Format activities from API - use a Map to prevent duplicates by name
+      const activityMap = new Map();
+      
+      activities.forEach(activity => {
+        // Find sub-activities that belong to this activity
+        const activitySubs = subActivities.filter(
+          sub => sub.activity === activity.id
+        ) || [];
+        
+        const formattedActivity = {
+          id: activity.id,
+          name: activity.activity_name || activity.name,
+          subActivities: activitySubs.length > 0 
+            ? activitySubs.map(sub => ({
+                id: sub.id,
+                name: sub.subactivity_name || sub.name,
+                unit: sub.unit_display || sub.unit || "Km"
+              }))
+            : [],
+          isCustom: false
+        };
+        
+        // Use activity name as key to prevent duplicates
+        // If same name exists, keep the one with more sub-activities
+        const existing = activityMap.get(formattedActivity.name);
+        if (!existing || existing.subActivities.length < formattedActivity.subActivities.length) {
+          activityMap.set(formattedActivity.name, formattedActivity);
+        }
+      });
+      
+      const formattedActivities = Array.from(activityMap.values());
+      console.log("Formatted activities (no duplicates):", formattedActivities);
+      setMasterActivities(formattedActivities);
+    } else {
+      console.log("Using fallback activities");
+      // Keep using INITIAL_MASTER_ACTIVITIES
+    }
+  }, [activities, subActivities]);
+
+  // Handle resize for responsive
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
+
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -3431,20 +3525,25 @@ const CreateProject = () => {
         setShowClientDropdown(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ==================== HANDLERS ====================
-  const handleChange = useCallback((e) => {
+  // Filter clients based on search
+  const filteredClients = clientsList.filter(client =>
+    client.toLowerCase().includes(clientSearch.toLowerCase())
+  );
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({
       ...prev,
       [name]: value
     }));
-  }, []);
+  };
 
-  const handleActivityDateChange = useCallback((activityName, field, value) => {
+  const handleActivityDateChange = (activityName, field, value) => {
     setActivityDates(prev => ({
       ...prev,
       [activityName]: {
@@ -3452,17 +3551,17 @@ const CreateProject = () => {
         [field]: value
       }
     }));
-  }, []);
+  };
 
-  const handleActivityWeightageChange = useCallback((activityName, value) => {
+  const handleActivityWeightageChange = (activityName, value) => {
     const numValue = parseFloat(value) || 0;
     setActivityWeightages(prev => ({
       ...prev,
       [activityName]: numValue
     }));
-  }, []);
+  };
 
-  const handleSubActivitySelection = useCallback((activityName, subActivityName, checked) => {
+  const handleSubActivitySelection = (activityName, subActivityName, checked) => {
     setSelectedSubActivities(prev => {
       const activitySubs = prev[activityName] || [];
       if (checked) {
@@ -3477,24 +3576,24 @@ const CreateProject = () => {
         };
       }
     });
-  }, []);
+  };
 
-  const handleSubActivityUnitChange = useCallback((activityName, subActivityName, unit) => {
+  const handleSubActivityUnitChange = (activityName, subActivityName, unit) => {
     setSubActivityUnits(prev => ({
       ...prev,
       [`${activityName}_${subActivityName}`]: unit
     }));
-  }, []);
+  };
 
-  const handleSubActivityPlannedQtyChange = useCallback((activityName, subActivityName, value) => {
+  const handleSubActivityPlannedQtyChange = (activityName, subActivityName, value) => {
     const numValue = parseFloat(value) || 0;
     setSubActivityPlannedQtys(prev => ({
       ...prev,
       [`${activityName}_${subActivityName}`]: numValue
     }));
-  }, []);
+  };
 
-  const handleAddActivity = useCallback(async (e) => {
+  const handleAddActivity = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -3507,7 +3606,6 @@ const CreateProject = () => {
     }
 
     const newActivity = {
-      id: `custom-${Date.now()}`,
       name: newActivityName,
       subActivities: [],
       isCustom: true
@@ -3521,9 +3619,9 @@ const CreateProject = () => {
       message: "Activity added successfully",
       type: "success"
     }));
-  }, [newActivityName, dispatch]);
+  };
 
-  const handleAddSubActivity = useCallback(async (e) => {
+  const handleAddSubActivity = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -3536,31 +3634,34 @@ const CreateProject = () => {
     }
 
     const newSub = { 
-      id: `sub-${Date.now()}`,
       name: newSubActivity.name, 
       unit: newSubActivity.unit
     };
 
-    // Add to the appropriate activity
-    setAvailableActivities(prev => prev.map(act => {
-      if (act.name === selectedActivityForSub) {
-        return {
-          ...act,
-          subActivities: [...act.subActivities, newSub]
-        };
-      }
-      return act;
-    }));
-
-    setCustomActivities(prev => prev.map(act => {
-      if (act.name === selectedActivityForSub) {
-        return {
-          ...act,
-          subActivities: [...act.subActivities, newSub]
-        };
-      }
-      return act;
-    }));
+    // Check if it's a master activity or custom activity
+    const masterIndex = masterActivities.findIndex(act => act.name === selectedActivityForSub);
+    
+    if (masterIndex !== -1) {
+      setMasterActivities(prev => prev.map((act, index) => {
+        if (index === masterIndex) {
+          return {
+            ...act,
+            subActivities: [...act.subActivities, newSub]
+          };
+        }
+        return act;
+      }));
+    } else {
+      setCustomActivities(prev => prev.map(act => {
+        if (act.name === selectedActivityForSub) {
+          return {
+            ...act,
+            subActivities: [...act.subActivities, newSub]
+          };
+        }
+        return act;
+      }));
+    }
 
     setNewSubActivity({ name: "", unit: "Km" });
     setShowAddSubActivityModal(false);
@@ -3570,98 +3671,94 @@ const CreateProject = () => {
       message: "Sub-activity added successfully",
       type: "success"
     }));
-  }, [newSubActivity, selectedActivityForSub, dispatch]);
+  };
 
-  const handleDeleteActivity = useCallback((activityName) => {
+  const handleDeleteActivity = (activityName) => {
     if (window.confirm(`Are you sure you want to delete activity "${activityName}"?`)) {
       setCustomActivities(prev => prev.filter(a => a.name !== activityName));
       setSelectedActivities(prev => prev.filter(a => a !== activityName));
       
       // Clean up related state
-      setActivityWeightages(prev => {
-        const newState = { ...prev };
-        delete newState[activityName];
-        return newState;
-      });
+      const newWeightages = { ...activityWeightages };
+      delete newWeightages[activityName];
+      setActivityWeightages(newWeightages);
       
-      setActivityDates(prev => {
-        const newState = { ...prev };
-        delete newState[activityName];
-        return newState;
-      });
+      const newDates = { ...activityDates };
+      delete newDates[activityName];
+      setActivityDates(newDates);
       
-      setSelectedSubActivities(prev => {
-        const newState = { ...prev };
-        delete newState[activityName];
-        return newState;
-      });
+      const newSubSelections = { ...selectedSubActivities };
+      delete newSubSelections[activityName];
+      setSelectedSubActivities(newSubSelections);
       
       dispatch(showSnackbar({
         message: "Activity deleted successfully",
         type: "success"
       }));
     }
-  }, [dispatch]);
+  };
 
-  const handleDeleteSubActivity = useCallback((activityName, subActivityName) => {
+  const handleDeleteSubActivity = (activityName, subActivityName) => {
     if (window.confirm(`Are you sure you want to delete sub-activity "${subActivityName}"?`)) {
       
-      setAvailableActivities(prev => prev.map(act => {
-        if (act.name === activityName) {
-          return {
-            ...act,
-            subActivities: act.subActivities.filter(sub => sub.name !== subActivityName)
-          };
-        }
-        return act;
-      }));
-
-      setCustomActivities(prev => prev.map(act => {
-        if (act.name === activityName) {
-          return {
-            ...act,
-            subActivities: act.subActivities.filter(sub => sub.name !== subActivityName)
-          };
-        }
-        return act;
-      }));
+      const masterIndex = masterActivities.findIndex(act => act.name === activityName);
+      
+      if (masterIndex !== -1) {
+        setMasterActivities(prev => prev.map(act => {
+          if (act.name === activityName) {
+            return {
+              ...act,
+              subActivities: act.subActivities.filter(sub => sub.name !== subActivityName)
+            };
+          }
+          return act;
+        }));
+      } else {
+        setCustomActivities(prev => prev.map(act => {
+          if (act.name === activityName) {
+            return {
+              ...act,
+              subActivities: act.subActivities.filter(sub => sub.name !== subActivityName)
+            };
+          }
+          return act;
+        }));
+      }
 
       // Clean up related state
       const key = `${activityName}_${subActivityName}`;
-      setSubActivityUnits(prev => {
-        const newState = { ...prev };
-        delete newState[key];
-        return newState;
-      });
+      const newUnits = { ...subActivityUnits };
+      delete newUnits[key];
+      setSubActivityUnits(newUnits);
       
-      setSubActivityPlannedQtys(prev => {
-        const newState = { ...prev };
-        delete newState[key];
-        return newState;
-      });
+      const newQtys = { ...subActivityPlannedQtys };
+      delete newQtys[key];
+      setSubActivityPlannedQtys(newQtys);
       
-      setSelectedSubActivities(prev => {
-        const activitySubs = prev[activityName] || [];
-        return {
+      if (selectedSubActivities[activityName]) {
+        setSelectedSubActivities(prev => ({
           ...prev,
-          [activityName]: activitySubs.filter(name => name !== subActivityName)
-        };
-      });
+          [activityName]: prev[activityName].filter(name => name !== subActivityName)
+        }));
+      }
       
       dispatch(showSnackbar({
         message: "Sub-activity deleted successfully",
         type: "success"
       }));
     }
-  }, [dispatch]);
+  };
 
-  // ==================== VALIDATION ====================
-  const validateDates = useCallback(() => {
+  const getAllActivities = () => {
+    return [...masterActivities, ...customActivities];
+  };
+
+  const validateDates = () => {
     const dates = [
-      { name: "Director Proposal", value: form.directorProposalDate },
-      { name: "Project Confirmation", value: form.projectConfirmationDate },
-      { name: "LOA", value: form.loaDate },
-      { name: "Completion", value: form.completionDate }
+      { name: "Director Proposal", value: form.director_proposal_date },
+      { name: "Project Confirmation", value: form.project_confirmation_date },
+      { name: "LOA", value: form.loa_date },
+      { name: "Completion", value: form.completion_date }
     ];
 
     for (let i = 0; i < dates.length - 1; i++) {
@@ -3676,10 +3773,10 @@ const CreateProject = () => {
       }
     }
     return true;
-  }, [form, dispatch]);
+  };
 
-  const validate = useCallback(() => {
-    if (!form.code || !form.name || !form.shortName) {
+  const validate = () => {
+    if (!form.project_code || !form.project_name || !form.short_name) {
       dispatch(showSnackbar({
         message: "Please fill mandatory fields: Project Code, Name, and Short Name",
         type: "error"
@@ -3693,7 +3790,7 @@ const CreateProject = () => {
       }));
       return false;
     }
-    if (!form.totalLength || form.totalLength <= 0) {
+    if (!form.total_length || form.total_length <= 0) {
       dispatch(showSnackbar({
         message: "Please enter a valid Total Length",
         type: "error"
@@ -3708,6 +3805,7 @@ const CreateProject = () => {
       return false;
     }
 
+    const totalWeightage = Object.values(activityWeightages).reduce((sum, w) => sum + (w || 0), 0);
     if (Math.abs(totalWeightage - 100) > 0.01) {
       dispatch(showSnackbar({
         message: `Total activity weightage must sum to 100%. Current total: ${totalWeightage}%`,
@@ -3735,7 +3833,7 @@ const CreateProject = () => {
     }
 
     for (const activityName of selectedActivities) {
-      const activityObj = allActivities.find((a) => a.name === activityName);
+      const activityObj = getAllActivities().find((a) => a.name === activityName);
       const selectedSubs = selectedSubActivities[activityName] || [];
       
       if (selectedSubs.length === 0) {
@@ -3766,86 +3864,183 @@ const CreateProject = () => {
     }
     
     return true;
-  }, [form, selectedActivities, totalWeightage, activityDates, allActivities, selectedSubActivities, subActivityUnits, subActivityPlannedQtys, validateDates, dispatch]);
+  };
 
-  // ==================== SUBMIT ====================
-  const handleSubmit = useCallback(async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (!validate()) return;
 
-    // Format activities for submission - CORRECT FIELD NAMES FOR BACKEND
-    const formattedActivities = selectedActivities.map((actName) => {
-      const activityObj = allActivities.find((a) => a.name === actName);
-      const dates = activityDates[actName];
-      const weightage = activityWeightages[actName] || 0;
-      const selectedSubs = selectedSubActivities[actName] || [];
+    setIsSubmitting(true);
+    
+    // Show loading message
+    dispatch(showSnackbar({
+      message: "Creating project... This may take a moment.",
+      type: "info"
+    }));
 
-      return {
-        activity_name: actName,
-        weightage: weightage,
-        start_date: dates.startDate,
-        end_date: dates.endDate,
-        sub_activities: selectedSubs.map((subName) => {
+    try {
+      const allActivities = getAllActivities();
+      let createdActivityIds = [];
+      const activityIdMap = {};
+      
+      // STEP 1: Prepare all activities data as an array for bulk creation
+      const activitiesPayload = selectedActivities.map((actName) => {
+        const dates = activityDates[actName];
+        const weightage = activityWeightages[actName] || 0;
+        
+        return {
+          activity_name: actName,
+          weightage: weightage,
+          start_date: dates.startDate,
+          end_date: dates.endDate,
+        };
+      });
+
+      console.log("Creating all activities with payload:", activitiesPayload);
+
+      // Create all activities in ONE API call using bulk creation
+      let activitiesResponse;
+      
+      // Check if createActivitiesBulk exists
+      if (typeof createActivitiesBulk !== 'undefined' && createActivitiesBulk) {
+        activitiesResponse = await dispatch(createActivitiesBulk(activitiesPayload)).unwrap();
+      } else {
+        // Fallback to creating activities one by one
+        console.warn("createActivitiesBulk not available, falling back to individual creation");
+        const activityPromises = activitiesPayload.map(activityData => 
+          dispatch(createActivity(activityData)).unwrap()
+        );
+        activitiesResponse = await Promise.all(activityPromises);
+      }
+      
+      console.log("Activities created:", activitiesResponse);
+
+      // Handle the response - it could be an array or a single object
+      if (Array.isArray(activitiesResponse)) {
+        // If response is array, map to get IDs
+        createdActivityIds = activitiesResponse.map(act => act.id);
+        
+        // Create map of activity names to IDs
+        selectedActivities.forEach((actName, index) => {
+          activityIdMap[actName] = activitiesResponse[index]?.id;
+        });
+      } else {
+        // If response is a single object
+        createdActivityIds = [activitiesResponse.id];
+        activityIdMap[selectedActivities[0]] = activitiesResponse.id;
+      }
+
+      console.log("Activity ID map:", activityIdMap);
+      console.log("Created activity IDs:", createdActivityIds);
+
+      // STEP 2: Create all sub-activities in bulk per activity
+      console.log("Creating sub-activities in bulk...");
+      
+      const bulkSubPromises = [];
+      
+      for (const actName of selectedActivities) {
+        const activityObj = allActivities.find((a) => a.name === actName);
+        const activityId = activityIdMap[actName];
+        const selectedSubs = selectedSubActivities[actName] || [];
+        
+        if (selectedSubs.length === 0) continue;
+        
+        // Prepare all sub-activities for this activity as an array
+        const subActivitiesPayload = selectedSubs.map((subName) => {
           const subObj = activityObj.subActivities.find(s => s.name === subName);
           const key = `${actName}_${subName}`;
           const unit = subActivityUnits[key] || subObj.unit;
           const plannedQty = subActivityPlannedQtys[key] || 0;
-
+          
+          // For status-based, we send 'Percentage' as unit and set range to 'status'
+          const isStatusBased = unit === 'status';
+          
           return {
-            sub_activity_name: subName,
-            unit: unit,
-            planned_quantity: unit !== "status" ? plannedQty : 1,
-            start_date: dates.startDate,
-            end_date: dates.endDate,
+            subactivity_name: subName,
+            unit: isStatusBased ? 'Percentage' : unit, // Send 'Percentage' for status-based
+            total_quantity: isStatusBased ? 1 : plannedQty, // Always 1 for status-based
+            range: isStatusBased ? 'status' : null, // Mark as status-based
+            activity: activityId,
           };
-        }),
+        });
+        
+        console.log(`Creating ${subActivitiesPayload.length} sub-activities for activity: ${actName}`, subActivitiesPayload);
+        
+        // Create all sub-activities for this activity in one API call
+        if (typeof createSubActivitiesBulk !== 'undefined' && createSubActivitiesBulk) {
+          bulkSubPromises.push(dispatch(createSubActivitiesBulk(subActivitiesPayload)).unwrap());
+        } else {
+          // Fallback to individual creation
+          const promises = subActivitiesPayload.map(data => 
+            dispatch(createSubActivity(data)).unwrap()
+          );
+          bulkSubPromises.push(Promise.all(promises));
+        }
+      }
+
+      // Wait for all bulk sub-activity creations to complete
+      if (bulkSubPromises.length > 0) {
+        await Promise.all(bulkSubPromises);
+        console.log("All sub-activities created successfully");
+      }
+
+      // STEP 3: Find IDs for company, sub-company, sector, client
+      const selectedCompany = companies.find(c => c.name === form.company);
+      const selectedSubCompany = subCompanies.find(c => c.name === form.sub_company);
+      const sectorId = sectorsMap[form.sector] || null;
+      const clientId = clientsMap[form.client] || null;
+
+      // STEP 4: Create project with the activity IDs
+      const projectData = {
+        project_code: form.project_code,
+        project_name: form.project_name,
+        short_name: form.short_name,
+        company: selectedCompany?.id || null,
+        sub_company: selectedSubCompany?.id || null,
+        sector: sectorId,
+        client: clientId,
+        location: form.location,
+        total_length: parseFloat(form.total_length),
+        workorder_cost: parseFloat(form.workorder_cost) || 0,
+        director_proposal_date: form.director_proposal_date,
+        project_confirmation_date: form.project_confirmation_date,
+        loa_date: form.loa_date,
+        completion_date: form.completion_date,
+        activities: createdActivityIds, // Send ONLY the IDs
       };
-    });
 
-    // Get IDs for foreign keys
-    const selectedCompany = companies.find(c => c.name === form.company);
-    const selectedSubCompany = subCompanies.find(c => c.name === form.subCompany);
-    const sectorId = sectorsMap[form.sector] || null;
-    const clientId = clientsMap[form.department] || null;
+      console.log("Sending project data with activity IDs:", JSON.stringify(projectData, null, 2));
 
-    // Prepare data for API - CORRECT FIELD NAMES FOR BACKEND
-    const projectData = {
-      project_code: form.code,
-      project_name: form.name,
-      short_name: form.shortName,
-      company: selectedCompany?.id || null,
-      sub_company: selectedSubCompany?.id || null,
-      sector: sectorId,
-      client: clientId,
-      location: form.location,
-      total_length: parseFloat(form.totalLength),
-      workorder_cost: parseFloat(form.cost) || 0,
-      director_proposal_date: form.directorProposalDate,
-      project_confirmation_date: form.projectConfirmationDate,
-      loa_date: form.loaDate,
-      completion_date: form.completionDate,
-      activities: formattedActivities,
-    };
-
-    console.log("Sending project data:", JSON.stringify(projectData, null, 2));
-
-    try {
-      // Send to API
+      // STEP 5: Create the project
       const apiResult = await dispatch(createProjectApi(projectData)).unwrap();
       console.log("API Response:", apiResult);
       
-      // Also save to local Redux store for immediate UI update
+      // STEP 6: Also update local Redux store for immediate UI update
       dispatch(addProject({
-        ...form,
+        id: apiResult.id || `temp_${Date.now()}`,
+        code: form.project_code,
+        name: form.project_name,
+        shortName: form.short_name,
+        company: form.company,
+        subCompany: form.sub_company,
+        location: form.location,
+        sector: form.sector,
+        department: form.client,
+        totalLength: form.total_length,
+        cost: form.workorder_cost,
+        directorProposalDate: form.director_proposal_date,
+        projectConfirmationDate: form.project_confirmation_date,
+        loaDate: form.loa_date,
+        completionDate: form.completion_date,
         activities: selectedActivities.map((actName, idx) => {
           const activityObj = allActivities.find((a) => a.name === actName);
           const dates = activityDates[actName];
           const selectedSubs = selectedSubActivities[actName] || [];
           
           return {
-            id: `local-${idx + 1}_${Date.now()}`,
+            id: createdActivityIds[idx] || `a${idx + 1}_${Date.now()}`,
             name: actName,
             weightage: activityWeightages[actName] || 0,
             startDate: dates.startDate,
@@ -3856,9 +4051,9 @@ const CreateProject = () => {
               const key = `${actName}_${subName}`;
               const unit = subActivityUnits[key] || subObj.unit;
               const plannedQty = subActivityPlannedQtys[key] || 0;
-
+              
               return {
-                id: `local-sub-${idx + 1}_${subIdx + 1}_${Date.now()}`,
+                id: `s${idx + 1}_${subIdx + 1}_${Date.now()}`,
                 name: subName,
                 unit: unit,
                 plannedQty: unit !== "status" ? plannedQty : 1,
@@ -3880,80 +4075,80 @@ const CreateProject = () => {
       
       navigate("/projects");
     } catch (error) {
-      console.error("Project creation error:", error.response?.data || error);
+      console.error("Project creation error:", error);
       
-      // Still save locally even if API fails (offline mode)
-      dispatch(addProject({
-        ...form,
-        activities: selectedActivities.map((actName, idx) => {
-          const activityObj = allActivities.find((a) => a.name === actName);
-          const dates = activityDates[actName];
-          const selectedSubs = selectedSubActivities[actName] || [];
-          
-          return {
-            id: `local-${idx + 1}_${Date.now()}`,
-            name: actName,
-            weightage: activityWeightages[actName] || 0,
-            startDate: dates.startDate,
-            endDate: dates.endDate,
-            progress: 0,
-            subActivities: selectedSubs.map((subName, subIdx) => {
-              const subObj = activityObj.subActivities.find(s => s.name === subName);
-              const key = `${actName}_${subName}`;
-              const unit = subActivityUnits[key] || subObj.unit;
-              const plannedQty = subActivityPlannedQtys[key] || 0;
-
-              return {
-                id: `local-sub-${idx + 1}_${subIdx + 1}_${Date.now()}`,
-                name: subName,
-                unit: unit,
-                plannedQty: unit !== "status" ? plannedQty : 1,
-                completedQty: 0,
-                progress: 0,
-                startDate: dates.startDate,
-                endDate: dates.endDate,
-                status: "PENDING",
-              };
-            }),
-          };
-        }),
-      }));
+      // Handle error gracefully
+      let errorMessage = "Failed to create project";
+      
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+        
+        if (error.response.data) {
+          if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          } else if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          } else if (error.response.data.error) {
+            errorMessage = error.response.data.error;
+          } else if (error.response.data.detail) {
+            errorMessage = error.response.data.detail;
+          } else if (error.response.data.non_field_errors) {
+            errorMessage = error.response.data.non_field_errors.join(', ');
+          } else {
+            // Try to stringify the error
+            try {
+              const errors = Object.entries(error.response.data)
+                .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                .join(', ');
+              if (errors) errorMessage = errors;
+            } catch {
+              errorMessage = "Unknown error occurred";
+            }
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
       
       dispatch(showSnackbar({
-        message: error.response?.data?.message || error.message || "Failed to create project on server, but saved locally",
-        type: "warning"
+        message: errorMessage,
+        type: "error"
       }));
-      
-      navigate("/projects");
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [validate, allActivities, selectedActivities, activityDates, activityWeightages, selectedSubActivities, subActivityUnits, subActivityPlannedQtys, companies, subCompanies, sectorsMap, clientsMap, form, dispatch, navigate]);
+  };
 
-  // ==================== UI HELPERS ====================
-  const closeModal = useCallback((setter) => {
+  const closeModal = (setter) => {
     setter(false);
-  }, []);
+  };
 
-  const nextStep = useCallback(() => {
-    setCurrentStep(prev => Math.min(prev + 1, 3));
-  }, []);
+  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 3));
+  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  const prevStep = useCallback(() => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  }, []);
+  const totalWeightage = Object.values(activityWeightages).reduce((sum, w) => sum + (w || 0), 0);
 
-  // ==================== RENDER ====================
+  const getUnitDisplay = (unit) => {
+    if (unit === 'status') return 'Status';
+    if (unit === 'Km') return 'Km';
+    if (unit === 'Nos.') return 'Nos';
+    if (unit === 'Percentage') return '%';
+    return unit;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-7xl mx-auto space-y-4 md:space-y-8 px-3 md:px-4 py-4 md:py-6"
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Loading Overlay */}
-      {loading && (
+      {(loading || isSubmitting) && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60] flex items-center justify-center">
           <div className="bg-white rounded-2xl p-6 shadow-2xl flex items-center gap-3">
             <Loader2 className="animate-spin text-blue-600" size={24} />
-            <p className="text-gray-700">Loading data...</p>
+            <p className="text-gray-700">{isSubmitting ? "Creating project..." : "Loading data..."}</p>
           </div>
         </div>
       )}
@@ -4065,10 +4260,11 @@ const CreateProject = () => {
                     onChange={(e) => setNewSubActivity({...newSubActivity, unit: e.target.value})}
                     className="w-full p-2.5 md:p-3 border rounded-xl text-sm md:text-base"
                   >
-                    <option value="Km">Kilometer (Km)</option>
-                    <option value="Nos.">Numbers (Nos.)</option>
-                    <option value="Percentage">Percentage (%)</option>
-                    <option value="status">Status Based</option>
+                    {UNIT_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 
@@ -4093,7 +4289,7 @@ const CreateProject = () => {
         )}
       </AnimatePresence>
 
-      {/* Header */}
+      {/* Header with Mobile Step Indicator */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -4118,7 +4314,7 @@ const CreateProject = () => {
         )}
       </div>
 
-      {/* Form */}
+      {/* ================= FORM SECTION ================= */}
       <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
         {/* Step 1: Basic Information */}
         <motion.div
@@ -4136,26 +4332,65 @@ const CreateProject = () => {
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            {[
-              { label: "Project Code *", name: "code", icon: <Hash size={18} />, type: "text" },
-              { label: "Project Name *", name: "name", icon: <Briefcase size={18} />, type: "text" },
-              { label: "Short Name *", name: "shortName", icon: <span className="text-lg">🔤</span>, type: "text" },
-              { label: "Location", name: "location", icon: <MapPin size={18} />, type: "text" },
-            ].map((field) => (
-              <div key={field.name} className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  {field.icon}
-                </div>
-                <input
-                  type={field.type}
-                  name={field.name}
-                  placeholder={field.label}
-                  value={form[field.name]}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
-                />
+            {/* Project Code */}
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <Hash size={18} />
               </div>
-            ))}
+              <input
+                type="text"
+                name="project_code"
+                placeholder="Project Code *"
+                value={form.project_code}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+              />
+            </div>
+
+            {/* Project Name */}
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <Briefcase size={18} />
+              </div>
+              <input
+                type="text"
+                name="project_name"
+                placeholder="Project Name *"
+                value={form.project_name}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+              />
+            </div>
+
+            {/* Short Name */}
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <span className="text-lg">🔤</span>
+              </div>
+              <input
+                type="text"
+                name="short_name"
+                placeholder="Short Name *"
+                value={form.short_name}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+              />
+            </div>
+
+            {/* Location */}
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <MapPin size={18} />
+              </div>
+              <input
+                type="text"
+                name="location"
+                placeholder="Location"
+                value={form.location}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+              />
+            </div>
 
             {/* Company Selection */}
             <div className="relative">
@@ -4183,10 +4418,10 @@ const CreateProject = () => {
                 <Building2 size={18} />
               </div>
               <select
-                name="subCompany"
+                name="sub_company"
                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50 hover:bg-white appearance-none"
                 onChange={handleChange}
-                value={form.subCompany}
+                value={form.sub_company}
               >
                 <option value="">Select Sub Company</option>
                 {subCompanies.map((subCompany) => (
@@ -4246,6 +4481,7 @@ const CreateProject = () => {
               </button>
             </div>
 
+            {/* Add New Sector Input */}
             <input
               type="text"
               placeholder="Add New Sector"
@@ -4262,6 +4498,7 @@ const CreateProject = () => {
               <input
                 type="text"
                 placeholder="Search Client"
+                name="client"
                 value={clientSearch}
                 onClick={() => setShowClientDropdown(true)}
                 onChange={(e) => {
@@ -4285,7 +4522,7 @@ const CreateProject = () => {
                         <div
                           key={`client-${index}-${client}`}
                           onClick={() => {
-                            setForm({...form, department: client});
+                            setForm({...form, client: client});
                             setClientSearch(client);
                             setShowClientDropdown(false);
                           }}
@@ -4379,26 +4616,26 @@ const CreateProject = () => {
               </div>
               <input
                 type="number"
-                name="totalLength"
+                name="total_length"
                 step="0.01"
                 placeholder="Total Length *"
-                value={form.totalLength}
+                value={form.total_length}
                 onChange={handleChange}
                 className="w-full pl-10 pr-16 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs md:text-sm">km</span>
             </div>
 
-            {/* Cost */}
+            {/* Workorder Cost */}
             <div className="relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <IndianRupee size={18} />
               </div>
               <input
                 type="number"
-                name="cost"
+                name="workorder_cost"
                 placeholder="Workorder Cost"
-                value={form.cost}
+                value={form.workorder_cost}
                 onChange={handleChange}
                 className="w-full pl-10 pr-16 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
               />
@@ -4412,8 +4649,8 @@ const CreateProject = () => {
               </label>
               <input
                 type="date"
-                name="directorProposalDate"
-                value={form.directorProposalDate}
+                name="director_proposal_date"
+                value={form.director_proposal_date}
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 required
@@ -4426,8 +4663,8 @@ const CreateProject = () => {
               </label>
               <input
                 type="date"
-                name="projectConfirmationDate"
-                value={form.projectConfirmationDate}
+                name="project_confirmation_date"
+                value={form.project_confirmation_date}
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 required
@@ -4440,8 +4677,8 @@ const CreateProject = () => {
               </label>
               <input
                 type="date"
-                name="loaDate"
-                value={form.loaDate}
+                name="loa_date"
+                value={form.loa_date}
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 required
@@ -4454,8 +4691,8 @@ const CreateProject = () => {
               </label>
               <input
                 type="date"
-                name="completionDate"
-                value={form.completionDate}
+                name="completion_date"
+                value={form.completion_date}
                 onChange={handleChange}
                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 required
@@ -4528,106 +4765,102 @@ const CreateProject = () => {
           )}
 
           {/* Activity Selection Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-            {allActivities.map((activity, index) => {
-              const isSelected = selectedActivities.includes(activity.name);
-              const isCustom = activity.isCustom;
-              const uniqueKey = activity.id || `activity-${index}-${activity.name}`;
-              
-              return (
-                <div key={uniqueKey} className="relative group">
-                  <motion.div
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedActivities(prev => prev.filter((a) => a !== activity.name));
-                        // Clean up related state
-                        setActivityWeightages(prev => {
-                          const newState = { ...prev };
-                          delete newState[activity.name];
-                          return newState;
-                        });
-                        
-                        setActivityDates(prev => {
-                          const newState = { ...prev };
-                          delete newState[activity.name];
-                          return newState;
-                        });
-                        
-                        setSelectedSubActivities(prev => {
-                          const newState = { ...prev };
-                          delete newState[activity.name];
-                          return newState;
-                        });
-                      } else {
-                        setSelectedActivities(prev => [...prev, activity.name]);
-                        // Initialize with all sub-activities selected by default
-                        const allSubs = activity.subActivities.map(sub => sub.name);
-                        setSelectedSubActivities(prev => ({
-                          ...prev,
-                          [activity.name]: allSubs
-                        }));
-                      }
-                    }}
-                    className={`cursor-pointer p-3 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all shadow-sm
-                      ${
-                        isSelected
-                          ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white border-transparent shadow-lg"
-                          : "bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-300"
-                      }
-                    `}
-                  >
-                    <p className="font-medium md:font-semibold text-sm md:text-base text-center line-clamp-2">
-                      {activity.name}
-                    </p>
-                    <p className={`text-xs text-center mt-1 md:mt-2 ${isSelected ? 'text-blue-100' : 'text-gray-400'}`}>
-                      {activity.subActivities.length} sub-activities
-                    </p>
-                    {activity.isPredefined && (
-                      <span className="absolute top-1 right-1 md:top-2 md:right-2 text-[10px] md:text-xs bg-blue-100 text-blue-600 px-1.5 md:px-2 py-0.5 rounded-full">
-                        Master
-                      </span>
-                    )}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+              <p className="mt-2 text-gray-500">Loading activities...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
+              {getAllActivities().map((activity, index) => {
+                const isSelected = selectedActivities.includes(activity.name);
+                const isCustom = activity.isCustom;
+                const uniqueKey = `activity-${index}-${activity.name}`;
+                
+                return (
+                  <div key={uniqueKey} className="relative group">
+                    <motion.div
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedActivities(prev => prev.filter((a) => a !== activity.name));
+                          // Clean up related state
+                          const newWeightages = { ...activityWeightages };
+                          delete newWeightages[activity.name];
+                          setActivityWeightages(newWeightages);
+                          
+                          const newDates = { ...activityDates };
+                          delete newDates[activity.name];
+                          setActivityDates(newDates);
+                          
+                          const newSubSelections = { ...selectedSubActivities };
+                          delete newSubSelections[activity.name];
+                          setSelectedSubActivities(newSubSelections);
+                        } else {
+                          setSelectedActivities(prev => [...prev, activity.name]);
+                          // Initialize with all sub-activities selected by default
+                          const allSubs = activity.subActivities.map(sub => sub.name);
+                          setSelectedSubActivities(prev => ({
+                            ...prev,
+                            [activity.name]: allSubs
+                          }));
+                        }
+                      }}
+                      className={`cursor-pointer p-3 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all shadow-sm
+                        ${
+                          isSelected
+                            ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white border-transparent shadow-lg"
+                            : "bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-300"
+                        }
+                      `}
+                    >
+                      <p className="font-medium md:font-semibold text-sm md:text-base text-center line-clamp-2">
+                        {activity.name}
+                      </p>
+                      <p className={`text-xs text-center mt-1 md:mt-2 ${isSelected ? 'text-blue-100' : 'text-gray-400'}`}>
+                        {activity.subActivities.length} sub-activities
+                      </p>
+                      {isCustom && (
+                        <span className="absolute top-1 right-1 md:top-2 md:right-2 text-[10px] md:text-xs bg-yellow-100 text-yellow-600 px-1.5 md:px-2 py-0.5 rounded-full">
+                          Custom
+                        </span>
+                      )}
+                    </motion.div>
+                    
                     {isCustom && (
-                      <span className="absolute top-1 right-1 md:top-2 md:right-2 text-[10px] md:text-xs bg-yellow-100 text-yellow-600 px-1.5 md:px-2 py-0.5 rounded-full">
-                        Custom
-                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteActivity(activity.name);
+                        }}
+                        className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete activity"
+                      >
+                        <X size={12} />
+                      </button>
                     )}
-                  </motion.div>
-                  
-                  {isCustom && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteActivity(activity.name);
-                      }}
-                      className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Delete activity"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                  
-                  {isSelected && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedActivityForSub(activity.name);
-                        setShowAddSubActivityModal(true);
-                      }}
-                      className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 whitespace-nowrap"
-                    >
-                      <Plus size={10} />
-                      Add Sub
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    
+                    {isSelected && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedActivityForSub(activity.name);
+                          setShowAddSubActivityModal(true);
+                        }}
+                        className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 whitespace-nowrap"
+                      >
+                        <Plus size={10} />
+                        Add Sub
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Selected Activities with Configuration */}
           <AnimatePresence>
@@ -4644,7 +4877,7 @@ const CreateProject = () => {
                 </h4>
 
                 {selectedActivities.map((actName) => {
-                  const activityObj = allActivities.find((a) => a.name === actName);
+                  const activityObj = getAllActivities().find((a) => a.name === actName);
                   const isExpanded = expandedActivity === actName;
                   const isCustom = activityObj?.isCustom;
                   const selectedSubs = selectedSubActivities[actName] || [];
@@ -4665,11 +4898,6 @@ const CreateProject = () => {
                           <h5 className="font-medium md:font-semibold text-gray-800 text-sm md:text-base truncate">
                             {actName}
                           </h5>
-                          {activityObj?.isPredefined && (
-                            <span className="text-[10px] md:text-xs bg-blue-100 text-blue-600 px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap">
-                              Master
-                            </span>
-                          )}
                           {isCustom && (
                             <span className="text-[10px] md:text-xs bg-yellow-100 text-yellow-600 px-1.5 md:px-2 py-0.5 rounded-full whitespace-nowrap">
                               Custom
@@ -4762,7 +4990,7 @@ const CreateProject = () => {
                                 const isSelected = selectedSubs.includes(sub.name);
                                 const key = `${actName}_${sub.name}`;
                                 const currentUnit = subActivityUnits[key] || sub.unit;
-                                const subUniqueKey = sub.id || `sub-${actName}-${subIndex}-${sub.name}`;
+                                const subUniqueKey = `sub-${actName}-${subIndex}-${sub.name}`;
                                 
                                 return (
                                   <div key={subUniqueKey} className="bg-gray-50 p-2 md:p-3 rounded-lg border border-gray-200">
@@ -4796,10 +5024,11 @@ const CreateProject = () => {
                                             onChange={(e) => handleSubActivityUnitChange(actName, sub.name, e.target.value)}
                                             className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
                                           >
-                                            <option value="Km">Kilometer (Km)</option>
-                                            <option value="Nos.">Numbers (Nos.)</option>
-                                            <option value="Percentage">Percentage (%)</option>
-                                            <option value="status">Status Based</option>
+                                            {UNIT_OPTIONS.map(option => (
+                                              <option key={option.value} value={option.value}>
+                                                {option.label}
+                                              </option>
+                                            ))}
                                           </select>
                                         </div>
                                         
@@ -4866,10 +5095,20 @@ const CreateProject = () => {
               </button>
               <button
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg transition-all text-sm font-semibold flex items-center gap-2"
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg transition-all text-sm font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create Project
-                <CheckCircle size={16} />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    Create Project
+                    <CheckCircle size={16} />
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -4880,10 +5119,20 @@ const CreateProject = () => {
           <div className="flex justify-center">
             <button
               type="submit"
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-12 md:px-16 py-4 md:py-5 rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 font-bold text-base md:text-xl flex items-center gap-2 md:gap-3"
+              disabled={isSubmitting}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-12 md:px-16 py-4 md:py-5 rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 font-bold text-base md:text-xl flex items-center gap-2 md:gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CheckCircle size={20} />
-              Create Project
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" size={20} />
+                  Creating Project...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={20} />
+                  Create Project
+                </>
+              )}
             </button>
           </div>
         )}

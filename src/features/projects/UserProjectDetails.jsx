@@ -3,16 +3,22 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { 
-  updateSubActivityProgress,
-  updateSubActivityStatus,
+  updateSubActivityProgressLocally,
+  updateSubActivityStatusLocally,
   addSubActivity,
   deleteActivity,
   deleteSubActivity,
   extendActivityDeadline,
   extendSubActivityDeadline
-} from "./projectSlice"; // Removed updateActivityDates and updateSubActivityDates
+} from "./projectSlice";
 import { showSnackbar } from "../notifications/notificationSlice";
 import ActivityExtensionModal from "./ActivityExtensionModal";
+import { 
+  updateSubActivityProgress as updateSubActivityProgressApi,
+  updateSubActivityStatus as updateSubActivityStatusApi,
+  updateActivityProgress,
+  updateProjectProgress
+} from "../api/apiSlice";
 import { 
   Calendar, 
   ClipboardList, 
@@ -32,7 +38,8 @@ import {
   Trash2,
   ArrowLeft,
   FileText,
-  Info
+  Info,
+  Loader2
 } from "lucide-react";
 
 // Helper function to calculate days until deadline
@@ -84,6 +91,7 @@ const UserProjectDetails = () => {
     unit: "Km",
     plannedQty: 0
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (project) {
@@ -135,40 +143,266 @@ const UserProjectDetails = () => {
     });
   };
 
-  const handleProgressUpdate = (activityId, subId, maxQty) => {
+  const handleProgressUpdate = async (activityId, subId, maxQty) => {
     if (editValue > maxQty) {
-      alert(`Completed quantity cannot exceed planned quantity (${maxQty})`);
+      dispatch(showSnackbar({
+        message: `Completed quantity cannot exceed planned quantity (${maxQty})`,
+        type: "error"
+      }));
       return;
     }
 
-    dispatch(updateSubActivityProgress({
-      projectId: project.id,
-      activityId,
-      subId,
-      completedQty: editValue
-    }));
-    
-    dispatch(showSnackbar({
-      message: "Progress updated successfully",
-      type: "success"
-    }));
-    
-    setEditingSubActivity(null);
-    setEditValue(0);
+    setIsSubmitting(true);
+
+    try {
+      // Find the sub-activity to get its current data
+      const activity = project.activities.find(a => a.id === activityId);
+      const subActivity = activity?.subActivities?.find(s => s.id === subId);
+      
+      if (!subActivity) {
+        throw new Error("Sub-activity not found");
+      }
+
+      // Calculate progress percentage
+      const progress = Math.round((editValue / maxQty) * 100);
+      
+      // Determine status based on progress
+      let status = subActivity.status;
+      if (progress === 100) {
+        status = "COMPLETED";
+      } else if (progress > 0 && progress < 100) {
+        status = "ONGOING";
+      } else if (progress === 0) {
+        status = "PENDING";
+      }
+      
+      // Prepare update data for sub-activity
+      const subUpdateData = {
+        completed_quantity: editValue,
+        progress: progress,
+        status: status
+      };
+
+      console.log("Updating sub-activity progress:", { subId, subUpdateData });
+
+      // STEP 1: Update the sub-activity in backend
+      const updatedSub = await dispatch(updateSubActivityProgressApi({
+        subActivityId: subId,
+        progressData: subUpdateData
+      })).unwrap();
+
+      console.log("Sub-activity updated successfully:", updatedSub);
+      
+      // STEP 2: Recalculate activity progress based on all sub-activities
+      const allSubs = activity.subActivities || [];
+      const totalSubProgress = allSubs.reduce((sum, sub) => {
+        // Use the updated sub's progress if it's the one we just updated
+        if (sub.id === subId) {
+          return sum + progress;
+        }
+        return sum + (sub.progress || 0);
+      }, 0);
+      
+      const activityProgress = Math.round((totalSubProgress / allSubs.length) * 10) / 10;
+      
+      // Determine activity status
+      let activityStatus = "ONGOING";
+      if (activityProgress === 100) {
+        activityStatus = "COMPLETED";
+      } else if (activityProgress === 0) {
+        activityStatus = "PENDING";
+      }
+      
+      // STEP 3: Update activity progress in backend
+      if (activityProgress !== (activity.progress || 0)) {
+        await dispatch(updateActivityProgress({
+          activityId: activity.id,
+          progressData: {
+            progress: activityProgress,
+            status: activityStatus
+          }
+        })).unwrap();
+      }
+      
+      // STEP 4: Recalculate project progress
+      const allActivities = project.activities || [];
+      const totalActivityProgress = allActivities.reduce((sum, act) => {
+        if (act.id === activity.id) {
+          return sum + activityProgress;
+        }
+        return sum + (act.progress || 0);
+      }, 0);
+      
+      const projectProgress = Math.round((totalActivityProgress / allActivities.length) * 10) / 10;
+      
+      // Determine project status
+      const completionDate = project.completionDate;
+      let projectStatus = "ONGOING";
+      if (projectProgress === 100) {
+        projectStatus = "COMPLETED";
+      } else if (projectProgress < 100 && completionDate && new Date(completionDate) < new Date()) {
+        projectStatus = "DELAYED";
+      }
+      
+      // STEP 5: Update project progress in backend
+      await dispatch(updateProjectProgress({
+        projectId: project.id,
+        progressData: {
+          progress: projectProgress,
+          status: projectStatus
+        }
+      })).unwrap();
+      
+      // STEP 6: Update local state
+      dispatch(updateSubActivityProgressLocally({
+        projectId: project.id,
+        activityId,
+        subId,
+        completedQty: editValue,
+        progress,
+        status
+      }));
+      
+      dispatch(showSnackbar({
+        message: "Progress updated successfully",
+        type: "success"
+      }));
+      
+      setEditingSubActivity(null);
+      setEditValue(0);
+    } catch (error) {
+      console.error("Error updating progress:", error);
+      dispatch(showSnackbar({
+        message: error.response?.data?.message || error.message || "Failed to update progress",
+        type: "error"
+      }));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleStatusUpdate = (activityId, subId, status) => {
-    dispatch(updateSubActivityStatus({
-      projectId: project.id,
-      activityId,
-      subId,
-      status
-    }));
-    
-    dispatch(showSnackbar({
-      message: `Status updated to ${status}`,
-      type: "success"
-    }));
+  const handleStatusUpdate = async (activityId, subId, status) => {
+    setIsSubmitting(true);
+
+    try {
+      // Find the sub-activity to get its current data
+      const activity = project.activities.find(a => a.id === activityId);
+      const subActivity = activity?.subActivities?.find(s => s.id === subId);
+      
+      if (!subActivity) {
+        throw new Error("Sub-activity not found");
+      }
+
+      // Calculate progress based on status for status-based items
+      let progress = subActivity.progress || 0;
+      if (subActivity.unit === "status") {
+        const statusProgress = {
+          "PENDING": 0,
+          "ONGOING": 50,
+          "COMPLETED": 100,
+          "DELAYED": 25,
+          "HOLD": 10
+        };
+        progress = statusProgress[status] || 0;
+      }
+      
+      // Prepare update data
+      const updateData = {
+        status: status,
+        progress: progress
+      };
+
+      console.log("Updating sub-activity status:", { subId, updateData });
+
+      // STEP 1: Update the sub-activity in backend
+      const updatedSub = await dispatch(updateSubActivityStatusApi({
+        subActivityId: subId,
+        statusData: updateData
+      })).unwrap();
+
+      console.log("Sub-activity status updated successfully:", updatedSub);
+      
+      // STEP 2: Recalculate activity progress based on all sub-activities
+      const allSubs = activity.subActivities || [];
+      const totalSubProgress = allSubs.reduce((sum, sub) => {
+        if (sub.id === subId) {
+          return sum + progress;
+        }
+        return sum + (sub.progress || 0);
+      }, 0);
+      
+      const activityProgress = Math.round((totalSubProgress / allSubs.length) * 10) / 10;
+      
+      // Determine activity status
+      let activityStatus = "ONGOING";
+      if (activityProgress === 100) {
+        activityStatus = "COMPLETED";
+      } else if (activityProgress === 0) {
+        activityStatus = "PENDING";
+      }
+      
+      // STEP 3: Update activity progress in backend if needed
+      if (activityProgress !== (activity.progress || 0)) {
+        await dispatch(updateActivityProgress({
+          activityId: activity.id,
+          progressData: {
+            progress: activityProgress,
+            status: activityStatus
+          }
+        })).unwrap();
+      }
+      
+      // STEP 4: Recalculate project progress
+      const allActivities = project.activities || [];
+      const totalActivityProgress = allActivities.reduce((sum, act) => {
+        if (act.id === activity.id) {
+          return sum + activityProgress;
+        }
+        return sum + (act.progress || 0);
+      }, 0);
+      
+      const projectProgress = Math.round((totalActivityProgress / allActivities.length) * 10) / 10;
+      
+      // Determine project status
+      const completionDate = project.completionDate;
+      let projectStatus = "ONGOING";
+      if (projectProgress === 100) {
+        projectStatus = "COMPLETED";
+      } else if (projectProgress < 100 && completionDate && new Date(completionDate) < new Date()) {
+        projectStatus = "DELAYED";
+      }
+      
+      // STEP 5: Update project progress in backend
+      await dispatch(updateProjectProgress({
+        projectId: project.id,
+        progressData: {
+          progress: projectProgress,
+          status: projectStatus
+        }
+      })).unwrap();
+      
+      // STEP 6: Update local state
+      dispatch(updateSubActivityStatusLocally({
+        projectId: project.id,
+        activityId,
+        subId,
+        status,
+        progress
+      }));
+      
+      dispatch(showSnackbar({
+        message: `Status updated to ${status}`,
+        type: "success"
+      }));
+    } catch (error) {
+      console.error("Error updating status:", error);
+      dispatch(showSnackbar({
+        message: error.response?.data?.message || error.message || "Failed to update status",
+        type: "error"
+      }));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddSubActivity = (e) => {
@@ -341,6 +575,20 @@ const UserProjectDetails = () => {
     if (days <= 7) return <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-600 rounded-full">{days} days left</span>;
     return <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">{days} days left</span>;
   };
+
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 shadow-xl flex items-center gap-4">
+          <Loader2 className="animate-spin text-blue-600" size={32} />
+          <div>
+            <p className="text-lg font-semibold text-gray-800">Updating Progress</p>
+            <p className="text-sm text-gray-500">Please wait...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
