@@ -679,12 +679,11 @@
 // };
 
 // export default ProjectList;
-
 // src/features/projects/ProjectList.jsx
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   Plus, 
   Eye, 
@@ -699,7 +698,6 @@ import {
   CheckCircle2,
   XCircle,
   BarChart3,
-  Users,
   FolderOpen,
   RefreshCw,
   Loader2,
@@ -708,10 +706,22 @@ import {
   Briefcase,
   Shield,
   UserCog,
-  User
+  User,
+  Building2,
+  MapPin,
+  IndianRupee,
+  Ruler,
+  CheckCircle
 } from "lucide-react";
 import { getProjectStatusInfo, getDaysUntilDeadline } from "../../utils/deadlineUtils";
-import { fetchProjects, deleteProject } from "../api/apiSlice";
+import { 
+  fetchProjects, 
+  deleteProject,
+  fetchCompanies,
+  fetchSubCompanies,
+  fetchSectors,
+  fetchClients
+} from "../api/apiSlice";
 import { showSnackbar } from "../notifications/notificationSlice";
 import TaskPicker from "../tasks/TaskPicker";
 
@@ -720,12 +730,8 @@ const ProjectList = () => {
   const dispatch = useDispatch();
   
   // Get projects and user from Redux store
-  const { projects = [], loading } = useSelector((state) => state.api);
+  const { projects = [], loading = false, companies = [], subCompanies = [], sectors = [], clients = [] } = useSelector((state) => state.api || {});
   const { user } = useSelector((state) => state.auth);
-  const localProjects = useSelector((state) => state.projects.projects);
-  
-  // Combine API projects with local projects (fallback)
-  const allProjects = projects.length > 0 ? projects : localProjects;
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -737,19 +743,73 @@ const ProjectList = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showTaskPicker, setShowTaskPicker] = useState(false);
 
-  // Fetch projects on component mount
+  // Create lookup maps for IDs to names
+  const companyMap = useMemo(() => {
+    const map = {};
+    if (companies && Array.isArray(companies)) {
+      companies.forEach(company => {
+        if (company && company.id) map[company.id] = company.name;
+      });
+    }
+    return map;
+  }, [companies]);
+
+  const subCompanyMap = useMemo(() => {
+    const map = {};
+    if (subCompanies && Array.isArray(subCompanies)) {
+      subCompanies.forEach(sub => {
+        if (sub && sub.id) map[sub.id] = sub.name;
+      });
+    }
+    return map;
+  }, [subCompanies]);
+
+  const sectorMap = useMemo(() => {
+    const map = {};
+    if (sectors && Array.isArray(sectors)) {
+      sectors.forEach(sector => {
+        if (sector && sector.id) map[sector.id] = sector.name;
+      });
+    }
+    return map;
+  }, [sectors]);
+
+  const clientMap = useMemo(() => {
+    const map = {};
+    if (clients && Array.isArray(clients)) {
+      clients.forEach(client => {
+        if (client && client.id) map[client.id] = client.name;
+      });
+    }
+    return map;
+  }, [clients]);
+
+  // Fetch projects and reference data on component mount
   useEffect(() => {
-    loadProjects();
+    loadData();
   }, []);
 
-  const loadProjects = async () => {
+  const loadData = async () => {
     try {
       setRefreshing(true);
+      console.log("Loading projects data...");
+      
+      // Fetch reference data first
+      await Promise.all([
+        dispatch(fetchCompanies()),
+        dispatch(fetchSubCompanies()),
+        dispatch(fetchSectors()),
+        dispatch(fetchClients())
+      ]).catch(err => console.log("Reference data fetch warning:", err));
+      
+      // Then fetch projects
       await dispatch(fetchProjects()).unwrap();
+      console.log("Projects fetched successfully");
+      
     } catch (error) {
-      console.error("Error fetching projects:", error);
+      console.error("Error fetching data:", error);
       dispatch(showSnackbar({
-        message: "Failed to load projects from server",
+        message: "Failed to load data from server",
         type: "warning"
       }));
     } finally {
@@ -758,7 +818,7 @@ const ProjectList = () => {
   };
 
   const handleDeleteProject = async (projectId, projectName, e) => {
-    e.stopPropagation(); // Prevent card click when clicking delete
+    e.stopPropagation();
     
     if (!window.confirm(`Are you sure you want to delete project "${projectName}"? This action cannot be undone.`)) {
       return;
@@ -771,7 +831,7 @@ const ProjectList = () => {
         message: "Project deleted successfully",
         type: "success"
       }));
-      await loadProjects();
+      await loadData();
     } catch (error) {
       console.error("Error deleting project:", error);
       dispatch(showSnackbar({
@@ -784,7 +844,7 @@ const ProjectList = () => {
   };
 
   const handlePickTask = (project, activity, subActivity, e) => {
-    e.stopPropagation(); // Prevent card expansion
+    e.stopPropagation();
     setSelectedTask({ project, activity, subActivity });
     setShowTaskPicker(true);
   };
@@ -802,14 +862,41 @@ const ProjectList = () => {
   const isAdmin = user?.role === "ADMIN" || isSuperAdmin;
   const isUser = user?.role === "USER";
 
-  // Get role icon for display
+  // Helper functions to get display names
+  const getCompanyName = (project) => {
+    const companyId = project.company || project.company_id;
+    if (companyMap[companyId]) return companyMap[companyId];
+    if (project.company_detail?.name) return project.company_detail.name;
+    return companyId || "—";
+  };
+
+  const getSubCompanyName = (project) => {
+    const subCompanyId = project.sub_company || project.sub_company_id;
+    if (subCompanyMap[subCompanyId]) return subCompanyMap[subCompanyId];
+    if (project.sub_company_detail?.name) return project.sub_company_detail.name;
+    return subCompanyId || "—";
+  };
+
+  const getSectorName = (project) => {
+    const sectorId = project.sector || project.sector_id;
+    if (sectorMap[sectorId]) return sectorMap[sectorId];
+    if (project.sector_detail?.name) return project.sector_detail.name;
+    return sectorId || "—";
+  };
+
+  const getClientName = (project) => {
+    const clientId = project.client || project.client_id;
+    if (clientMap[clientId]) return clientMap[clientId];
+    if (project.client_detail?.name) return project.client_detail.name;
+    return clientId || "—";
+  };
+
   const getRoleIcon = () => {
     if (isSuperAdmin) return <Shield size={16} className="text-purple-600" />;
     if (isAdmin) return <UserCog size={16} className="text-blue-600" />;
     return <User size={16} className="text-green-600" />;
   };
 
-  // Get role display name
   const getRoleDisplay = () => {
     if (isSuperAdmin) return "Super Admin";
     if (isAdmin) return "Admin";
@@ -817,65 +904,92 @@ const ProjectList = () => {
   };
 
   // Filter and sort projects
-  const filteredProjects = allProjects
-    .filter(project => {
-      const matchesSearch = (project.name || project.project_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (project.code || project.project_code || "").toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const projectStatus = project.status || "ONGOING";
-      const daysLeft = getDaysUntilDeadline(project.completion_date || project.completionDate);
-      
-      if (filterStatus === "all") return matchesSearch;
-      if (filterStatus === "delayed") return matchesSearch && (projectStatus === "DELAYED" || daysLeft < 0);
-      if (filterStatus === "critical") return matchesSearch && daysLeft <= 2 && daysLeft >= 0;
-      if (filterStatus === "ongoing") return matchesSearch && projectStatus === "ONGOING";
-      if (filterStatus === "completed") return matchesSearch && projectStatus === "COMPLETED";
-      
-      return matchesSearch;
-    })
-    .sort((a, b) => {
+  const filteredProjects = useMemo(() => {
+    if (!projects || !Array.isArray(projects)) return [];
+    
+    let filtered = [...projects];
+    
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(project => {
+        const name = (project.project_name || project.name || "").toLowerCase();
+        const code = (project.project_code || project.code || "").toLowerCase();
+        const term = searchTerm.toLowerCase();
+        return name.includes(term) || code.includes(term);
+      });
+    }
+    
+    // Apply status filter
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(project => {
+        const projectStatus = project.status || "ONGOING";
+        const progress = project.progress || 0;
+        const daysLeft = getDaysUntilDeadline(project.completion_date || project.completionDate);
+        
+        if (filterStatus === "delayed") return (projectStatus === "DELAYED" || daysLeft < 0) && progress < 100;
+        if (filterStatus === "critical") return daysLeft <= 2 && daysLeft >= 0 && progress < 100;
+        if (filterStatus === "ongoing") return projectStatus === "ONGOING" && progress < 100;
+        if (filterStatus === "completed") return progress === 100 || projectStatus === "COMPLETED";
+        return true;
+      });
+    }
+    
+    // Apply sort
+    filtered.sort((a, b) => {
       const aDays = getDaysUntilDeadline(a.completion_date || a.completionDate) || 999;
       const bDays = getDaysUntilDeadline(b.completion_date || b.completionDate) || 999;
       const aProgress = a.progress || 0;
       const bProgress = b.progress || 0;
-      const aName = a.name || a.project_name || "";
-      const bName = b.name || b.project_name || "";
+      const aName = a.project_name || a.name || "";
+      const bName = b.project_name || b.name || "";
       
-      if (sortBy === "deadline") {
-        return aDays - bDays;
-      }
-      if (sortBy === "progress") {
-        return bProgress - aProgress;
-      }
-      if (sortBy === "name") {
-        return aName.localeCompare(bName);
-      }
+      if (sortBy === "deadline") return aDays - bDays;
+      if (sortBy === "progress") return bProgress - aProgress;
+      if (sortBy === "name") return aName.localeCompare(bName);
       return 0;
     });
+    
+    return filtered;
+  }, [projects, searchTerm, filterStatus, sortBy]);
 
   // Calculate stats from real data
-  const stats = {
-    total: allProjects.length,
-    delayed: allProjects.filter(p => {
-      const status = p.status || "ONGOING";
-      const daysLeft = getDaysUntilDeadline(p.completion_date || p.completionDate);
-      return status === "DELAYED" || daysLeft < 0;
-    }).length,
-    critical: allProjects.filter(p => {
-      const daysLeft = getDaysUntilDeadline(p.completion_date || p.completionDate);
-      return daysLeft <= 2 && daysLeft >= 0;
-    }).length,
-    completed: allProjects.filter(p => (p.status || "ONGOING") === "COMPLETED").length,
-    ongoing: allProjects.filter(p => (p.status || "ONGOING") === "ONGOING").length
-  };
+  const stats = useMemo(() => {
+    if (!projects || !Array.isArray(projects)) {
+      return { total: 0, delayed: 0, critical: 0, completed: 0, ongoing: 0 };
+    }
+    
+    return {
+      total: projects.length,
+      delayed: projects.filter(p => {
+        const status = p.status || "ONGOING";
+        const progress = p.progress || 0;
+        const daysLeft = getDaysUntilDeadline(p.completion_date || p.completionDate);
+        return (status === "DELAYED" || daysLeft < 0) && progress < 100;
+      }).length,
+      critical: projects.filter(p => {
+        const progress = p.progress || 0;
+        const daysLeft = getDaysUntilDeadline(p.completion_date || p.completionDate);
+        return daysLeft <= 2 && daysLeft >= 0 && progress < 100;
+      }).length,
+      completed: projects.filter(p => (p.progress || 0) === 100 || (p.status || "ONGOING") === "COMPLETED").length,
+      ongoing: projects.filter(p => {
+        const progress = p.progress || 0;
+        return progress > 0 && progress < 100;
+      }).length
+    };
+  }, [projects]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return "N/A";
+    }
   };
 
   const getProgressColor = (progress) => {
@@ -911,91 +1025,45 @@ const ProjectList = () => {
   };
 
   const handleRefresh = () => {
-    loadProjects();
+    loadData();
   };
 
-  // Get project ID safely
-  const getProjectId = (project) => {
-    return project.id || project.project_id;
-  };
+  const getProjectId = (project) => project.id || project.project_id;
+  const getProjectName = (project) => project.project_name || project.name || "Unnamed Project";
+  const getProjectCode = (project) => project.project_code || project.code || "N/A";
+  const getCompletionDate = (project) => project.completion_date || project.completionDate || project.deadline;
+  const getActualCompletionDate = (project) => project.actual_completion_date || project.completed_at || project.updated_at;
+  const getProgress = (project) => project.progress || 0;
+  const getLocation = (project) => project.location || "No location specified";
+  const getCost = (project) => project.workorder_cost || project.cost || 0;
+  const getTotalLength = (project) => project.total_length || project.totalLength || 0;
+  const getLoaDate = (project) => project.loa_date || project.loaDate;
+  const getDirectorProposalDate = (project) => project.director_proposal_date || project.directorProposalDate;
+  const getProjectConfirmationDate = (project) => project.project_confirmation_date || project.projectConfirmationDate;
+  const getActivities = (project) => project.activities_detail || project.activities || [];
 
-  // Get project name safely
-  const getProjectName = (project) => {
-    return project.name || project.project_name || "Unnamed Project";
-  };
-
-  // Get project code safely
-  const getProjectCode = (project) => {
-    return project.code || project.project_code || "N/A";
-  };
-
-  // Get project completion date safely
-  const getCompletionDate = (project) => {
-    return project.completion_date || project.completionDate || project.deadline;
-  };
-
-  // Get project progress safely
-  const getProgress = (project) => {
-    return project.progress || 0;
-  };
-
-  // Get project location safely
-  const getLocation = (project) => {
-    return project.location || "No location specified";
-  };
-
-  // Get project company safely
-  const getCompany = (project) => {
-    return project.company || "N/A";
-  };
-
-  // Get project sector safely
-  const getSector = (project) => {
-    return project.sector || "N/A";
-  };
-
-  // Get project department safely
-  const getDepartment = (project) => {
-    return project.department || project.client || "N/A";
-  };
-
-  // Get project cost safely
-  const getCost = (project) => {
-    return project.cost || project.workorder_cost || 0;
-  };
-
-  // Get project total length safely
-  const getTotalLength = (project) => {
-    return project.total_length || project.totalLength || 0;
-  };
-
-  // Get project LOA date safely
-  const getLoaDate = (project) => {
-    return project.loa_date || project.loaDate;
-  };
-
-  // Get project director proposal date safely
-  const getDirectorProposalDate = (project) => {
-    return project.director_proposal_date || project.directorProposalDate;
-  };
-
-  // Get project confirmation date safely
-  const getProjectConfirmationDate = (project) => {
-    return project.project_confirmation_date || project.projectConfirmationDate;
-  };
-
-  // Role-based navigation function
   const handleProjectNavigation = (projectId, e) => {
     if (e) e.stopPropagation();
-    
     if (isUser) {
-      // Users go to user view
       navigate(`/my-projects/${projectId}`);
     } else {
-      // Admins and Super Admins go to admin view
       navigate(`/projects/${projectId}`);
     }
   };
+
+  if (loading && projects.length === 0) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-white rounded-2xl p-8 shadow-xl flex items-center gap-4">
+          <Loader2 className="animate-spin text-blue-600" size={32} />
+          <div>
+            <p className="text-lg font-semibold text-gray-800">Loading Projects</p>
+            <p className="text-sm text-gray-500">Please wait...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -1065,21 +1133,8 @@ const ProjectList = () => {
         </motion.button>
       </div>
 
-      {/* Loading State */}
-      {(loading || refreshing) && (
-        <div className="flex justify-center items-center py-12">
-          <div className="bg-white rounded-2xl p-8 shadow-xl flex items-center gap-4">
-            <Loader2 className="animate-spin text-blue-600" size={32} />
-            <div>
-              <p className="text-lg font-semibold text-gray-800">Loading Projects</p>
-              <p className="text-sm text-gray-500">Fetching latest data from server...</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Stats Cards */}
-      {!loading && !refreshing && (
+      {!loading && projects.length > 0 && (
         <motion.div 
           variants={containerVariants}
           initial="hidden"
@@ -1139,7 +1194,7 @@ const ProjectList = () => {
       )}
 
       {/* Filters and Search Bar */}
-      {!loading && !refreshing && (
+      {!loading && (
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -1147,7 +1202,6 @@ const ProjectList = () => {
           className="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-100"
         >
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 text-gray-400" size={20} />
               <input
@@ -1155,11 +1209,10 @@ const ProjectList = () => {
                 placeholder="Search projects by name or code..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            {/* Filter Dropdown */}
             <div className="relative">
               <select
                 value={filterStatus}
@@ -1175,7 +1228,6 @@ const ProjectList = () => {
               <Filter className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={20} />
             </div>
 
-            {/* Sort Dropdown */}
             <div className="relative">
               <select
                 value={sortBy}
@@ -1189,7 +1241,6 @@ const ProjectList = () => {
               <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={20} />
             </div>
 
-            {/* New Project Button - Only for Admins */}
             {isAdmin && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -1203,7 +1254,6 @@ const ProjectList = () => {
             )}
           </div>
 
-          {/* Role-based info message */}
           {isUser && (
             <div className="mt-4 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-xl">
               <UserCheck size={18} />
@@ -1217,7 +1267,7 @@ const ProjectList = () => {
       )}
 
       {/* Projects Grid */}
-      {!loading && !refreshing && (
+      {!loading && (
         <AnimatePresence>
           {filteredProjects.length === 0 ? (
             <motion.div
@@ -1257,18 +1307,19 @@ const ProjectList = () => {
                 const projectName = getProjectName(project);
                 const projectCode = getProjectCode(project);
                 const completionDate = getCompletionDate(project);
+                const actualCompletionDate = getActualCompletionDate(project);
                 const progress = getProgress(project);
                 const location = getLocation(project);
                 const daysLeft = getDaysUntilDeadline(completionDate);
+                const activities = getActivities(project);
+                const isCompleted = progress === 100;
                 
-                // Create a compatible project object for statusInfo
-                const projectForStatus = {
+                const statusInfo = getProjectStatusInfo({
                   status: project.status || "ONGOING",
                   completionDate: completionDate,
                   progress: progress
-                };
+                });
                 
-                const statusInfo = getProjectStatusInfo(projectForStatus);
                 const isExpanded = expandedCard === projectId;
                 
                 return (
@@ -1277,12 +1328,12 @@ const ProjectList = () => {
                     variants={itemVariants}
                     layout
                     className={`bg-white rounded-3xl shadow-xl border-2 transition-all duration-300 relative group
-                      ${statusInfo.status === "DELAYED" ? "border-red-200 hover:border-red-300" :
+                      ${isCompleted ? "border-green-200 hover:border-green-300" :
+                        statusInfo.status === "DELAYED" ? "border-red-200 hover:border-red-300" :
                         statusInfo.status === "DUE_TODAY" ? "border-orange-200 hover:border-orange-300" :
                         statusInfo.status === "CRITICAL" ? "border-yellow-200 hover:border-yellow-300" :
                         "border-gray-100 hover:border-blue-200"}`}
                   >
-                    {/* Delete Button - Only for Admins */}
                     {isAdmin && (
                       <button
                         onClick={(e) => handleDeleteProject(projectId, projectName, e)}
@@ -1294,12 +1345,10 @@ const ProjectList = () => {
                       </button>
                     )}
 
-                    {/* Main Card - Clickable with role-based navigation */}
                     <div 
                       className="p-6 cursor-pointer"
                       onClick={() => handleProjectNavigation(projectId)}
                     >
-                      {/* Header with Status */}
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -1307,10 +1356,11 @@ const ProjectList = () => {
                             <motion.span 
                               whileHover={{ scale: 1.05 }}
                               className={`px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1
-                                ${statusInfo.colors.bg} ${statusInfo.colors.text}`}
+                                ${isCompleted ? "bg-green-100 text-green-700" : 
+                                  statusInfo.colors.bg} ${isCompleted ? "bg-green-100" : statusInfo.colors.text}`}
                             >
-                              <span>{statusInfo.icon}</span>
-                              {statusInfo.label}
+                              <span>{isCompleted ? <CheckCircle size={14} /> : statusInfo.icon}</span>
+                              {isCompleted ? "Completed" : statusInfo.label}
                             </motion.span>
                             <span className="text-sm text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full">
                               {projectCode}
@@ -1321,7 +1371,6 @@ const ProjectList = () => {
                             {location}
                           </p>
                           
-                          {/* Quick Stats */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="flex items-center gap-2">
                               <div className="p-2 bg-blue-50 rounded-lg">
@@ -1335,29 +1384,39 @@ const ProjectList = () => {
                             
                             <div className="flex items-center gap-2">
                               <div className={`p-2 rounded-lg ${
+                                isCompleted ? "bg-green-50" :
                                 daysLeft < 0 ? "bg-red-50" : 
                                 daysLeft <= 2 ? "bg-orange-50" : 
                                 daysLeft <= 7 ? "bg-yellow-50" : "bg-green-50"
                               }`}>
                                 <Clock size={16} className={
+                                  isCompleted ? "text-green-600" :
                                   daysLeft < 0 ? "text-red-600" : 
                                   daysLeft <= 2 ? "text-orange-600" : 
                                   daysLeft <= 7 ? "text-yellow-600" : "text-green-600"
                                 } />
                               </div>
                               <div>
-                                <p className="text-xs text-gray-500">Deadline</p>
-                                <p className="text-sm font-semibold">{formatDate(completionDate)}</p>
+                                <p className="text-xs text-gray-500">
+                                  {isCompleted ? "Completed On" : "Deadline"}
+                                </p>
+                                <p className={`text-sm font-semibold ${isCompleted ? "text-green-600" : "text-gray-800"}`}>
+                                  {isCompleted && actualCompletionDate 
+                                    ? formatDate(actualCompletionDate)
+                                    : formatDate(completionDate)}
+                                </p>
                               </div>
                             </div>
                             
                             <div className="flex items-center gap-2">
-                              <div className="p-2 bg-purple-50 rounded-lg">
-                                <TrendingUp size={16} className="text-purple-600" />
+                              <div className={`p-2 rounded-lg ${isCompleted ? "bg-green-50" : "bg-purple-50"}`}>
+                                <TrendingUp size={16} className={isCompleted ? "text-green-600" : "text-purple-600"} />
                               </div>
                               <div>
                                 <p className="text-xs text-gray-500">Progress</p>
-                                <p className="text-sm font-semibold">{progress}%</p>
+                                <p className={`text-sm font-semibold ${isCompleted ? "text-green-600" : "text-gray-800"}`}>
+                                  {progress}%
+                                </p>
                               </div>
                             </div>
                             
@@ -1367,13 +1426,12 @@ const ProjectList = () => {
                               </div>
                               <div>
                                 <p className="text-xs text-gray-500">Activities</p>
-                                <p className="text-sm font-semibold">{project.activities?.length || 0}</p>
+                                <p className="text-sm font-semibold">{activities.length}</p>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex items-center gap-2">
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -1400,80 +1458,23 @@ const ProjectList = () => {
                         </div>
                       </div>
 
-                      {/* Progress Bar with Animation */}
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="font-medium text-gray-600">Overall Progress</span>
-                          <span className="font-bold text-blue-600">{progress}%</span>
+                          <span className={`font-bold ${isCompleted ? "text-green-600" : "text-blue-600"}`}>
+                            {progress}%
+                          </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
                             transition={{ duration: 1, ease: "easeOut" }}
-                            className={`h-3 rounded-full bg-gradient-to-r ${statusInfo.colors.gradient}`}
+                            className={`h-3 rounded-full ${isCompleted ? "bg-green-500" : `bg-gradient-to-r ${statusInfo.colors.gradient}`}`}
                           />
                         </div>
                       </div>
 
-                      {/* Activities Preview - Always Visible for Users */}
-                      {project.activities && project.activities.length > 0 && (
-                        <div className="mt-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold text-gray-700 text-sm">Activities & Tasks</h4>
-                            <span className="text-xs text-gray-500">
-                              {project.activities.reduce((acc, act) => 
-                                acc + (act.subActivities?.filter(s => s.status !== 'COMPLETED').length || 0), 0
-                              )} available tasks
-                            </span>
-                          </div>
-                          
-                          {/* First 2 activities preview */}
-                          <div className="space-y-2">
-                            {project.activities.slice(0, 2).map((activity) => (
-                              <div key={activity.id} className="bg-gray-50 p-3 rounded-xl">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium text-sm text-gray-700">{activity.name}</span>
-                                  <span className="text-xs bg-white px-2 py-1 rounded">
-                                    {activity.subActivities?.length || 0} tasks
-                                  </span>
-                                </div>
-                                
-                                {/* Sub-activities preview */}
-                                <div className="space-y-2 pl-2">
-                                  {activity.subActivities?.slice(0, 2).map((sub) => (
-                                    <div key={sub.id} className="flex items-center justify-between text-sm">
-                                      <span className="text-gray-600">{sub.name}</span>
-                                      {isUser && sub.status !== 'COMPLETED' && (
-                                        <button
-                                          onClick={(e) => handlePickTask(project, activity, sub, e)}
-                                          className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-                                          title="Pick this task"
-                                        >
-                                          <Briefcase size={14} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  ))}
-                                  {activity.subActivities?.length > 2 && (
-                                    <p className="text-xs text-gray-400">
-                                      +{activity.subActivities.length - 2} more tasks
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {project.activities.length > 2 && (
-                            <p className="text-xs text-blue-600 mt-2 text-center">
-                              +{project.activities.length - 2} more activities (expand to see all)
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Expanded Details */}
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div
@@ -1487,11 +1488,17 @@ const ProjectList = () => {
                               <div>
                                 <h4 className="font-semibold mb-3 text-gray-700">Project Details</h4>
                                 <div className="space-y-2">
-                                  <p className="text-sm"><span className="text-gray-500">Company:</span> {getCompany(project)}</p>
-                                  <p className="text-sm"><span className="text-gray-500">Sector:</span> {getSector(project)}</p>
-                                  <p className="text-sm"><span className="text-gray-500">Department:</span> {getDepartment(project)}</p>
+                                  <p className="text-sm"><span className="text-gray-500">Company:</span> {getCompanyName(project)}</p>
+                                  <p className="text-sm"><span className="text-gray-500">Sub Company:</span> {getSubCompanyName(project)}</p>
+                                  <p className="text-sm"><span className="text-gray-500">Sector:</span> {getSectorName(project)}</p>
+                                  <p className="text-sm"><span className="text-gray-500">Client:</span> {getClientName(project)}</p>
                                   <p className="text-sm"><span className="text-gray-500">Total Length:</span> {getTotalLength(project)} km</p>
                                   <p className="text-sm"><span className="text-gray-500">Cost:</span> ₹{getCost(project)} Lakhs</p>
+                                  {isCompleted && actualCompletionDate && (
+                                    <p className="text-sm mt-2 pt-2 border-t border-gray-100">
+                                      <span className="text-green-600 font-medium">✓ Completed on:</span> {formatDate(actualCompletionDate)}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                               
@@ -1505,77 +1512,96 @@ const ProjectList = () => {
                               </div>
                             </div>
 
-                            {/* All Activities in Expanded View */}
-                            <div className="mt-6">
-                              <h4 className="font-semibold mb-3 text-gray-700">All Activities</h4>
-                              <div className="space-y-4">
-                                {project.activities?.map((activity) => {
-                                  const isActivityExpanded = expandedActivities[activity.id];
-                                  return (
-                                    <div key={activity.id} className="bg-gray-50 p-4 rounded-xl">
-                                      <div 
-                                        className="flex items-center justify-between cursor-pointer"
-                                        onClick={(e) => toggleActivity(activity.id, e)}
-                                      >
-                                        <div>
-                                          <h5 className="font-medium text-gray-800">{activity.name}</h5>
-                                          <p className="text-xs text-gray-500 mt-1">
-                                            {activity.subActivities?.length || 0} tasks • Progress: {activity.progress || 0}%
-                                          </p>
+                            {/* Activities Preview */}
+                            {activities.length > 0 && (
+                              <div className="mt-6">
+                                <h4 className="font-semibold mb-3 text-gray-700">Activities & Tasks</h4>
+                                <div className="space-y-3">
+                                  {activities.slice(0, 3).map((activity) => {
+                                    const subs = activity.subactivities || [];
+                                    const isActivityExpanded = expandedActivities[activity.id];
+                                    
+                                    return (
+                                      <div key={activity.id} className="bg-gray-50 p-3 rounded-xl">
+                                        <div 
+                                          className="flex items-center justify-between cursor-pointer"
+                                          onClick={(e) => toggleActivity(activity.id, e)}
+                                        >
+                                          <div>
+                                            <h5 className="font-medium text-gray-800">{activity.activity_name}</h5>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                              {subs.length} tasks • Progress: {activity.progress || 0}%
+                                            </p>
+                                          </div>
+                                          <button className="p-1 hover:bg-white rounded">
+                                            {isActivityExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                          </button>
                                         </div>
-                                        <button className="p-1 hover:bg-white rounded">
-                                          {isActivityExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                        </button>
-                                      </div>
 
-                                      <AnimatePresence>
-                                        {isActivityExpanded && (
-                                          <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="mt-3 space-y-2"
-                                          >
-                                            {activity.subActivities?.map((sub) => (
-                                              <div key={sub.id} className="bg-white p-3 rounded-lg flex items-center justify-between">
-                                                <div>
-                                                  <p className="text-sm font-medium">{sub.name}</p>
-                                                  <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                                                    <span>Unit: {sub.unit}</span>
-                                                    {sub.unit !== 'status' && (
-                                                      <>
-                                                        <span>Planned: {sub.plannedQty}</span>
-                                                        <span>Completed: {sub.completedQty || 0}</span>
-                                                      </>
+                                        <AnimatePresence>
+                                          {isActivityExpanded && (
+                                            <motion.div
+                                              initial={{ height: 0, opacity: 0 }}
+                                              animate={{ height: 'auto', opacity: 1 }}
+                                              exit={{ height: 0, opacity: 0 }}
+                                              className="mt-3 space-y-2"
+                                            >
+                                              {subs.map((sub) => {
+                                                const isSubCompleted = sub.is_completed || sub.status === "Complete";
+                                                const pickedStatus = sub.picked_at?.length > 0;
+                                                const isPickedByMe = pickedStatus && sub.picked_at.some(p => p.emp_code === user?.id);
+                                                
+                                                return (
+                                                  <div key={sub.id} className="bg-white p-3 rounded-lg flex items-center justify-between">
+                                                    <div className="flex-1">
+                                                      <div className="flex items-center gap-2">
+                                                        <p className="text-sm font-medium">{sub.subactivity_name}</p>
+                                                        {isSubCompleted ? (
+                                                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-600">
+                                                            Completed
+                                                          </span>
+                                                        ) : pickedStatus ? (
+                                                          <span className={`text-xs px-2 py-0.5 rounded-full ${isPickedByMe ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                                                            {isPickedByMe ? 'Picked by you' : 'Picked by others'}
+                                                          </span>
+                                                        ) : null}
+                                                      </div>
+                                                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                                                        <span>Unit: {sub.unit || 'status'}</span>
+                                                        {sub.unit && sub.unit !== 'status' && (
+                                                          <>
+                                                            <span>Planned: {sub.total_quantity || 0}</span>
+                                                            <span>Completed: {sub.completed_quantity || 0}</span>
+                                                          </>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                    {!isSubCompleted && !pickedStatus && isUser && (
+                                                      <button
+                                                        onClick={(e) => handlePickTask(project, activity, sub, e)}
+                                                        className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                                                        title="Pick this task"
+                                                      >
+                                                        <Briefcase size={16} />
+                                                      </button>
                                                     )}
-                                                    <span className={`px-2 py-0.5 rounded-full ${
-                                                      sub.status === "COMPLETED" ? "bg-green-100 text-green-600" :
-                                                      sub.status === "ONGOING" ? "bg-blue-100 text-blue-600" :
-                                                      "bg-gray-100 text-gray-600"
-                                                    }`}>
-                                                      {sub.status || "PENDING"}
-                                                    </span>
                                                   </div>
-                                                </div>
-                                                {isUser && sub.status !== 'COMPLETED' && (
-                                                  <button
-                                                    onClick={(e) => handlePickTask(project, activity, sub, e)}
-                                                    className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-                                                    title="Pick this task"
-                                                  >
-                                                    <Briefcase size={16} />
-                                                  </button>
-                                                )}
-                                              </div>
-                                            ))}
-                                          </motion.div>
-                                        )}
-                                      </AnimatePresence>
-                                    </div>
-                                  );
-                                })}
+                                                );
+                                              })}
+                                            </motion.div>
+                                          )}
+                                        </AnimatePresence>
+                                      </div>
+                                    );
+                                  })}
+                                  {activities.length > 3 && (
+                                    <p className="text-xs text-blue-600 text-center">
+                                      +{activities.length - 3} more activities
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>

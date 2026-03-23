@@ -1,7 +1,8 @@
+// src/features/projects/UserProjectList.jsx
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react"; // Remove useEffect, add useMemo
+import { useState, useMemo } from "react";
 import { 
   FolderKanban, 
   Eye, 
@@ -9,30 +10,63 @@ import {
   Clock,
   Search,
   Filter,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  TrendingUp,
+  Briefcase,
+  Users
 } from "lucide-react";
 
 const UserProjectList = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const projects = useSelector((state) => state.projects.projects);
+  const { userTasks = [] } = useSelector((state) => state.tasks || {});
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // ✅ FIX 1: Memoize assigned projects
-  const assignedProjects = useMemo(() => 
-    projects.filter(project => 
-      project.assignedUsers?.includes(user?.id) || 
-      project.createdBy === user?.id
-    ), [projects, user?.id]
-  );
-
-  // ✅ FIX 2: Memoize filtered projects - NO useEffect needed!
-  const filteredProjects = useMemo(() => {
-    let filtered = assignedProjects;
+  // Get unique projects from user's tasks
+  const userProjects = useMemo(() => {
+    const projectMap = new Map();
     
-    // Apply search filter
+    userTasks.forEach(task => {
+      if (!task.project_id) return;
+      
+      if (!projectMap.has(task.project_id)) {
+        projectMap.set(task.project_id, {
+          id: task.project_id,
+          name: task.project_name || "Unknown Project",
+          code: task.project_code || "N/A",
+          tasks: [],
+          progress: 0,
+          completedTasks: 0,
+          totalTasks: 0
+        });
+      }
+      
+      const project = projectMap.get(task.project_id);
+      project.tasks.push(task);
+      project.totalTasks++;
+      if (task.status === 'COMPLETED') {
+        project.completedTasks++;
+      }
+    });
+    
+    // Calculate progress for each project
+    const projects = Array.from(projectMap.values()).map(project => ({
+      ...project,
+      progress: project.totalTasks > 0 
+        ? Math.round((project.completedTasks / project.totalTasks) * 100)
+        : 0
+    }));
+    
+    return projects;
+  }, [userTasks]);
+
+  // Filter projects
+  const filteredProjects = useMemo(() => {
+    let filtered = userProjects;
+    
     if (searchTerm) {
       filtered = filtered.filter(project => 
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,13 +74,17 @@ const UserProjectList = () => {
       );
     }
     
-    // Apply status filter
     if (filterStatus !== "all") {
-      filtered = filtered.filter(project => project.status === filterStatus);
+      filtered = filtered.filter(project => {
+        if (filterStatus === "completed") return project.progress === 100;
+        if (filterStatus === "in-progress") return project.progress > 0 && project.progress < 100;
+        if (filterStatus === "not-started") return project.progress === 0;
+        return true;
+      });
     }
     
     return filtered;
-  }, [assignedProjects, searchTerm, filterStatus]); // Recompute only when these change
+  }, [userProjects, searchTerm, filterStatus]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -57,17 +95,6 @@ const UserProjectList = () => {
     });
   };
 
-  const getDaysLeft = (deadline) => {
-    if (!deadline) return null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const deadlineDate = new Date(deadline);
-    deadlineDate.setHours(0, 0, 0, 0);
-    const diffTime = deadlineDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
   const getProgressColor = (progress) => {
     if (progress === 100) return "bg-green-500";
     if (progress >= 75) return "bg-blue-500";
@@ -76,7 +103,7 @@ const UserProjectList = () => {
     return "bg-red-500";
   };
 
-  if (assignedProjects.length === 0) {
+  if (userProjects.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -85,10 +112,17 @@ const UserProjectList = () => {
       >
         <h1 className="text-3xl font-bold text-gray-800 mb-8">My Projects</h1>
         <div className="bg-white rounded-2xl p-12 text-center shadow-lg border border-gray-100">
-          <FolderKanban size={64} className="mx-auto mb-4 text-gray-300" />
-          <h2 className="text-2xl font-semibold text-gray-700 mb-2">No Projects Assigned</h2>
-          <p className="text-gray-500">You don't have any projects assigned to you yet.</p>
-          <p className="text-sm text-gray-400 mt-4">Please contact your administrator for project assignments.</p>
+          <Briefcase size={64} className="mx-auto mb-4 text-gray-300" />
+          <h2 className="text-2xl font-semibold text-gray-700 mb-2">No Projects Yet</h2>
+          <p className="text-gray-500 mb-6">
+            You haven't picked any tasks from projects yet.
+          </p>
+          <button
+            onClick={() => navigate("/all-projects")}
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            Browse Projects
+          </button>
         </div>
       </motion.div>
     );
@@ -106,18 +140,18 @@ const UserProjectList = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
           <p className="text-sm text-blue-600 font-medium">Total Projects</p>
-          <p className="text-2xl font-bold text-blue-700">{assignedProjects.length}</p>
+          <p className="text-2xl font-bold text-blue-700">{userProjects.length}</p>
         </div>
         <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-          <p className="text-sm text-green-600 font-medium">Completed</p>
+          <p className="text-sm text-green-600 font-medium">Completed Projects</p>
           <p className="text-2xl font-bold text-green-700">
-            {assignedProjects.filter(p => p.status === "COMPLETED").length}
+            {userProjects.filter(p => p.progress === 100).length}
           </p>
         </div>
         <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-100">
           <p className="text-sm text-yellow-600 font-medium">In Progress</p>
           <p className="text-2xl font-bold text-yellow-700">
-            {assignedProjects.filter(p => p.status === "ONGOING").length}
+            {userProjects.filter(p => p.progress > 0 && p.progress < 100).length}
           </p>
         </div>
       </div>
@@ -142,9 +176,9 @@ const UserProjectList = () => {
               className="appearance-none pl-4 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
             >
               <option value="all">All Status</option>
-              <option value="ONGOING">Ongoing</option>
-              <option value="DELAYED">Delayed</option>
-              <option value="COMPLETED">Completed</option>
+              <option value="completed">Completed</option>
+              <option value="in-progress">In Progress</option>
+              <option value="not-started">Not Started</option>
             </select>
             <Filter className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={20} />
           </div>
@@ -159,96 +193,101 @@ const UserProjectList = () => {
         </div>
       ) : (
         <div className="grid gap-6">
-          {filteredProjects.map((project) => {
-            const daysLeft = getDaysLeft(project.completionDate);
-            
-            return (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.01 }}
-                className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 hover:border-blue-200 transition-all cursor-pointer"
-                onClick={() => navigate(`/my-projects/${project.id}`)}
-              >
-                <div className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className="text-xl font-semibold text-gray-800">{project.name}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          project.status === "COMPLETED" ? "bg-green-100 text-green-600" :
-                          project.status === "DELAYED" ? "bg-red-100 text-red-600" :
-                          "bg-blue-100 text-blue-600"
-                        }`}>
-                          {project.status}
-                        </span>
-                        <span className="text-sm text-gray-400 bg-gray-50 px-2 py-1 rounded">
-                          {project.code}
+          {filteredProjects.map((project) => (
+            <motion.div
+              key={project.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.01 }}
+              className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 hover:border-blue-200 transition-all cursor-pointer"
+              onClick={() => navigate(`/my-picked-projects/${project.id}`)}
+            >
+              <div className="p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-xl font-semibold text-gray-800">{project.name}</h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        project.progress === 100 ? "bg-green-100 text-green-600" :
+                        project.progress > 0 ? "bg-blue-100 text-blue-600" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>
+                        {project.progress === 100 ? "Completed" : 
+                         project.progress > 0 ? "In Progress" : "Not Started"}
+                      </span>
+                      <span className="text-sm text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                        {project.code}
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-3">
+                      <div className="flex items-center gap-2">
+                        <Briefcase size={16} className="text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          Tasks: {project.tasks.length}
                         </span>
                       </div>
-                      
-                      <p className="text-gray-500 mb-3">{project.location || "No location specified"}</p>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={16} className="text-gray-400" />
-                          <span className="text-sm text-gray-600">
-                            Start: {formatDate(project.loaDate)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock size={16} className={`${
-                            daysLeft < 0 ? "text-red-500" :
-                            daysLeft <= 2 ? "text-orange-500" :
-                            "text-gray-400"
-                          }`} />
-                          <span className="text-sm text-gray-600">
-                            {daysLeft < 0 ? "Overdue" : 
-                             daysLeft === 0 ? "Due today" :
-                             `${daysLeft} days left`}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-600">
-                            Progress: {project.progress || 0}%
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-green-500" />
+                        <span className="text-sm text-gray-600">
+                          Completed: {project.completedTasks}
+                        </span>
                       </div>
-                    </div>
-
-                    <button className="p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
-                      <Eye size={20} className="text-blue-600" />
-                    </button>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mt-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Overall Progress</span>
-                      <span className="font-semibold text-blue-600">{project.progress || 0}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${project.progress || 0}%` }}
-                        transition={{ duration: 1, ease: "easeOut" }}
-                        className={`h-2 rounded-full ${getProgressColor(project.progress || 0)}`}
-                      />
+                      <div className="flex items-center gap-2">
+                        <TrendingUp size={16} className="text-blue-500" />
+                        <span className="text-sm font-medium text-gray-600">
+                          Progress: {project.progress}%
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Extension Requested Badge */}
-                  {project.extensionRequested && (
-                    <div className="mt-3 flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full w-fit">
-                      <Clock size={12} />
-                      Extension Requested
-                    </div>
-                  )}
+                  <button className="p-3 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
+                    <Eye size={20} className="text-blue-600" />
+                  </button>
                 </div>
-              </motion.div>
-            );
-          })}
+
+                {/* Progress Bar */}
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Overall Progress</span>
+                    <span className="font-semibold text-blue-600">{project.progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${project.progress}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={`h-2 rounded-full ${getProgressColor(project.progress)}`}
+                    />
+                  </div>
+                </div>
+
+                {/* Task Preview */}
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Your Tasks:</h4>
+                  <div className="space-y-1">
+                    {project.tasks.slice(0, 3).map((task, idx) => (
+                      <div key={`${task.id}-${idx}`} className="flex items-center gap-2 text-sm">
+                        <div className={`w-2 h-2 rounded-full ${
+                          task.status === 'COMPLETED' ? 'bg-green-500' :
+                          task.status === 'IN_PROGRESS' ? 'bg-blue-500' : 'bg-yellow-500'
+                        }`} />
+                        <span className="text-gray-600">{task.subactivity_name}</span>
+                        <span className="text-xs text-gray-400 ml-auto">
+                          {task.status === 'COMPLETED' ? '✓ Done' :
+                           task.status === 'IN_PROGRESS' ? '⚡ Working' : '⏳ Pending'}
+                        </span>
+                      </div>
+                    ))}
+                    {project.tasks.length > 3 && (
+                      <p className="text-xs text-gray-400">+{project.tasks.length - 3} more tasks</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
       )}
     </motion.div>

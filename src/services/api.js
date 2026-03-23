@@ -54,7 +54,7 @@
 // src/services/api.js
 import axios from 'axios';
 
-const BASE_URL = 'https://ksncfd6v-8004.inc1.devtunnels.ms';
+const BASE_URL = 'https://ksncfd6v-8007.inc1.devtunnels.ms';
 const API_PREFIX = '/detaildesign';
 
 const api = axios.create({

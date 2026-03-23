@@ -281,6 +281,7 @@ import ContractorList from "../features/contractors/ContractorList";
 import ExtensionApproval from "../features/extensions/ExtensionApproval";
 import CreateProject from "../features/projects/CreateProject";
 import MyTasks from "../features/tasks/MyTasks";
+import UserPickedProjectDetails from "../features/projects/UserPickedProjectDetails";
 import ErrorBoundary from "../components/ErrorBoundary"; // Import ErrorBoundary
 
 export default function AppRoutes() {
@@ -355,6 +356,12 @@ export default function AppRoutes() {
             <ExtensionApproval />
           </ProtectedRoute>
         } />
+
+        <Route path="/my-picked-projects/:id" element={
+  <ProtectedRoute allowedRoles={["USER"]}>
+    <UserPickedProjectDetails />
+  </ProtectedRoute>
+} />
       </Route>
     </Routes>
   );
