@@ -617,10 +617,10 @@
 // };
 
 // export default ProjectLogs;
-// src/features/projects/ProjectLogs.jsx
+/// src/features/projects/ProjectLogs.jsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, 
@@ -637,11 +637,29 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-import { fetchProjectLogs, createLog, deleteLog, setLogFilters, resetFilters, resetPagination } from "../dailyLogs/logSlice";
+import { 
+  fetchProjectLogs, 
+  createLog, 
+  deleteLog, 
+  setLogFilters, 
+  resetFilters, 
+  resetPagination,
+  fetchAllLogsUnfiltered,
+  calculateStats
+} from "../dailyLogs/logSlice";
 import { showSnackbar } from "../notifications/notificationSlice";
 import { fetchProjects } from "../api/apiSlice";
 import LogCard from "../../components/LogCard";
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
+
+// Debounce function to prevent too many API calls
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
 const ProjectLogs = () => {
   const { id } = useParams();
@@ -651,7 +669,7 @@ const ProjectLogs = () => {
   const { user } = useSelector((state) => state.auth);
   const { projects: apiProjects = [] } = useSelector((state) => state.api);
   const { projects: localProjects = [] } = useSelector((state) => state.projects);
-  const { projectLogs, loading, loadingMore, pagination, filters, error } = useSelector((state) => state.logs);
+  const { projectLogs, loading, loadingMore, pagination, filters, error, stats } = useSelector((state) => state.logs);
   
   // Find project from either source
   const project = useMemo(() => 
@@ -670,6 +688,14 @@ const ProjectLogs = () => {
     message: ""
   });
 
+  // Debounced filter change handler
+  const debouncedFilterChange = useRef(
+    debounce((key, value) => {
+      dispatch(setLogFilters({ [key]: value }));
+      dispatch(resetPagination());
+    }, 500)
+  ).current;
+
   // Fetch initial data
   useEffect(() => {
     if (!project && apiProjects.length === 0) {
@@ -680,27 +706,44 @@ const ProjectLogs = () => {
     if (!filters.date) {
       dispatch(setLogFilters({ date: new Date().toISOString().split('T')[0] }));
     }
+  }, [dispatch, project, apiProjects.length, filters.date]);
+
+  // Fetch logs when filters change
+  useEffect(() => {
+    if (!id) return;
     
     dispatch(resetPagination());
     dispatch(fetchProjectLogs({ 
       projectId: id, 
       page: 1, 
-      pageSize: 20,
+      pageSize: 10, // Reduced from 20 to 10 for better performance
       filters: {
         date: filters.date || new Date().toISOString().split('T')[0],
         eventType: filters.eventType || 'all',
         search: filters.search || ''
       }
     }));
-  }, [dispatch, id, project, apiProjects.length, filters.date, filters.eventType, filters.search]);
+    
+    // Debug: fetch unfiltered logs to see what's available
+    if (process.env.NODE_ENV === 'development') {
+      dispatch(fetchAllLogsUnfiltered({ pageSize: 50 }));
+    }
+  }, [dispatch, id, filters.date, filters.eventType, filters.search]);
+
+  // Calculate stats when logs change
+  useEffect(() => {
+    if (projectLogs.length > 0) {
+      dispatch(calculateStats());
+    }
+  }, [projectLogs, dispatch]);
 
   // Load more logs
   const loadMoreLogs = useCallback(() => {
-    if (pagination.hasNext && !loadingMore && !loading) {
+    if (pagination.hasNext && !loadingMore && !loading && id) {
       dispatch(fetchProjectLogs({ 
         projectId: id,
         page: pagination.currentPage + 1, 
-        pageSize: 20, 
+        pageSize: 10, // Reduced from 20 to 10
         append: true,
         filters: {
           date: filters.date,
@@ -716,8 +759,14 @@ const ProjectLogs = () => {
 
   // Handle filter changes
   const handleFilterChange = (key, value) => {
-    dispatch(setLogFilters({ [key]: value }));
-    dispatch(resetPagination());
+    if (key === 'search') {
+      // Debounce search input
+      debouncedFilterChange(key, value);
+    } else {
+      // Immediate update for other filters
+      dispatch(setLogFilters({ [key]: value }));
+      dispatch(resetPagination());
+    }
   };
 
   const handleClearFilters = () => {
@@ -731,7 +780,7 @@ const ProjectLogs = () => {
     dispatch(fetchProjectLogs({ 
       projectId: id, 
       page: 1, 
-      pageSize: 20,
+      pageSize: 10,
       filters: {
         date: filters.date,
         eventType: filters.eventType,
@@ -751,7 +800,7 @@ const ProjectLogs = () => {
 
     const logData = {
       project: id,
-      project_name: project?.name,
+      project_name: project?.name || project?.project_name,
       event_type: newLog.event_type,
       message: newLog.message,
       created_at: new Date().toISOString(),
@@ -802,6 +851,8 @@ const ProjectLogs = () => {
       }));
       setShowDeleteConfirm(false);
       setSelectedLog(null);
+      // Refresh logs after deletion
+      handleRefresh();
     } catch (error) {
       dispatch(showSnackbar({
         message: error.message || "Failed to delete log",
@@ -813,7 +864,7 @@ const ProjectLogs = () => {
   const handleExport = () => {
     const dataStr = JSON.stringify(projectLogs, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `project-${id}-logs.json`;
+    const exportFileDefaultName = `project-${project?.project_code || id}-logs.json`;
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
@@ -827,7 +878,9 @@ const ProjectLogs = () => {
     }));
   };
 
-  const hasActiveFilters = filters.eventType !== 'all' || filters.search || filters.date !== new Date().toISOString().split('T')[0];
+  const hasActiveFilters = filters.eventType !== 'all' || 
+                          filters.search || 
+                          filters.date !== new Date().toISOString().split('T')[0];
 
   if (loading && projectLogs.length === 0) {
     return (
@@ -991,7 +1044,8 @@ const ProjectLogs = () => {
             <p className="text-sm text-gray-500 flex items-center gap-2">
               <Building2 size={14} />
               Code: {project?.code || project?.project_code || 'N/A'} | 
-              Total Logs: {pagination.totalItems}
+              Total Logs: {pagination.totalItems} | 
+              Page {pagination.currentPage} of {pagination.totalPages}
             </p>
           </div>
         </div>
@@ -1045,18 +1099,53 @@ const ProjectLogs = () => {
               <p className="text-lg font-semibold text-gray-800">{project.location || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Status</p>
-              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                project.status === "COMPLETED" ? "bg-green-100 text-green-600" :
-                project.status === "DELAYED" ? "bg-red-100 text-red-600" :
-                "bg-blue-100 text-blue-600"
-              }`}>
-                {project.status || "ONGOING"}
-              </span>
+              <p className="text-sm text-gray-600">Progress</p>
+              <p className="text-lg font-semibold text-gray-800">{project.progress || 0}%</p>
             </div>
           </div>
         </motion.div>
       )}
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className="bg-white rounded-xl p-4 shadow-md border border-gray-100"
+        >
+          <p className="text-sm text-gray-500">Total Logs</p>
+          <p className="text-2xl font-bold text-gray-800">{pagination.totalItems || 0}</p>
+        </motion.div>
+        
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className="bg-blue-50 rounded-xl p-4 shadow-md border border-blue-100"
+        >
+          <p className="text-sm text-blue-600">Log Types</p>
+          <p className="text-2xl font-bold text-blue-700">
+            {Object.keys(stats.byType || {}).length}
+          </p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className="bg-green-50 rounded-xl p-4 shadow-md border border-green-100"
+        >
+          <p className="text-sm text-green-600">Today's Logs</p>
+          <p className="text-2xl font-bold text-green-700">
+            {stats.byDate?.[filters.date] || 0}
+          </p>
+        </motion.div>
+
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className="bg-purple-50 rounded-xl p-4 shadow-md border border-purple-100"
+        >
+          <p className="text-sm text-purple-600">Project Progress</p>
+          <p className="text-2xl font-bold text-purple-700">
+            {project?.progress || 0}%
+          </p>
+        </motion.div>
+      </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
@@ -1125,6 +1214,7 @@ const ProjectLogs = () => {
                     <option value="Extension Approved">Extension Approved</option>
                     <option value="Extension Rejected">Extension Rejected</option>
                     <option value="MANUAL_LOG">Manual Logs</option>
+                    <option value="STATUS_UPDATE">Status Update</option>
                   </select>
                 </div>
 

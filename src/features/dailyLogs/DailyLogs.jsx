@@ -1,6 +1,6 @@
 // src/features/dailyLogs/DailyLogs.jsx
 import { useSelector, useDispatch } from "react-redux";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, 
@@ -35,12 +35,22 @@ import {
   setLogFilters, 
   resetFilters,
   resetPagination,
-  calculateStats
+  calculateStats,
+  fetchAllLogsUnfiltered
 } from "./logSlice";
 import { showSnackbar } from "../notifications/notificationSlice";
 import { fetchProjects } from "../api/apiSlice";
 import LogCard from "../../components/LogCard";
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
+
+// Debounce function to prevent too many API calls
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
 const DailyLogs = () => {
   const dispatch = useDispatch();
@@ -62,13 +72,25 @@ const DailyLogs = () => {
     message: ""
   });
 
+  // Debounced filter change handler
+  const debouncedFilterChange = useRef(
+    debounce((key, value) => {
+      dispatch(setLogFilters({ [key]: value }));
+      dispatch(resetPagination());
+    }, 500)
+  ).current;
+
   // Fetch initial data
   useEffect(() => {
     dispatch(fetchProjects());
+  }, [dispatch]);
+
+  // Fetch logs when filters change
+  useEffect(() => {
     dispatch(resetPagination());
     dispatch(fetchAllLogs({ 
       page: 1, 
-      pageSize: 20,
+      pageSize: 10, // Reduced from 20 to 10 for better performance
       filters: {
         date: filters.date,
         eventType: filters.eventType,
@@ -76,7 +98,18 @@ const DailyLogs = () => {
         search: filters.search
       }
     }));
-  }, [dispatch, filters.date, filters.eventType, filters.projectId, filters.search]);
+    
+    // Debug: fetch unfiltered logs to see what's available
+    if (process.env.NODE_ENV === 'development') {
+      dispatch(fetchAllLogsUnfiltered({ pageSize: 50 }));
+    }
+  }, [
+    dispatch, 
+    filters.date, 
+    filters.eventType, 
+    filters.projectId, 
+    filters.search
+  ]);
 
   // Calculate stats when logs change
   useEffect(() => {
@@ -90,7 +123,7 @@ const DailyLogs = () => {
     if (pagination.hasNext && !loadingMore && !loading) {
       dispatch(fetchAllLogs({ 
         page: pagination.currentPage + 1, 
-        pageSize: 20, 
+        pageSize: 10, // Reduced from 20 to 10
         append: true,
         filters: {
           date: filters.date,
@@ -107,8 +140,14 @@ const DailyLogs = () => {
 
   // Handle filter changes
   const handleFilterChange = (key, value) => {
-    dispatch(setLogFilters({ [key]: value }));
-    dispatch(resetPagination());
+    if (key === 'search') {
+      // Debounce search input
+      debouncedFilterChange(key, value);
+    } else {
+      // Immediate update for other filters
+      dispatch(setLogFilters({ [key]: value }));
+      dispatch(resetPagination());
+    }
   };
 
   const handleClearFilters = () => {
@@ -120,7 +159,7 @@ const DailyLogs = () => {
     dispatch(resetPagination());
     dispatch(fetchAllLogs({ 
       page: 1, 
-      pageSize: 20,
+      pageSize: 10,
       filters: {
         date: filters.date,
         eventType: filters.eventType,
@@ -171,6 +210,8 @@ const DailyLogs = () => {
         event_type: "MANUAL_LOG",
         message: ""
       });
+      // Refresh logs after adding
+      handleRefresh();
     } catch (error) {
       dispatch(showSnackbar({
         message: error.message || "Failed to add log",
@@ -201,6 +242,8 @@ const DailyLogs = () => {
       }));
       setShowDeleteConfirm(false);
       setSelectedLog(null);
+      // Refresh logs after deletion
+      handleRefresh();
     } catch (error) {
       dispatch(showSnackbar({
         message: error.message || "Failed to delete log",
@@ -226,7 +269,10 @@ const DailyLogs = () => {
     }));
   };
 
-  const hasActiveFilters = filters.eventType !== 'all' || filters.projectId !== 'all' || filters.search || filters.date !== new Date().toISOString().split('T')[0];
+  const hasActiveFilters = filters.eventType !== 'all' || 
+                          filters.projectId !== 'all' || 
+                          filters.search || 
+                          filters.date !== new Date().toISOString().split('T')[0];
 
   if (loading && allLogs.length === 0) {
     return (
@@ -317,7 +363,7 @@ const DailyLogs = () => {
                   >
                     <option value="">Select Project</option>
                     {projects.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
+                      <option key={p.id} value={p.id}>{p.name} ({p.project_code})</option>
                     ))}
                   </select>
                 </div>
@@ -376,7 +422,9 @@ const DailyLogs = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Daily Logs Management
           </h1>
-          <p className="text-gray-500 mt-2">Track all project activities and events</p>
+          <p className="text-gray-500 mt-2">
+            Total: {pagination.totalItems} logs • Page {pagination.currentPage} of {pagination.totalPages}
+          </p>
         </div>
         
         <div className="flex gap-2 w-full md:w-auto">
@@ -421,7 +469,7 @@ const DailyLogs = () => {
         >
           <p className="text-sm text-blue-600">Projects</p>
           <p className="text-2xl font-bold text-blue-700">
-            {new Set(allLogs.map(l => l.project)).size}
+            {Object.keys(stats.byProject || {}).length}
           </p>
         </motion.div>
 
@@ -431,7 +479,7 @@ const DailyLogs = () => {
         >
           <p className="text-sm text-green-600">Log Types</p>
           <p className="text-2xl font-bold text-green-700">
-            {new Set(allLogs.map(l => l.event_type)).size}
+            {Object.keys(stats.byType || {}).length}
           </p>
         </motion.div>
 
@@ -441,7 +489,7 @@ const DailyLogs = () => {
         >
           <p className="text-sm text-purple-600">Today's Logs</p>
           <p className="text-2xl font-bold text-purple-700">
-            {allLogs.filter(l => l.created_at?.startsWith(filters.date)).length}
+            {stats.byDate?.[filters.date] || 0}
           </p>
         </motion.div>
       </div>
@@ -496,7 +544,7 @@ const DailyLogs = () => {
               >
                 <option value="all">All Projects</option>
                 {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>{p.name} ({p.project_code})</option>
                 ))}
               </select>
             </div>
@@ -524,6 +572,7 @@ const DailyLogs = () => {
                 <option value="Extension Approved">Extension Approved</option>
                 <option value="Extension Rejected">Extension Rejected</option>
                 <option value="MANUAL_LOG">Manual Logs</option>
+                <option value="STATUS_UPDATE">Status Update</option>
               </select>
             </div>
 

@@ -1,17 +1,65 @@
+// src/features/auth/ProtectedRoute.jsx
 import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user } = useSelector((state) => state.auth);
+  const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
+  const location = useLocation();
 
-  if (!user) {
-    return <Navigate to="/" />;
+  // Debug logging
+  useEffect(() => {
+    console.log('ProtectedRoute - Auth State:', {
+      isAuthenticated,
+      loading,
+      user: user ? {
+        role: user.role,
+        email: user.email,
+        name: user.name
+      } : null,
+      allowedRoles,
+      currentPath: location.pathname
+    });
+  }, [isAuthenticated, loading, user, allowedRoles, location]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-white rounded-2xl p-8 shadow-xl flex flex-col items-center gap-4"
+        >
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          <p className="text-gray-600">Loading...</p>
+        </motion.div>
+      </div>
+    );
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" />;
+  if (!isAuthenticated) {
+    console.log('ProtectedRoute - Not authenticated, redirecting to login');
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRole = user?.role;
+    
+    console.log('ProtectedRoute - Checking role access:', {
+      userRole,
+      allowedRoles,
+      hasAccess: allowedRoles.includes(userRole)
+    });
+
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      console.log('ProtectedRoute - Access denied, redirecting to unauthorized');
+      return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    }
+  }
+
+  console.log('ProtectedRoute - Access granted');
   return children;
 };
 

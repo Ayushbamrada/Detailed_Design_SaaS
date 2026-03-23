@@ -1,5 +1,38 @@
+
+
 // import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // import { logService } from '../../services/logService';
+
+// const EVENT_TYPE_MAP = {
+//   'Project Created': 'PROJECT_CREATED',
+//   'Project Updated': 'PROJECT_UPDATED',
+//   'Activity Created': 'ACTIVITY_CREATED',
+//   'Activity Updated': 'ACTIVITY_UPDATED',
+//   'SubActivity Created': 'SUBACTIVITY_CREATED',
+//   'SubActivity Updated': 'SUBACTIVITY_UPDATED',
+//   'Progress Changed': 'PROGRESS_CHANGED',
+//   'Extension Requested': 'EXTENSION_REQUESTED',
+//   'Extension Approved': 'EXTENSION_APPROVED',
+//   'Extension Rejected': 'EXTENSION_REJECTED',
+//   'MANUAL_LOG': 'MANUAL_LOG',
+//   'STATUS_UPDATE': 'STATUS_UPDATE'
+// };
+
+// // Reverse map for displaying backend values
+// const REVERSE_EVENT_TYPE_MAP = {
+//   'PROJECT_CREATED': 'Project Created',
+//   'PROJECT_UPDATED': 'Project Updated',
+//   'ACTIVITY_CREATED': 'Activity Created',
+//   'ACTIVITY_UPDATED': 'Activity Updated',
+//   'SUBACTIVITY_CREATED': 'SubActivity Created',
+//   'SUBACTIVITY_UPDATED': 'SubActivity Updated',
+//   'PROGRESS_CHANGED': 'Progress Changed',
+//   'EXTENSION_REQUESTED': 'Extension Requested',
+//   'EXTENSION_APPROVED': 'Extension Approved',
+//   'EXTENSION_REJECTED': 'Extension Rejected',
+//   'MANUAL_LOG': 'MANUAL_LOG',
+//   'STATUS_UPDATE': 'STATUS_UPDATE'
+// };
 
 // // Helper function to transform backend log format to frontend format
 // const transformLog = (log) => {
@@ -14,33 +47,76 @@
 //     // Ignore parsing errors
 //   }
 
+//   // Map the event type from backend to display format
+//   const displayEventType = REVERSE_EVENT_TYPE_MAP[log.event_type] || log.event_type;
+
+//   // Determine project details from various sources
+//   let projectId = log.project;
+//   let projectDetail = log.project_detail;
+//   let projectName = 'Unknown Project';
+//   let projectCode = null;
+
+//   // If we have project_detail, use it
+//   if (projectDetail) {
+//     projectName = projectDetail.project_name || 'Unknown Project';
+//     projectCode = projectDetail.project_code;
+//   } 
+//   // If no project_detail but we have activity with project info
+//   else if (log.activity_detail?.project_detail) {
+//     projectName = log.activity_detail.project_detail.project_name || 'Unknown Project';
+//     projectCode = log.activity_detail.project_detail.project_code;
+//     projectId = log.activity_detail.project;
+//   }
+//   // If activity has project ID but no details
+//   else if (log.activity) {
+//     projectName = `Activity: ${log.activity_detail?.activity_name || 'Unknown'}`;
+//   }
+//   // If subactivity has info
+//   else if (log.subactivity_detail) {
+//     projectName = `SubActivity: ${log.subactivity_detail.subactivity_name}`;
+//   }
+
 //   return {
 //     id: log.id,
-//     event_type: log.event_type,
+//     event_type: displayEventType,
+//     original_event_type: log.event_type, // Keep original for debugging
 //     message: log.message,
 //     old_value: oldValue,
 //     new_value: newValue,
 //     created_at: log.created_at,
 //     performed_by: log.performed_by,
 //     performed_by_detail: log.performed_by_detail,
-//     project: log.project,
-//     project_detail: log.project_detail,
+//     project: projectId,
+//     project_detail: projectDetail,
 //     activity: log.activity,
 //     activity_detail: log.activity_detail,
 //     subactivity: log.subactivity,
 //     subactivity_detail: log.subactivity_detail,
     
 //     // Derived fields for easier display
-//     log_type: log.event_type,
+//     log_type: displayEventType,
 //     description: log.message,
-//     date: log.created_at,
+//     date: log.created_at?.split('T')[0] || '',
+//     time: log.created_at?.split('T')[1]?.substring(0, 5) || '',
 //     user: log.performed_by_detail?.username || 'System',
 //     user_role: log.performed_by_detail?.role || 'SYSTEM',
-//     project_name: log.project_detail?.project_name || 'Unknown Project',
-//     project_code: log.project_detail?.project_code,
-//     company_name: log.project_detail?.company_detail?.name,
-//     sector_name: log.project_detail?.sector_detail?.name,
-//     client_name: log.project_detail?.client_detail?.name
+//     user_name: log.performed_by_detail?.username || 'System',
+//     project_name: projectName,
+//     project_code: projectCode,
+//     company_name: projectDetail?.company_detail?.name || 
+//                    log.activity_detail?.project_detail?.company_detail?.name,
+//     sector_name: projectDetail?.sector_detail?.name || 
+//                   log.activity_detail?.project_detail?.sector_detail?.name,
+//     client_name: projectDetail?.client_detail?.name || 
+//                   log.activity_detail?.project_detail?.client_detail?.name,
+    
+//     // Helper to identify log source
+//     log_source: log.project ? 'project' : 
+//                 log.activity ? 'activity' : 
+//                 log.subactivity ? 'subactivity' : 'unknown',
+    
+//     // Raw data for debugging (only in development)
+//     raw: process.env.NODE_ENV === 'development' ? log : null
 //   };
 // };
 
@@ -51,7 +127,7 @@
 //     currentPage: 1,
 //     totalPages: 1,
 //     totalItems: 0,
-//     itemsPerPage: 20,
+//     itemsPerPage: 10,
 //     hasNext: false,
 //     hasPrev: false,
 //     nextPage: null,
@@ -77,10 +153,19 @@
 // // Async thunks
 // export const fetchAllLogs = createAsyncThunk(
 //   'logs/fetchAll',
-//   async ({ page = 1, pageSize = 20, append = false, filters = {} } = {}, { getState, rejectWithValue }) => {
+//   async ({ page = 1, pageSize = 10, append = false, filters = {} } = {}, { getState, rejectWithValue }) => {
 //     try {
 //       const state = getState();
 //       const currentFilters = { ...state.logs.filters, ...filters };
+      
+//       console.log('Fetching all logs with filters:', {
+//         date: currentFilters.date,
+//         eventType: currentFilters.eventType,
+//         projectId: currentFilters.projectId,
+//         search: currentFilters.search,
+//         page,
+//         pageSize
+//       });
       
 //       const response = await logService.getAllLogs({
 //         page,
@@ -91,37 +176,34 @@
 //         search: currentFilters.search
 //       });
       
-//       // Handle response that might be paginated or direct array
-//       let transformedLogs = [];
-//       let paginationData = {
-//         currentPage: page,
-//         totalPages: 1,
-//         totalItems: 0,
+//       console.log('API Response:', {
+//         totalResults: response.results?.length,
+//         totalCount: response.count,
+//         hasNext: !!response.next
+//       });
+      
+//       const transformedLogs = response.results.map(transformLog);
+      
+//       // Log a sample to verify event type mapping
+//       if (transformedLogs.length > 0) {
+//         console.log('Sample transformed log:', {
+//           original: transformedLogs[0].original_event_type,
+//           display: transformedLogs[0].event_type
+//         });
+//       }
+      
+//       const paginationData = {
+//         currentPage: response.current_page || page,
+//         totalPages: response.total_pages || Math.ceil(response.count / pageSize),
+//         totalItems: response.count || 0,
 //         itemsPerPage: pageSize,
-//         hasNext: false,
-//         hasPrev: false,
-//         nextPage: null,
-//         prevPage: null
+//         hasNext: !!response.next,
+//         hasPrev: !!response.previous,
+//         nextPage: response.next,
+//         prevPage: response.previous
 //       };
       
-//       if (response.results) {
-//         // Paginated response
-//         transformedLogs = response.results.map(transformLog);
-//         paginationData = {
-//           currentPage: response.current_page || page,
-//           totalPages: response.total_pages || 1,
-//           totalItems: response.count || 0,
-//           itemsPerPage: pageSize,
-//           hasNext: !!response.next,
-//           hasPrev: !!response.previous,
-//           nextPage: response.next,
-//           prevPage: response.previous
-//         };
-//       } else if (Array.isArray(response)) {
-//         // Direct array response
-//         transformedLogs = response.map(transformLog);
-//         paginationData.totalItems = transformedLogs.length;
-//       }
+//       console.log(`Fetched ${transformedLogs.length} logs, total: ${paginationData.totalItems}`);
       
 //       return {
 //         logs: transformedLogs,
@@ -129,6 +211,7 @@
 //         append
 //       };
 //     } catch (error) {
+//       console.error('Error in fetchAllLogs:', error);
 //       return rejectWithValue(error.response?.data || error.message);
 //     }
 //   }
@@ -136,10 +219,18 @@
 
 // export const fetchProjectLogs = createAsyncThunk(
 //   'logs/fetchProjectLogs',
-//   async ({ projectId, page = 1, pageSize = 20, append = false, filters = {} } = {}, { getState, rejectWithValue }) => {
+//   async ({ projectId, page = 1, pageSize = 10, append = false, filters = {} } = {}, { getState, rejectWithValue }) => {
 //     try {
 //       const state = getState();
 //       const currentFilters = { ...state.logs.filters, ...filters };
+      
+//       console.log(`Fetching logs for project: ${projectId} with filters:`, {
+//         date: currentFilters.date,
+//         eventType: currentFilters.eventType,
+//         search: currentFilters.search,
+//         page,
+//         pageSize
+//       });
       
 //       const response = await logService.getProjectLogs(projectId, {
 //         page,
@@ -149,37 +240,26 @@
 //         search: currentFilters.search
 //       });
       
-//       // Handle response that might be paginated or direct array
-//       let transformedLogs = [];
-//       let paginationData = {
-//         currentPage: page,
-//         totalPages: 1,
-//         totalItems: 0,
+//       console.log('API Response:', {
+//         totalResults: response.results?.length,
+//         totalCount: response.count,
+//         hasNext: !!response.next
+//       });
+      
+//       const transformedLogs = response.results.map(transformLog);
+      
+//       const paginationData = {
+//         currentPage: response.current_page || page,
+//         totalPages: response.total_pages || Math.ceil(response.count / pageSize),
+//         totalItems: response.count || 0,
 //         itemsPerPage: pageSize,
-//         hasNext: false,
-//         hasPrev: false,
-//         nextPage: null,
-//         prevPage: null
+//         hasNext: !!response.next,
+//         hasPrev: !!response.previous,
+//         nextPage: response.next,
+//         prevPage: response.previous
 //       };
       
-//       if (response.results) {
-//         // Paginated response
-//         transformedLogs = response.results.map(transformLog);
-//         paginationData = {
-//           currentPage: response.current_page || page,
-//           totalPages: response.total_pages || 1,
-//           totalItems: response.count || 0,
-//           itemsPerPage: pageSize,
-//           hasNext: !!response.next,
-//           hasPrev: !!response.previous,
-//           nextPage: response.next,
-//           prevPage: response.previous
-//         };
-//       } else if (Array.isArray(response)) {
-//         // Direct array response
-//         transformedLogs = response.map(transformLog);
-//         paginationData.totalItems = transformedLogs.length;
-//       }
+//       console.log(`Fetched ${transformedLogs.length} logs for project ${projectId}, total: ${paginationData.totalItems}`);
       
 //       return {
 //         logs: transformedLogs,
@@ -188,6 +268,24 @@
 //         projectId
 //       };
 //     } catch (error) {
+//       console.error('Error in fetchProjectLogs:', error);
+//       return rejectWithValue(error.response?.data || error.message);
+//     }
+//   }
+// );
+
+// export const fetchAllLogsUnfiltered = createAsyncThunk(
+//   'logs/fetchAllUnfiltered',
+//   async ({ page = 1, pageSize = 50 } = {}, { rejectWithValue }) => {
+//     try {
+//       const response = await logService.getAllLogsUnfiltered({ page, pageSize });
+      
+//       const transformedLogs = response.results.map(transformLog);
+      
+//       console.log('Unfiltered logs count:', transformedLogs.length);
+//       return transformedLogs;
+//     } catch (error) {
+//       console.error('Error in fetchAllLogsUnfiltered:', error);
 //       return rejectWithValue(error.response?.data || error.message);
 //     }
 //   }
@@ -266,10 +364,10 @@
 //         const type = log.event_type || 'UNKNOWN';
 //         byType[type] = (byType[type] || 0) + 1;
         
-//         const projectName = log.project_detail?.project_name || 'Unknown';
+//         const projectName = log.project_name || 'Unknown';
 //         byProject[projectName] = (byProject[projectName] || 0) + 1;
         
-//         const date = log.created_at?.split('T')[0] || 'unknown';
+//         const date = log.date || 'unknown';
 //         byDate[date] = (byDate[date] || 0) + 1;
 //       });
       
@@ -294,10 +392,8 @@
 //         state.loadingMore = false;
         
 //         if (action.payload.append) {
-//           // Append mode (infinite scroll)
 //           state.allLogs = [...state.allLogs, ...action.payload.logs];
 //         } else {
-//           // Replace mode (new filters)
 //           state.allLogs = action.payload.logs;
 //         }
         
@@ -334,6 +430,11 @@
 //         state.loading = false;
 //         state.loadingMore = false;
 //         state.error = action.payload;
+//       })
+
+//       // Fetch unfiltered logs (debug)
+//       .addCase(fetchAllLogsUnfiltered.fulfilled, (state, action) => {
+//         console.log('Unfiltered logs in state:', action.payload.length);
 //       })
 
 //       // Fetch stats
@@ -376,9 +477,43 @@
 // export const { setLogFilters, resetFilters, clearLogs, resetPagination, calculateStats } = logSlice.actions;
 // export default logSlice.reducer;
 
+
+
 // src/features/dailyLogs/logSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { logService } from '../../services/logService';
+
+// Map frontend display names to backend enum values
+const EVENT_TYPE_MAP = {
+  'Project Created': 'PROJECT_CREATED',
+  'Project Updated': 'PROJECT_UPDATED',
+  'Activity Created': 'ACTIVITY_CREATED',
+  'Activity Updated': 'ACTIVITY_UPDATED',
+  'SubActivity Created': 'SUBACTIVITY_CREATED',
+  'SubActivity Updated': 'SUBACTIVITY_UPDATED',
+  'Progress Changed': 'PROGRESS_CHANGED',
+  'Extension Requested': 'EXTENSION_REQUESTED',
+  'Extension Approved': 'EXTENSION_APPROVED',
+  'Extension Rejected': 'EXTENSION_REJECTED',
+  'MANUAL_LOG': 'MANUAL_LOG',
+  'STATUS_UPDATE': 'STATUS_UPDATE'
+};
+
+// Reverse map for displaying backend values
+const REVERSE_EVENT_TYPE_MAP = {
+  'PROJECT_CREATED': 'Project Created',
+  'PROJECT_UPDATED': 'Project Updated',
+  'ACTIVITY_CREATED': 'Activity Created',
+  'ACTIVITY_UPDATED': 'Activity Updated',
+  'SUBACTIVITY_CREATED': 'SubActivity Created',
+  'SUBACTIVITY_UPDATED': 'SubActivity Updated',
+  'PROGRESS_CHANGED': 'Progress Changed',
+  'EXTENSION_REQUESTED': 'Extension Requested',
+  'EXTENSION_APPROVED': 'Extension Approved',
+  'EXTENSION_REJECTED': 'Extension Rejected',
+  'MANUAL_LOG': 'MANUAL_LOG',
+  'STATUS_UPDATE': 'STATUS_UPDATE'
+};
 
 // Helper function to transform backend log format to frontend format
 const transformLog = (log) => {
@@ -392,6 +527,9 @@ const transformLog = (log) => {
   } catch (e) {
     // Ignore parsing errors
   }
+
+  // Map the event type from backend to display format
+  const displayEventType = REVERSE_EVENT_TYPE_MAP[log.event_type] || log.event_type;
 
   // Determine project details from various sources
   let projectId = log.project;
@@ -421,7 +559,8 @@ const transformLog = (log) => {
 
   return {
     id: log.id,
-    event_type: log.event_type,
+    event_type: displayEventType,
+    original_event_type: log.event_type,
     message: log.message,
     old_value: oldValue,
     new_value: newValue,
@@ -436,9 +575,10 @@ const transformLog = (log) => {
     subactivity_detail: log.subactivity_detail,
     
     // Derived fields for easier display
-    log_type: log.event_type,
+    log_type: displayEventType,
     description: log.message,
-    date: log.created_at,
+    date: log.created_at?.split('T')[0] || '',
+    time: log.created_at?.split('T')[1]?.substring(0, 5) || '',
     user: log.performed_by_detail?.username || 'System',
     user_role: log.performed_by_detail?.role || 'SYSTEM',
     user_name: log.performed_by_detail?.username || 'System',
@@ -456,19 +596,62 @@ const transformLog = (log) => {
                 log.activity ? 'activity' : 
                 log.subactivity ? 'subactivity' : 'unknown',
     
-    // Raw data for debugging
+    // Raw data for debugging (only in development)
     raw: process.env.NODE_ENV === 'development' ? log : null
   };
 };
 
+// Client-side filter function
+const filterLogsClientSide = (logs, filters) => {
+  return logs.filter(log => {
+    // Date filter
+    if (filters.date && log.date !== filters.date) {
+      return false;
+    }
+    
+    // Event type filter
+    if (filters.eventType && filters.eventType !== 'all') {
+      const backendEventType = EVENT_TYPE_MAP[filters.eventType];
+      if (log.original_event_type !== backendEventType) {
+        return false;
+      }
+    }
+    
+    // Project filter
+    if (filters.projectId && filters.projectId !== 'all') {
+      if (log.project !== filters.projectId && 
+          log.project_detail?.id !== filters.projectId) {
+        return false;
+      }
+    }
+    
+    // Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      const matchesSearch = 
+        log.message?.toLowerCase().includes(searchLower) ||
+        log.project_name?.toLowerCase().includes(searchLower) ||
+        log.event_type?.toLowerCase().includes(searchLower) ||
+        log.user?.toLowerCase().includes(searchLower);
+      
+      if (!matchesSearch) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+};
+
 const initialState = {
   allLogs: [],
+  filteredLogs: [], // Add this for client-side filtering
   projectLogs: [],
   pagination: {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 20,
+    itemsPerPage: 10,
     hasNext: false,
     hasPrev: false,
     nextPage: null,
@@ -494,55 +677,62 @@ const initialState = {
 // Async thunks
 export const fetchAllLogs = createAsyncThunk(
   'logs/fetchAll',
-  async ({ page = 1, pageSize = 20, append = false, filters = {} } = {}, { getState, rejectWithValue }) => {
+  async ({ page = 1, pageSize = 10, append = false, filters = {} } = {}, { getState, rejectWithValue }) => {
     try {
       const state = getState();
       const currentFilters = { ...state.logs.filters, ...filters };
       
-      const response = await logService.getAllLogs({
-        page,
-        pageSize,
+      console.log('Fetching all logs with filters:', {
         date: currentFilters.date,
         eventType: currentFilters.eventType,
         projectId: currentFilters.projectId,
+        search: currentFilters.search,
+        page,
+        pageSize
+      });
+      
+      // Always fetch a larger batch to allow client-side filtering
+      const response = await logService.getAllLogs({
+        page: 1,
+        pageSize: 100, // Fetch more logs at once for client-side filtering
+        date: currentFilters.date, // Still send date to API if it works
+        // Don't send event_type if API is ignoring it
+        projectId: currentFilters.projectId !== 'all' ? currentFilters.projectId : undefined,
         search: currentFilters.search
       });
       
-      let transformedLogs = [];
-      let paginationData = {
+      console.log('API Response:', {
+        totalResults: response.results?.length,
+        totalCount: response.count,
+        hasNext: !!response.next
+      });
+      
+      const transformedLogs = response.results.map(transformLog);
+      
+      // Apply client-side filtering
+      const filteredLogs = filterLogsClientSide(transformedLogs, currentFilters);
+      
+      // Paginate the filtered results
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const paginatedLogs = filteredLogs.slice(start, end);
+      
+      const paginationData = {
         currentPage: page,
-        totalPages: 1,
-        totalItems: 0,
+        totalPages: Math.ceil(filteredLogs.length / pageSize),
+        totalItems: filteredLogs.length,
         itemsPerPage: pageSize,
-        hasNext: false,
-        hasPrev: false,
-        nextPage: null,
-        prevPage: null
+        hasNext: end < filteredLogs.length,
+        hasPrev: page > 1,
+        nextPage: end < filteredLogs.length ? `?page=${page + 1}` : null,
+        prevPage: page > 1 ? `?page=${page - 1}` : null
       };
       
-      if (response.results) {
-        // Paginated response
-        transformedLogs = response.results.map(transformLog);
-        paginationData = {
-          currentPage: response.current_page || page,
-          totalPages: response.total_pages || 1,
-          totalItems: response.count || 0,
-          itemsPerPage: pageSize,
-          hasNext: !!response.next,
-          hasPrev: !!response.previous,
-          nextPage: response.next,
-          prevPage: response.previous
-        };
-      } else if (Array.isArray(response)) {
-        // Direct array response
-        transformedLogs = response.map(transformLog);
-        paginationData.totalItems = transformedLogs.length;
-      }
-      
-      console.log(`Fetched ${transformedLogs.length} logs`);
+      console.log(`Client-side filtered: ${filteredLogs.length} logs, showing page ${page} with ${paginatedLogs.length} logs`);
       
       return {
-        logs: transformedLogs,
+        logs: paginatedLogs,
+        allFilteredLogs: filteredLogs, // Store all filtered logs for stats
         pagination: paginationData,
         append
       };
@@ -555,55 +745,60 @@ export const fetchAllLogs = createAsyncThunk(
 
 export const fetchProjectLogs = createAsyncThunk(
   'logs/fetchProjectLogs',
-  async ({ projectId, page = 1, pageSize = 20, append = false, filters = {} } = {}, { getState, rejectWithValue }) => {
+  async ({ projectId, page = 1, pageSize = 10, append = false, filters = {} } = {}, { getState, rejectWithValue }) => {
     try {
       const state = getState();
       const currentFilters = { ...state.logs.filters, ...filters };
       
-      console.log(`Fetching logs for project: ${projectId} with filters:`, currentFilters);
-      
-      // First try with project filter
-      const response = await logService.getProjectLogs(projectId, {
-        page,
-        pageSize,
+      console.log(`Fetching logs for project: ${projectId} with filters:`, {
         date: currentFilters.date,
         eventType: currentFilters.eventType,
+        search: currentFilters.search,
+        page,
+        pageSize
+      });
+      
+      // Fetch all logs for this project (without event_type filter)
+      const response = await logService.getProjectLogs(projectId, {
+        page: 1,
+        pageSize: 100, // Fetch more for client-side filtering
+        date: currentFilters.date,
+        // Don't send event_type
         search: currentFilters.search
       });
       
-      let transformedLogs = [];
-      let paginationData = {
+      console.log('API Response:', {
+        totalResults: response.results?.length,
+        totalCount: response.count,
+        hasNext: !!response.next
+      });
+      
+      const transformedLogs = response.results.map(transformLog);
+      
+      // Apply client-side filtering
+      const filteredLogs = filterLogsClientSide(transformedLogs, currentFilters);
+      
+      // Paginate the filtered results
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const paginatedLogs = filteredLogs.slice(start, end);
+      
+      const paginationData = {
         currentPage: page,
-        totalPages: 1,
-        totalItems: 0,
+        totalPages: Math.ceil(filteredLogs.length / pageSize),
+        totalItems: filteredLogs.length,
         itemsPerPage: pageSize,
-        hasNext: false,
-        hasPrev: false,
-        nextPage: null,
-        prevPage: null
+        hasNext: end < filteredLogs.length,
+        hasPrev: page > 1,
+        nextPage: end < filteredLogs.length ? `?page=${page + 1}` : null,
+        prevPage: page > 1 ? `?page=${page - 1}` : null
       };
       
-      if (response.results) {
-        transformedLogs = response.results.map(transformLog);
-        paginationData = {
-          currentPage: response.current_page || page,
-          totalPages: response.total_pages || 1,
-          totalItems: response.count || 0,
-          itemsPerPage: pageSize,
-          hasNext: !!response.next,
-          hasPrev: !!response.previous,
-          nextPage: response.next,
-          prevPage: response.previous
-        };
-      } else if (Array.isArray(response)) {
-        transformedLogs = response.map(transformLog);
-        paginationData.totalItems = transformedLogs.length;
-      }
-      
-      console.log(`Fetched ${transformedLogs.length} logs for project ${projectId}`);
+      console.log(`Client-side filtered: ${filteredLogs.length} logs for project ${projectId}, showing page ${page}`);
       
       return {
-        logs: transformedLogs,
+        logs: paginatedLogs,
+        allFilteredLogs: filteredLogs,
         pagination: paginationData,
         append,
         projectId
@@ -621,16 +816,12 @@ export const fetchAllLogsUnfiltered = createAsyncThunk(
     try {
       const response = await logService.getAllLogsUnfiltered({ page, pageSize });
       
-      let transformedLogs = [];
-      if (response.results) {
-        transformedLogs = response.results.map(transformLog);
-      } else if (Array.isArray(response)) {
-        transformedLogs = response.map(transformLog);
-      }
+      const transformedLogs = response.results.map(transformLog);
       
-      console.log('Unfiltered logs:', transformedLogs);
+      console.log('Unfiltered logs count:', transformedLogs.length);
       return transformedLogs;
     } catch (error) {
+      console.error('Error in fetchAllLogsUnfiltered:', error);
       return rejectWithValue(error.response?.data || error.message);
     }
   }
@@ -689,6 +880,7 @@ const logSlice = createSlice({
     },
     clearLogs: (state) => {
       state.allLogs = [];
+      state.filteredLogs = [];
       state.projectLogs = [];
       state.pagination = initialState.pagination;
       state.error = null;
@@ -697,7 +889,9 @@ const logSlice = createSlice({
       state.pagination.currentPage = 1;
     },
     calculateStats: (state) => {
-      const logs = state.allLogs.length > 0 ? state.allLogs : state.projectLogs;
+      // Use filteredLogs for stats if available, otherwise use displayed logs
+      const logs = state.filteredLogs.length > 0 ? state.filteredLogs : 
+                  (state.allLogs.length > 0 ? state.allLogs : state.projectLogs);
       
       state.stats.total = logs.length;
       
@@ -712,7 +906,7 @@ const logSlice = createSlice({
         const projectName = log.project_name || 'Unknown';
         byProject[projectName] = (byProject[projectName] || 0) + 1;
         
-        const date = log.created_at?.split('T')[0] || 'unknown';
+        const date = log.date || 'unknown';
         byDate[date] = (byDate[date] || 0) + 1;
       });
       
@@ -740,6 +934,7 @@ const logSlice = createSlice({
           state.allLogs = [...state.allLogs, ...action.payload.logs];
         } else {
           state.allLogs = action.payload.logs;
+          state.filteredLogs = action.payload.allFilteredLogs || [];
         }
         
         state.pagination = action.payload.pagination;
@@ -767,6 +962,7 @@ const logSlice = createSlice({
           state.projectLogs = [...state.projectLogs, ...action.payload.logs];
         } else {
           state.projectLogs = action.payload.logs;
+          state.filteredLogs = action.payload.allFilteredLogs || [];
         }
         
         state.pagination = action.payload.pagination;
@@ -779,7 +975,7 @@ const logSlice = createSlice({
 
       // Fetch unfiltered logs (debug)
       .addCase(fetchAllLogsUnfiltered.fulfilled, (state, action) => {
-        console.log('Unfiltered logs in state:', action.payload);
+        console.log('Unfiltered logs in state:', action.payload.length);
       })
 
       // Fetch stats
@@ -794,6 +990,7 @@ const logSlice = createSlice({
       .addCase(createLog.fulfilled, (state, action) => {
         state.loading = false;
         state.allLogs.unshift(action.payload);
+        state.filteredLogs.unshift(action.payload);
         state.projectLogs.unshift(action.payload);
         state.pagination.totalItems += 1;
       })
@@ -809,6 +1006,7 @@ const logSlice = createSlice({
       .addCase(deleteLog.fulfilled, (state, action) => {
         state.loading = false;
         state.allLogs = state.allLogs.filter(l => l.id !== action.payload);
+        state.filteredLogs = state.filteredLogs.filter(l => l.id !== action.payload);
         state.projectLogs = state.projectLogs.filter(l => l.id !== action.payload);
         state.pagination.totalItems -= 1;
       })
