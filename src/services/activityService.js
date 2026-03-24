@@ -127,7 +127,7 @@ export const activityService = {
     }
   },
 
-  // Update activity progress - USING PUT INSTEAD OF PATCH
+  
   updateActivityProgress: async (activityId, progressData) => {
     try {
       console.log('Updating activity progress with PUT:', { activityId, progressData });

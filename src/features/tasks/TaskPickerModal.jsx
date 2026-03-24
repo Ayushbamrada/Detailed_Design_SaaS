@@ -19,7 +19,6 @@ const TaskPickerModal = ({ project, activity, subActivity, onClose }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
-  const [estimatedHours, setEstimatedHours] = useState('');
 
   const handlePickTask = async () => {
     if (!user?.id) {
@@ -33,16 +32,44 @@ const TaskPickerModal = ({ project, activity, subActivity, onClose }) => {
     setLoading(true);
 
     try {
-      // Pass subActivity ID and user info to pickTask
+      // Get complete project details
+      const projectId = project.id || project.project_id;
+      const projectName = project.name || project.project_name || project.project?.name;
+      const projectCode = project.code || project.project_code || project.project?.code;
+      const activityId = activity.id || activity.activity_id;
+      const activityName = activity.name || activity.activity_name;
+      const subActivityName = subActivity.name || subActivity.subactivity_name;
+      const unit = subActivity.unit || subActivity.unit_display || 'status';
+      const totalQuantity = subActivity.total_quantity || subActivity.plannedQty || 0;
+      const deadline = subActivity.end_date || activity.end_date || project.completion_date;
+
       await dispatch(pickTask({
         subActivityId: subActivity.id,
         empCode: user.id,
-        empName: user.name
+        empName: user.name,
+        projectId: projectId,
+        projectName: projectName,
+        projectCode: projectCode,
+        activityId: activityId,
+        activityName: activityName,
+        subActivityName: subActivityName,
+        unit: unit,
+        totalQuantity: totalQuantity,
+        deadline: deadline
       })).unwrap();
+      
+      dispatch(showSnackbar({
+        message: `Task "${subActivityName}" added to your tasks!`,
+        type: 'success'
+      }));
       
       onClose();
     } catch (error) {
       console.error('Error picking task:', error);
+      dispatch(showSnackbar({
+        message: error.message || 'Failed to pick task',
+        type: 'error'
+      }));
     } finally {
       setLoading(false);
     }
@@ -50,11 +77,15 @@ const TaskPickerModal = ({ project, activity, subActivity, onClose }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Not set';
+    }
   };
 
   return (
@@ -95,8 +126,8 @@ const TaskPickerModal = ({ project, activity, subActivity, onClose }) => {
             <Briefcase size={16} className="text-blue-600" />
             <span className="text-xs font-semibold text-blue-700 uppercase">Project</span>
           </div>
-          <p className="font-medium text-gray-800">{project.name}</p>
-          <p className="text-xs text-gray-500 mt-1">Code: {project.code}</p>
+          <p className="font-medium text-gray-800">{project.name || project.project_name}</p>
+          <p className="text-xs text-gray-500 mt-1">Code: {project.code || project.project_code}</p>
         </div>
 
         {/* Activity Info */}
@@ -105,7 +136,7 @@ const TaskPickerModal = ({ project, activity, subActivity, onClose }) => {
             <Clock size={16} className="text-purple-600" />
             <span className="text-xs font-semibold text-purple-700 uppercase">Activity</span>
           </div>
-          <p className="font-medium text-gray-800">{activity.name}</p>
+          <p className="font-medium text-gray-800">{activity.name || activity.activity_name}</p>
         </div>
 
         {/* Task Info */}
@@ -114,17 +145,17 @@ const TaskPickerModal = ({ project, activity, subActivity, onClose }) => {
             <CheckCircle size={16} className="text-green-600" />
             <span className="text-xs font-semibold text-green-700 uppercase">Task</span>
           </div>
-          <p className="font-medium text-gray-800">{subActivity.name}</p>
+          <p className="font-medium text-gray-800">{subActivity.name || subActivity.subactivity_name}</p>
           
           <div className="grid grid-cols-2 gap-2 mt-3">
             <div className="bg-white p-2 rounded-lg">
               <p className="text-xs text-gray-500">Unit</p>
               <p className="text-sm font-semibold">{subActivity.unit || 'status'}</p>
             </div>
-            {subActivity.unit !== 'status' && subActivity.total_quantity && (
+            {subActivity.unit !== 'status' && (subActivity.total_quantity || subActivity.plannedQty) && (
               <div className="bg-white p-2 rounded-lg">
                 <p className="text-xs text-gray-500">Planned Qty</p>
-                <p className="text-sm font-semibold">{subActivity.total_quantity}</p>
+                <p className="text-sm font-semibold">{subActivity.total_quantity || subActivity.plannedQty}</p>
               </div>
             )}
           </div>
@@ -147,7 +178,8 @@ const TaskPickerModal = ({ project, activity, subActivity, onClose }) => {
         <div className="bg-blue-50 p-3 rounded-lg mb-4 flex items-start gap-2">
           <AlertCircle size={16} className="text-blue-600 mt-0.5" />
           <p className="text-xs text-blue-700">
-            This task will be added to your <strong>My Tasks</strong> list. You can start working on it anytime.
+            This task will be added to your <strong>My Tasks</strong> list under the project <strong>{project.name || project.project_name}</strong>.
+            You can track your progress and log daily work hours.
           </p>
         </div>
 

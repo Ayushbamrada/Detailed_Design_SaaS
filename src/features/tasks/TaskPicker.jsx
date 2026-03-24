@@ -10,7 +10,6 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
-  const [estimatedHours, setEstimatedHours] = useState('');
 
   const handlePickTask = async () => {
     if (!user?.id) {
@@ -23,31 +22,45 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
 
     setLoading(true);
 
-    const taskData = {
-      project_id: project.id,
-      project_name: project.name || project.project_name,
-      project_code: project.code || project.project_code,
-      activity_id: activity.id,
-      activity_name: activity.name,
-      subactivity_id: subActivity.id,
-      subactivity_name: subActivity.name,
-      emp_code: user.id,
-      emp_name: user.name,
-      status: 'PENDING',
-      picked_at: new Date().toISOString(),
-      unit: subActivity.unit || 'status',
-      planned_quantity: subActivity.plannedQty || subActivity.total_quantity || 0,
-      completed_quantity: 0,
-      progress: 0,
-      estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
-      deadline: subActivity.endDate || activity.endDate || project.completionDate
-    };
-
     try {
-      await dispatch(pickTask(taskData)).unwrap();
+      // Get complete project details
+      const projectId = project.id || project.project_id;
+      const projectName = project.name || project.project_name;
+      const projectCode = project.code || project.project_code;
+      const activityId = activity.id || activity.activity_id;
+      const activityName = activity.name || activity.activity_name;
+      const subActivityName = subActivity.name || subActivity.subactivity_name;
+      const unit = subActivity.unit || subActivity.unit_display || 'status';
+      const totalQuantity = subActivity.plannedQty || subActivity.total_quantity || 0;
+      const deadline = subActivity.endDate || subActivity.end_date || activity.endDate || activity.end_date || project.completionDate || project.completion_date;
+
+      await dispatch(pickTask({
+        subActivityId: subActivity.id,
+        empCode: user.id,
+        empName: user.name,
+        projectId: projectId,
+        projectName: projectName,
+        projectCode: projectCode,
+        activityId: activityId,
+        activityName: activityName,
+        subActivityName: subActivityName,
+        unit: unit,
+        totalQuantity: totalQuantity,
+        deadline: deadline
+      })).unwrap();
+      
+      dispatch(showSnackbar({
+        message: `Task "${subActivityName}" added to your tasks!`,
+        type: 'success'
+      }));
+      
       onClose();
     } catch (error) {
       console.error('Error picking task:', error);
+      dispatch(showSnackbar({
+        message: error.message || 'Failed to pick task',
+        type: 'error'
+      }));
     } finally {
       setLoading(false);
     }
@@ -55,11 +68,15 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Not set';
+    }
   };
 
   return (
@@ -122,37 +139,22 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
         {/* Deadline */}
         {(subActivity.endDate || activity.endDate || project.completionDate) && (
           <div className="bg-yellow-50 p-4 rounded-xl mb-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-1">
               <Calendar size={16} className="text-yellow-600" />
               <span className="text-xs font-semibold text-yellow-700">DEADLINE</span>
             </div>
-            <p className="font-medium text-gray-800 mt-1">
+            <p className="font-medium text-gray-800">
               {formatDate(subActivity.endDate || activity.endDate || project.completionDate)}
             </p>
           </div>
         )}
 
-        {/* Estimated Hours */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Estimated hours (optional)
-          </label>
-          <input
-            type="number"
-            value={estimatedHours}
-            onChange={(e) => setEstimatedHours(e.target.value)}
-            placeholder="e.g., 4"
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-            min="0"
-            step="0.5"
-          />
-        </div>
-
         {/* Info Message */}
         <div className="bg-blue-50 p-3 rounded-lg mb-4 flex items-start gap-2">
           <AlertCircle size={16} className="text-blue-600 mt-0.5" />
           <p className="text-xs text-blue-700">
-            This task will be added to your <strong>My Tasks</strong> list.
+            This task will be added to your <strong>My Tasks</strong> list under the project <strong>{project.name}</strong>.
+            You can track your progress and log daily work hours.
           </p>
         </div>
 

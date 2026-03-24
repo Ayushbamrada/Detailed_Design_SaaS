@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { showSnackbar } from "../notifications/notificationSlice";
 import { fetchProjects, fetchCompanies, fetchSubCompanies, fetchSectors, fetchClients } from "../api/apiSlice";
+import { fetchUserTasks } from "../tasks/taskSlice";
 
 // Helper functions
 const getDaysUntilDeadline = (deadline) => {
@@ -68,11 +69,9 @@ const UserPickedProjectDetails = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  console.log("UserPickedProjectDetails - Project ID from params:", id);
-
   const { user } = useSelector((state) => state.auth);
   const { projects = [], loading: apiLoading, companies = [], subCompanies = [], sectors = [], clients = [] } = useSelector((state) => state.api);
-  const { userTasks = [] } = useSelector((state) => state.tasks || {});
+  const { userTasks = [], loading: tasksLoading } = useSelector((state) => state.tasks || {});
   
   const [project, setProject] = useState(null);
   const [userProjectTasks, setUserProjectTasks] = useState([]);
@@ -107,54 +106,85 @@ const UserPickedProjectDetails = () => {
   // Fetch data if not loaded
   useEffect(() => {
     const loadData = async () => {
-      if (projects.length === 0) {
-        await Promise.all([
-          dispatch(fetchProjects()),
-          dispatch(fetchCompanies()),
-          dispatch(fetchSubCompanies()),
-          dispatch(fetchSectors()),
-          dispatch(fetchClients())
-        ]);
+      setLoading(true);
+      try {
+        if (projects.length === 0) {
+          await Promise.all([
+            dispatch(fetchProjects()),
+            dispatch(fetchCompanies()),
+            dispatch(fetchSubCompanies()),
+            dispatch(fetchSectors()),
+            dispatch(fetchClients())
+          ]);
+        }
+        // Always fetch user tasks to ensure we have latest data
+        if (user?.id) {
+          await dispatch(fetchUserTasks(user.id));
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
       }
     };
     loadData();
-  }, [dispatch, projects.length]);
+  }, [dispatch, projects.length, user?.id]);
 
   // Find the project and filter user's tasks
   useEffect(() => {
-    if (!id) {
-      console.log("No project ID provided");
-      setLoading(false);
+    if (!id || !userTasks.length) {
+      console.log("No project ID or no user tasks");
       return;
     }
     
-    setLoading(true);
-    console.log("Looking for project with ID:", id);
-    console.log("Available projects:", projects);
-    console.log("User tasks:", userTasks);
+    console.log("Filtering tasks for project ID:", id);
+    console.log("All user tasks:", userTasks.map(t => ({ id: t.id, name: t.subactivity_name, project_id: t.project_id, project_name: t.project_name })));
     
+    // Find the project in projects list
     let foundProject = projects.find(p => p.id === id || p.project_id === id);
     
     if (foundProject) {
       console.log("Project found:", foundProject);
       setProject(foundProject);
       
-      // Filter tasks that belong to this project
-      const projectTasks = userTasks.filter(task => task.project_id === id);
-      console.log("Project tasks:", projectTasks);
+      // Filter tasks that belong to this project - CRITICAL: Match by project_id
+      const projectTasks = userTasks.filter(task => {
+        // Check if task's project_id matches the current project ID
+        const matches = task.project_id === id;
+        if (matches) {
+          console.log(`Task ${task.subactivity_name} belongs to project ${id}`);
+        }
+        return matches;
+      });
+      
+      console.log(`Found ${projectTasks.length} tasks for project ${foundProject.project_name}`);
       setUserProjectTasks(projectTasks);
     } else {
       console.log("Project not found with ID:", id);
-      // Try to find in local storage or from URL
-      if (id) {
+      // Try to find from tasks directly
+      const tasksInProject = userTasks.filter(task => task.project_id === id);
+      if (tasksInProject.length > 0) {
+        console.log(`Found ${tasksInProject.length} tasks, creating project from task data`);
+        // Create project object from task data
+        const firstTask = tasksInProject[0];
+        setProject({
+          id: id,
+          project_name: firstTask.project_name,
+          project_code: firstTask.project_code,
+          progress: tasksInProject.reduce((sum, t) => sum + (t.progress || 0), 0) / tasksInProject.length,
+          status: tasksInProject.every(t => t.status === 'COMPLETED') ? 'Complete' : 'Inprogress',
+          location: '—',
+          total_length: 0,
+          workorder_cost: 0
+        });
+        setUserProjectTasks(tasksInProject);
+      } else {
         dispatch(showSnackbar({
-          message: `Project with ID ${id} not found`,
+          message: `No tasks found for this project`,
           type: "warning"
         }));
       }
     }
-    
-    setLoading(false);
   }, [id, projects, userTasks, dispatch]);
 
   const toggleTask = (taskId) => {
@@ -192,8 +222,8 @@ const UserPickedProjectDetails = () => {
     return clientId || project?.department || "—";
   }, [project, clientMap]);
 
-  const getProjectName = useCallback(() => project?.name || project?.project_name || "Unnamed Project", [project]);
-  const getProjectCode = useCallback(() => project?.code || project?.project_code || "N/A", [project]);
+  const getProjectName = useCallback(() => project?.project_name || project?.name || "Unnamed Project", [project]);
+  const getProjectCode = useCallback(() => project?.project_code || project?.code || "N/A", [project]);
   const getProjectStatus = useCallback(() => mapStatusToFrontend(project?.status), [project]);
   const getProjectProgress = useCallback(() => project?.progress || 0, [project]);
   const getProjectLocation = useCallback(() => project?.location || "—", [project]);
@@ -255,9 +285,9 @@ const UserPickedProjectDetails = () => {
   };
 
   const getStatusColor = (status) => {
-    const frontendStatus = mapStatusToFrontend(status);
-    switch(frontendStatus) {
+    switch(status) {
       case "COMPLETED": return "bg-green-100 text-green-600";
+      case "IN_PROGRESS": return "bg-blue-100 text-blue-600";
       case "ONGOING": return "bg-blue-100 text-blue-600";
       case "DELAYED": return "bg-red-100 text-red-600";
       default: return "bg-gray-100 text-gray-600";
@@ -284,7 +314,7 @@ const UserPickedProjectDetails = () => {
   const projectStats = useMemo(() => {
     const totalTasks = userProjectTasks.length;
     const completedTasks = userProjectTasks.filter(t => t.status === 'COMPLETED').length;
-    const inProgressTasks = userProjectTasks.filter(t => t.status === 'IN_PROGRESS').length;
+    const inProgressTasks = userProjectTasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'ONGOING').length;
     const pendingTasks = userProjectTasks.filter(t => t.status === 'PENDING').length;
     const totalTimeSpent = userProjectTasks.reduce((sum, t) => sum + (t.total_time_spent || 0), 0);
     const avgProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -299,7 +329,7 @@ const UserPickedProjectDetails = () => {
     };
   }, [userProjectTasks]);
 
-  if (loading || apiLoading) {
+  if (loading || apiLoading || tasksLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="bg-white rounded-2xl p-8 shadow-xl flex items-center gap-4">
@@ -313,19 +343,18 @@ const UserPickedProjectDetails = () => {
     );
   }
 
-  if (!project) {
+  if (!project && userProjectTasks.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center px-4">
           <XCircle size={48} className="text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Project not found</h2>
-          <p className="text-gray-600 mb-4">Project ID: {id || "undefined"}</p>
-          <p className="text-sm text-gray-500 mb-6">Please make sure you have picked tasks from this project.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">No Tasks Found</h2>
+          <p className="text-gray-600 mb-4">You haven't picked any tasks from this project.</p>
           <button
-            onClick={() => navigate("/my-tasks")}
+            onClick={() => navigate("/all-projects")}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Back to My Tasks
+            Browse Projects
           </button>
         </div>
       </div>
@@ -423,7 +452,7 @@ const UserPickedProjectDetails = () => {
         {/* My Tasks Section */}
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-2xl font-semibold text-gray-800 flex items-center gap-2"><ClipboardList size={24} className="text-blue-600" /> My Tasks in This Project</h3>
+            <h3 className="text-2xl font-semibold text-gray-800 flex items-center gap-2"><ClipboardList size={24} className="text-blue-600" /> My Tasks in This Project ({userProjectTasks.length})</h3>
             <div className="flex items-center gap-2 text-sm text-gray-500"><User size={16} /><span>{user?.name}</span></div>
           </div>
 
@@ -454,7 +483,9 @@ const UserPickedProjectDetails = () => {
                           <div className="text-sm text-gray-600 mb-2">{task.activity_name}</div>
                           <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                             <span className="flex items-center gap-1"><Calendar size={12} /> Picked: {formatDate(task.picked_at)}</span>
-                            {task.unit !== 'status' && <span>Progress: {task.completed_quantity || 0}/{task.total_quantity || 0} {task.unit}</span>}
+                            {task.unit !== 'status' && task.unit !== null && (
+                              <span>Progress: {task.completed_quantity || 0}/{task.total_quantity || 0} {task.unit_display || task.unit}</span>
+                            )}
                             {task.total_time_spent > 0 && <span className="flex items-center gap-1"><Timer size={12} /> Total: {formatTime(task.total_time_spent)}</span>}
                           </div>
                         </div>
@@ -463,7 +494,7 @@ const UserPickedProjectDetails = () => {
                         </button>
                       </div>
 
-                      {task.unit !== 'status' && !isCompleted && (
+                      {task.unit !== 'status' && task.unit !== null && !isCompleted && (
                         <div className="mt-3">
                           <div className="flex justify-between text-xs mb-1"><span className="text-gray-600">Progress</span><span className="font-semibold text-blue-600">{taskProgress}%</span></div>
                           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><motion.div initial={{ width: 0 }} animate={{ width: `${taskProgress}%` }} className={`h-2 rounded-full ${getProgressColor(taskProgress)}`} /></div>
@@ -476,8 +507,13 @@ const UserPickedProjectDetails = () => {
                             <div className="grid md:grid-cols-2 gap-4">
                               <div><h4 className="font-medium text-gray-700 mb-2 text-sm">Task Details</h4>
                                 <div className="bg-gray-50 p-3 rounded-lg space-y-2 text-sm">
-                                  <p><span className="text-gray-500">Unit:</span> {task.unit}</p>
-                                  {task.unit !== 'status' && <><p><span className="text-gray-500">Planned Quantity:</span> {task.total_quantity}</p><p><span className="text-gray-500">Completed Quantity:</span> {task.completed_quantity || 0}</p></>}
+                                  <p><span className="text-gray-500">Unit:</span> {task.unit_display || task.unit || 'status'}</p>
+                                  {task.unit !== 'status' && task.unit !== null && (
+                                    <>
+                                      <p><span className="text-gray-500">Planned Quantity:</span> {task.total_quantity}</p>
+                                      <p><span className="text-gray-500">Completed Quantity:</span> {task.completed_quantity || 0}</p>
+                                    </>
+                                  )}
                                   <p><span className="text-gray-500">Total Time Spent:</span> {formatTime(task.total_time_spent || 0)}</p>
                                   <p><span className="text-gray-500">Deadline:</span> {formatDate(task.end_date)}</p>
                                 </div>
@@ -493,7 +529,7 @@ const UserPickedProjectDetails = () => {
                                           {log.completed_quantity > 0 && <div className="text-green-600">Completed: {log.completed_quantity}</div>}
                                         </>
                                       ) : (
-                                        <div className="text-red-600">Not Worked: {log.note}</div>
+                                        <div className="text-red-600 flex items-center gap-1"><AlertCircle size={12} /> Not Worked: {log.note}</div>
                                       )}
                                       {log.note && log.status === 'WORKED' && <div className="text-gray-500 italic">"{log.note.substring(0, 60)}"</div>}
                                     </div>

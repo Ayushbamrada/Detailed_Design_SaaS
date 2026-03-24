@@ -607,8 +607,6 @@
 //////////////
 
 
-
-
 // src/features/tasks/MyTasks.jsx
 import { useEffect, useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -633,7 +631,7 @@ import {
   Play,
   StopCircle,
   AlertCircle,
-  Eye  // ← Added missing Eye import
+  Eye
 } from 'lucide-react';
 import { 
   fetchUserTasks, 
@@ -644,12 +642,14 @@ import {
 } from './taskSlice';
 import { showSnackbar } from '../notifications/notificationSlice';
 import { useNavigate } from 'react-router-dom';
+import { fetchProjects, fetchActivities } from '../api/apiSlice';
 
 const MyTasks = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { userTasks = [], loading = false, updating = false, stats = { total: 0, inProgress: 0, completed: 0, pending: 0, totalTimeSpent: 0 } } = useSelector((state) => state.tasks || {});
+  const { projects = [], activities = [] } = useSelector((state) => state.api || {});
   
   const [expandedTasks, setExpandedTasks] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -658,6 +658,7 @@ const MyTasks = () => {
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [progressValue, setProgressValue] = useState(0);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [timeLogData, setTimeLogData] = useState({
     date: new Date().toISOString().split('T')[0],
     startTime: '',
@@ -667,15 +668,40 @@ const MyTasks = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Load all necessary data first
   useEffect(() => {
-    if (user?.id) {
-      fetchTasks();
-    }
-  }, [dispatch, user?.id]);
+    const loadInitialData = async () => {
+      console.log('Loading initial data...');
+      
+      // First, load projects and activities
+      if (projects.length === 0) {
+        console.log('Fetching projects...');
+        await dispatch(fetchProjects());
+      }
+      
+      if (activities.length === 0) {
+        console.log('Fetching activities...');
+        await dispatch(fetchActivities());
+      }
+      
+      console.log(`Data loaded - Projects: ${projects.length}, Activities: ${activities.length}`);
+      setIsDataLoaded(true);
+    };
+    
+    loadInitialData();
+  }, [dispatch, projects.length, activities.length]);
 
-  const fetchTasks = async () => {
-    await dispatch(fetchUserTasks(user.id));
-  };
+  // Then fetch user tasks only after data is loaded
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (isDataLoaded && user?.id) {
+        console.log('Data ready, fetching user tasks...');
+        await dispatch(fetchUserTasks(user.id));
+      }
+    };
+    
+    fetchTasks();
+  }, [dispatch, user?.id, isDataLoaded]);
 
   useEffect(() => {
     if (userTasks.length > 0) {
@@ -702,7 +728,8 @@ const MyTasks = () => {
       setShowProgressModal(false);
       setSelectedTask(null);
       setProgressValue(0);
-      fetchTasks();
+      // Refresh tasks after update
+      await dispatch(fetchUserTasks(user.id));
     } catch (error) {
       dispatch(showSnackbar({
         message: error.message || 'Failed to update progress',
@@ -769,7 +796,8 @@ const MyTasks = () => {
         note: '',
         status: 'WORKED'
       });
-      fetchTasks();
+      // Refresh tasks after update
+      await dispatch(fetchUserTasks(user.id));
     } catch (error) {
       dispatch(showSnackbar({
         message: error.message || 'Failed to save record',
@@ -778,6 +806,17 @@ const MyTasks = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    console.log('Refreshing data...');
+    if (projects.length === 0) {
+      await dispatch(fetchProjects());
+    }
+    if (activities.length === 0) {
+      await dispatch(fetchActivities());
+    }
+    await dispatch(fetchUserTasks(user.id));
   };
 
   const toggleTaskExpand = (taskId) => {
@@ -800,17 +839,30 @@ const MyTasks = () => {
 
   // Group filtered tasks by project
   const groupedTasks = useMemo(() => {
-    return filteredTasks.reduce((acc, task) => {
-      if (!acc[task.project_id]) {
-        acc[task.project_id] = {
-          project_name: task.project_name,
-          project_code: task.project_code,
+    const groups = {};
+    
+    filteredTasks.forEach(task => {
+      // Use project_id as key, but ensure it's not undefined
+      const projectId = task.project_id || 'unknown';
+      
+      if (!groups[projectId]) {
+        groups[projectId] = {
+          project_id: projectId,
+          project_name: task.project_name || 'Unknown Project',
+          project_code: task.project_code || 'N/A',
           tasks: []
         };
       }
-      acc[task.project_id].tasks.push(task);
-      return acc;
-    }, {});
+      groups[projectId].tasks.push(task);
+    });
+    
+    // Log for debugging
+    console.log('Grouped tasks by project:', Object.keys(groups).length);
+    Object.entries(groups).forEach(([id, group]) => {
+      console.log(`- ${group.project_name} (${id}): ${group.tasks.length} tasks`);
+    });
+    
+    return groups;
   }, [filteredTasks]);
 
   const getStatusColor = (status) => {
@@ -851,21 +903,6 @@ const MyTasks = () => {
     return `${hrs}h ${mins}m`;
   };
 
-  const formatDateTime = (dateTimeString) => {
-    if (!dateTimeString) return 'N/A';
-    try {
-      const date = new Date(dateTimeString);
-      return date.toLocaleString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        day: 'numeric',
-        month: 'short'
-      });
-    } catch {
-      return dateTimeString;
-    }
-  };
-
   const calculateHours = (start, end) => {
     if (!start || !end) return 0;
     const [startH, startM] = start.split(':').map(Number);
@@ -879,13 +916,14 @@ const MyTasks = () => {
     return hours + minutes / 60;
   };
 
-  if (loading && userTasks.length === 0) {
+  // Show loading state while initial data is loading
+  if ((!isDataLoaded || loading) && userTasks.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="bg-white rounded-2xl p-8 shadow-xl flex items-center gap-4">
           <Loader2 className="animate-spin text-blue-600" size={32} />
           <div>
-            <p className="text-lg font-semibold text-gray-800">Loading Tasks</p>
+            <p className="text-lg font-semibold text-gray-800">Loading My Tasks</p>
             <p className="text-sm text-gray-500">Please wait...</p>
           </div>
         </div>
@@ -931,7 +969,7 @@ const MyTasks = () => {
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Completed Quantity ({selectedTask.unit})
+                  Completed Quantity ({selectedTask.unit_display || selectedTask.unit})
                 </label>
                 <input
                   type="number"
@@ -943,7 +981,7 @@ const MyTasks = () => {
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Max: {selectedTask.total_quantity} {selectedTask.unit} | Current: {selectedTask.completed_quantity || 0}
+                  Max: {selectedTask.total_quantity} {selectedTask.unit_display || selectedTask.unit} | Current: {selectedTask.completed_quantity || 0}
                 </p>
               </div>
 
@@ -968,7 +1006,7 @@ const MyTasks = () => {
         )}
       </AnimatePresence>
 
-      {/* Time Log Modal - Simple Start/End Time */}
+      {/* Time Log Modal */}
       <AnimatePresence>
         {showTimeLogModal && selectedTask && (
           <motion.div
@@ -1009,7 +1047,6 @@ const MyTasks = () => {
                 />
               </div>
 
-              {/* Status Selection */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <div className="grid grid-cols-2 gap-3">
@@ -1126,7 +1163,7 @@ const MyTasks = () => {
           <p className="text-gray-500">Track your tasks and log daily work hours</p>
         </div>
         <button
-          onClick={fetchTasks}
+          onClick={handleRefresh}
           disabled={loading}
           className="p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all border border-gray-200 flex items-center gap-2"
         >
@@ -1266,9 +1303,9 @@ const MyTasks = () => {
                               <Calendar size={12} />
                               Picked: {formatDate(task.picked_at)}
                             </span>
-                            {task.unit !== 'status' && (
+                            {task.unit !== 'status' && task.unit !== null && (
                               <span>
-                                Progress: {task.completed_quantity || 0}/{task.total_quantity || 0} {task.unit}
+                                Progress: {task.completed_quantity || 0}/{task.total_quantity || 0} {task.unit_display || task.unit}
                               </span>
                             )}
                             {task.total_time_spent > 0 && (
@@ -1331,7 +1368,7 @@ const MyTasks = () => {
                       </div>
 
                       {/* Progress Bar */}
-                      {task.unit !== 'status' && !isCompleted && (
+                      {task.unit !== 'status' && task.unit !== null && !isCompleted && (
                         <div className="mt-3">
                           <div className="flex justify-between text-xs mb-1">
                             <span className="text-gray-600">Progress</span>
@@ -1360,8 +1397,8 @@ const MyTasks = () => {
                               <div>
                                 <h4 className="font-medium text-gray-700 mb-2 text-sm">Task Details</h4>
                                 <div className="bg-gray-50 p-3 rounded-lg space-y-2 text-sm">
-                                  <p><span className="text-gray-500">Unit:</span> {task.unit}</p>
-                                  {task.unit !== 'status' && (
+                                  <p><span className="text-gray-500">Unit:</span> {task.unit_display || task.unit || 'status'}</p>
+                                  {task.unit !== 'status' && task.unit !== null && (
                                     <>
                                       <p><span className="text-gray-500">Planned Quantity:</span> {task.total_quantity}</p>
                                       <p><span className="text-gray-500">Completed Quantity:</span> {task.completed_quantity || 0}</p>
