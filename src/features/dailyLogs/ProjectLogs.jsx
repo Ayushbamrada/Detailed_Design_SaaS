@@ -1338,8 +1338,6 @@
 
 
 
-
-
 // src/features/projects/ProjectLogs.jsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -1360,7 +1358,8 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Info
 } from "lucide-react";
 import { 
   fetchProjectLogs, 
@@ -1404,12 +1403,25 @@ const ProjectLogs = () => {
     message: ""
   });
 
-  // Get current page logs
-  const currentLogs = useMemo(() => {
-    const start = (pagination.currentPage - 1) * pagination.itemsPerPage;
-    const end = start + pagination.itemsPerPage;
-    return projectLogs.slice(start, end);
-  }, [projectLogs, pagination.currentPage, pagination.itemsPerPage]);
+  // Get the earliest and latest log dates from project data
+  const getDefaultDate = useCallback(() => {
+    // If project has logs, use the project creation date or earliest log date
+    if (project?.created_at) {
+      return project.created_at.split('T')[0];
+    }
+    // Default to today
+    return new Date().toISOString().split('T')[0];
+  }, [project]);
+
+  // Initialize filter date on mount
+  useEffect(() => {
+    if (!filters.date || filters.date === new Date().toISOString().split('T')[0]) {
+      const defaultDate = getDefaultDate();
+      if (defaultDate !== filters.date) {
+        dispatch(setLogFilters({ date: defaultDate }));
+      }
+    }
+  }, [dispatch, filters.date, getDefaultDate]);
 
   // Fetch initial data
   useEffect(() => {
@@ -1422,13 +1434,15 @@ const ProjectLogs = () => {
   useEffect(() => {
     if (!id) return;
     
+    const fetchDate = filters.date || getDefaultDate();
+    
     dispatch(fetchProjectLogs({ 
       projectId: id,
-      date: filters.date,
+      date: fetchDate,
       eventType: filters.eventType,
       search: filters.search
     }));
-  }, [dispatch, id, filters.date, filters.eventType, filters.search]);
+  }, [dispatch, id, filters.date, filters.eventType, filters.search, getDefaultDate]);
 
   // Calculate stats when logs change
   useEffect(() => {
@@ -1437,13 +1451,24 @@ const ProjectLogs = () => {
     }
   }, [projectLogs, dispatch]);
 
+  // Get current page logs
+  const currentLogs = useMemo(() => {
+    const start = (pagination.currentPage - 1) * pagination.itemsPerPage;
+    const end = start + pagination.itemsPerPage;
+    return projectLogs.slice(start, end);
+  }, [projectLogs, pagination.currentPage, pagination.itemsPerPage]);
+
   // Handle filter changes
   const handleFilterChange = (key, value) => {
     dispatch(setLogFilters({ [key]: value }));
+    dispatch(setPage(1)); // Reset to first page on filter change
   };
 
   const handleClearFilters = () => {
     dispatch(resetFilters());
+    // Reset to default date
+    const defaultDate = getDefaultDate();
+    dispatch(setLogFilters({ date: defaultDate, eventType: 'all', search: '' }));
   };
 
   const handleRefresh = () => {
@@ -1544,7 +1569,7 @@ const ProjectLogs = () => {
 
   const hasActiveFilters = filters.eventType !== 'all' || 
                           filters.search || 
-                          filters.date !== new Date().toISOString().split('T')[0];
+                          filters.date !== getDefaultDate();
 
   if (loading && projectLogs.length === 0) {
     return (
@@ -1762,8 +1787,10 @@ const ProjectLogs = () => {
               <p className="text-lg font-semibold text-gray-800">{project.location || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Progress</p>
-              <p className="text-lg font-semibold text-gray-800">{project.progress || 0}%</p>
+              <p className="text-sm text-gray-600">Created</p>
+              <p className="text-lg font-semibold text-gray-800">
+                {project.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A'}
+              </p>
             </div>
           </div>
         </motion.div>
@@ -1784,9 +1811,9 @@ const ProjectLogs = () => {
         </div>
 
         <div className="bg-green-50 rounded-xl p-4 shadow-md border border-green-100">
-          <p className="text-sm text-green-600">Today's Logs</p>
+          <p className="text-sm text-green-600">Selected Date</p>
           <p className="text-2xl font-bold text-green-700">
-            {stats.byDate?.[filters.date] || 0}
+            {filters.date ? new Date(filters.date).toLocaleDateString() : 'N/A'}
           </p>
         </div>
 
@@ -1797,6 +1824,19 @@ const ProjectLogs = () => {
           </p>
         </div>
       </div>
+
+      {/* Info Banner - Show message if no logs for selected date */}
+      {projectLogs.length === 0 && !loading && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
+          <Info size={20} className="text-yellow-600 mt-0.5" />
+          <div>
+            <p className="font-semibold text-yellow-800">No logs found for {filters.date}</p>
+            <p className="text-sm text-yellow-700">
+              Try selecting a different date or add a new log. The project was created on {project?.created_at ? new Date(project.created_at).toLocaleDateString() : 'an unknown date'}.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
@@ -1843,6 +1883,9 @@ const ProjectLogs = () => {
                     onChange={(e) => handleFilterChange('date', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tip: Try {project?.created_at ? new Date(project.created_at).toLocaleDateString() : 'the project creation date'}
+                  </p>
                 </div>
 
                 {/* Type Filter */}
@@ -1890,30 +1933,32 @@ const ProjectLogs = () => {
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-500">
-          Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} - {Math.min(pagination.currentPage * pagination.itemsPerPage, projectLogs.length)} of {projectLogs.length} logs
+      {projectLogs.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-500">
+            Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} - {Math.min(pagination.currentPage * pagination.itemsPerPage, projectLogs.length)} of {projectLogs.length} logs
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => dispatch(prevPage())}
+              disabled={!pagination.hasPrev}
+              className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="px-4 py-2 text-sm text-gray-600">
+              Page {pagination.currentPage} of {pagination.totalPages || 1}
+            </span>
+            <button
+              onClick={() => dispatch(nextPage())}
+              disabled={!pagination.hasNext}
+              className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => dispatch(prevPage())}
-            disabled={!pagination.hasPrev}
-            className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="px-4 py-2 text-sm text-gray-600">
-            Page {pagination.currentPage} of {pagination.totalPages || 1}
-          </span>
-          <button
-            onClick={() => dispatch(nextPage())}
-            disabled={!pagination.hasNext}
-            className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -1957,14 +2002,30 @@ const ProjectLogs = () => {
               <p className="text-gray-500 mb-6">
                 {hasActiveFilters
                   ? "No logs match your filters. Try adjusting them."
-                  : "This project doesn't have any logs yet."}
+                  : `No logs found for ${filters.date}. Try selecting a different date.`}
               </p>
               <button
-                onClick={() => setShowAddLogModal(true)}
+                onClick={() => {
+                  // Suggest a date with logs (if any from project)
+                  if (project?.created_at) {
+                    handleFilterChange('date', project.created_at.split('T')[0]);
+                  } else {
+                    setShowAddLogModal(true);
+                  }
+                }}
                 className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 inline-flex items-center gap-2"
               >
-                <FileText size={18} />
-                Add First Log
+                {project?.created_at ? (
+                  <>
+                    <Calendar size={18} />
+                    Try {new Date(project.created_at).toLocaleDateString()}
+                  </>
+                ) : (
+                  <>
+                    <FileText size={18} />
+                    Add First Log
+                  </>
+                )}
               </button>
             </motion.div>
           )}

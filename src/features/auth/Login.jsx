@@ -62,7 +62,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+// import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { loginUser, clearError } from './authSlice';
 import { showError } from '../../utils/toast';

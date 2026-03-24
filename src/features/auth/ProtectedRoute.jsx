@@ -1,7 +1,7 @@
 // src/features/auth/ProtectedRoute.jsx
 import { useSelector } from "react-redux";
 import { Navigate, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+// import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
