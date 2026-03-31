@@ -1,4 +1,4 @@
-// src/features/tasks/TaskPicker.jsx
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
@@ -23,7 +23,7 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
     setLoading(true);
 
     try {
-      // Get complete project details
+    
       const projectId = project.id || project.project_id;
       const projectName = project.name || project.project_name;
       const projectCode = project.code || project.project_code;
@@ -94,7 +94,7 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
         className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-green-100 rounded-lg">
@@ -107,20 +107,20 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
           </button>
         </div>
 
-        {/* Project Info */}
+        
         <div className="bg-blue-50 p-4 rounded-xl mb-3">
           <p className="text-xs font-semibold text-blue-700 mb-1">PROJECT</p>
           <p className="font-medium text-gray-800">{project.name}</p>
           <p className="text-xs text-gray-500 mt-1">Code: {project.code}</p>
         </div>
 
-        {/* Activity Info */}
+        
         <div className="bg-purple-50 p-4 rounded-xl mb-3">
           <p className="text-xs font-semibold text-purple-700 mb-1">ACTIVITY</p>
           <p className="font-medium text-gray-800">{activity.name}</p>
         </div>
 
-        {/* Task Info */}
+        
         <div className="bg-green-50 p-4 rounded-xl mb-4">
           <p className="text-xs font-semibold text-green-700 mb-1">TASK</p>
           <p className="font-medium text-gray-800">{subActivity.name}</p>
@@ -136,7 +136,7 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
           </div>
         </div>
 
-        {/* Deadline */}
+        
         {(subActivity.endDate || activity.endDate || project.completionDate) && (
           <div className="bg-yellow-50 p-4 rounded-xl mb-4">
             <div className="flex items-center gap-2 mb-1">
@@ -149,7 +149,7 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
           </div>
         )}
 
-        {/* Info Message */}
+        
         <div className="bg-blue-50 p-3 rounded-lg mb-4 flex items-start gap-2">
           <AlertCircle size={16} className="text-blue-600 mt-0.5" />
           <p className="text-xs text-blue-700">
@@ -158,7 +158,7 @@ const TaskPicker = ({ project, activity, subActivity, onClose }) => {
           </p>
         </div>
 
-        {/* Actions */}
+        
         <div className="flex gap-3">
           <button
             onClick={onClose}

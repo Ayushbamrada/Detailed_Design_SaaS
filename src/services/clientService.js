@@ -1,7 +1,7 @@
 import api from './api';
 
 export const clientService = {
-  // Get all clients
+  
   getClients: async () => {
     try {
       const response = await api.get('/client/');
@@ -12,7 +12,7 @@ export const clientService = {
     }
   },
 
-  // Get single client
+  
   getClient: async (clientId) => {
     try {
       const response = await api.get(`/client/${clientId}/`);
@@ -23,7 +23,7 @@ export const clientService = {
     }
   },
 
-  // Create client
+  
   createClient: async (clientData) => {
     try {
       const response = await api.post('/client/', clientData);
@@ -34,7 +34,7 @@ export const clientService = {
     }
   },
 
-  // Update client
+  
   updateClient: async (clientId, clientData) => {
     try {
       const response = await api.put(`/client/${clientId}/`, clientData);
@@ -45,7 +45,7 @@ export const clientService = {
     }
   },
 
-  // Delete client
+  
   deleteClient: async (clientId) => {
     try {
       const response = await api.delete(`/client/${clientId}/`);

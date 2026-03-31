@@ -1,7 +1,7 @@
 import api from './api';
 
 export const subCompanyService = {
-  // Get all sub companies
+
   getSubCompanies: async () => {
     try {
       const response = await api.get('/SubCompany/');

@@ -2,7 +2,7 @@
 import authApi from './authApi';
 
 class AuthService {
-  // Login using authApi
+
   async login(email, password) {
     try {
       const formData = new FormData();
@@ -21,7 +21,7 @@ class AuthService {
     }
   }
 
-  // Refresh token using authApi
+  
   async refreshToken(refreshToken) {
     try {
       const response = await authApi.post('/user/token/refresh/', {
@@ -34,14 +34,14 @@ class AuthService {
     }
   }
 
-  // Logout - clear all storages
+  
   logout() {
     localStorage.clear();
     sessionStorage.clear();
     console.log('User logged out, storage cleared');
   }
 
-  // Get stored user data
+
   getUserData() {
     return {
       token: localStorage.getItem('authToken'),
@@ -49,14 +49,14 @@ class AuthService {
       email: localStorage.getItem('userEmail'),
       name: localStorage.getItem('userName'),
       role: localStorage.getItem('userRole'),
-      // Session data
+      
       empCode: sessionStorage.getItem('emp_code'),
       department: sessionStorage.getItem('department_name'),
       company: sessionStorage.getItem('company'),
     };
   }
 
-  // Check if user is authenticated
+  
   isAuthenticated() {
     return !!localStorage.getItem('authToken');
   }

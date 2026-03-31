@@ -1,7 +1,7 @@
 import api from './api';
 
 export const companyService = {
-  // Get all companies
+
   getCompanies: async () => {
     try {
       const response = await api.get('/Company/');
@@ -12,7 +12,7 @@ export const companyService = {
     }
   },
 
-  // Get single company
+
   getCompany: async (companyId) => {
     try {
       const response = await api.get(`/Company/${companyId}/`);
@@ -23,7 +23,7 @@ export const companyService = {
     }
   },
 
-  // Create company
+
   createCompany: async (companyData) => {
     try {
       const response = await api.post('/Company/', companyData);
@@ -34,7 +34,7 @@ export const companyService = {
     }
   },
 
-  // Update company
+  
   updateCompany: async (companyId, companyData) => {
     try {
       const response = await api.put(`/Company/${companyId}/`, companyData);
@@ -45,7 +45,7 @@ export const companyService = {
     }
   },
 
-  // Delete company
+  
   deleteCompany: async (companyId) => {
     try {
       const response = await api.delete(`/Company/${companyId}/`);

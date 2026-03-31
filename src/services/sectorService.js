@@ -1,7 +1,7 @@
 import api from './api';
 
 export const sectorService = {
-  // Get all sectors
+  
   getSectors: async () => {
     try {
       const response = await api.get('/sector/');
@@ -12,7 +12,7 @@ export const sectorService = {
     }
   },
 
-  // Get single sector
+  
   getSector: async (sectorId) => {
     try {
       const response = await api.get(`/sector/${sectorId}/`);
@@ -23,7 +23,7 @@ export const sectorService = {
     }
   },
 
-  // Create sector
+  
   createSector: async (sectorData) => {
     try {
       const response = await api.post('/sector/', sectorData);
@@ -34,7 +34,7 @@ export const sectorService = {
     }
   },
 
-  // Update sector
+  
   updateSector: async (sectorId, sectorData) => {
     try {
       const response = await api.put(`/sector/${sectorId}/`, sectorData);
@@ -45,7 +45,7 @@ export const sectorService = {
     }
   },
 
-  // Delete sector
+
   deleteSector: async (sectorId) => {
     try {
       const response = await api.delete(`/sector/${sectorId}/`);
