@@ -6,6 +6,7 @@ import { clientService } from '../../services/clientService';
 import { activityService } from '../../services/activityService';
 import { subActivityService } from '../../services/subActivityService';
 import { projectService } from '../../services/projectService';
+import { projectWorkSummaryService } from '../../services/projectWorkSummaryService';
 
 
 const initialState = {
@@ -15,10 +16,24 @@ const initialState = {
   clients: [],
   activities: [],
   subActivities: [],
+  projectWorkSummary: null,
   projects: [],
   loading: false,
   error: null,
 };
+
+
+export const fetchProjectWorkSummary = createAsyncThunk(
+  'api/fetchProjectWorkSummary',
+  async (projectId, { rejectWithValue }) => {
+    try {
+      const response = await projectWorkSummaryService.getProjectWorkSummary(projectId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
 
 // ============ COMPANY THUNKS ============
 export const fetchCompanies = createAsyncThunk(
@@ -359,6 +374,19 @@ const apiSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+
+    .addCase(fetchProjectWorkSummary.pending, (state) => {
+  state.loading = true;
+  state.error = null;
+})
+.addCase(fetchProjectWorkSummary.fulfilled, (state, action) => {
+  state.loading = false;
+  state.projectWorkSummary = action.payload; // Add this to initialState
+})
+.addCase(fetchProjectWorkSummary.rejected, (state, action) => {
+  state.loading = false;
+  state.error = action.payload;
+})
       // ============ COMPANIES ============
       .addCase(fetchCompanies.pending, (state) => {
         state.loading = true;

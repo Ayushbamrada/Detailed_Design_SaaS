@@ -1299,7 +1299,6 @@
 // );
 
 // export default ProjectDetails;
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1323,6 +1322,7 @@ import {
   fetchClients,
   fetchActivities,
   fetchSubActivities,
+  fetchProjectWorkSummary, // Add this import
   updateSubActivityProgress as updateSubActivityProgressApi,
   updateSubActivityStatus as updateSubActivityStatusApi,
   updateActivityProgress,
@@ -1355,8 +1355,6 @@ import {
   TrendingUp,
   Briefcase,
   Timer,
-  Play,
-  StopCircle,
   User
 } from "lucide-react";
 import LoadingModal from "../../components/modals/LoadingModal";
@@ -1425,17 +1423,31 @@ const calculateProjectProgress = (activities) => {
   return Math.round((total / activities.length) * 10) / 10;
 };
 
-
+// Helper to convert HH:MM:SS to hours
 const timeToHours = (timeStr) => {
   if (!timeStr || timeStr === "00:00:00") return 0;
-  const parts = timeStr.split(':');
-  if (parts.length === 3) {
-    const hours = parseInt(parts[0]);
-    const minutes = parseInt(parts[1]);
-    const seconds = parseInt(parts[2]);
-    return hours + (minutes / 60) + (seconds / 3600);
+  if (typeof timeStr === 'number') return timeStr;
+  
+  if (typeof timeStr === 'string') {
+    const parts = timeStr.split(':');
+    if (parts.length === 3) {
+      const hours = parseInt(parts[0]);
+      const minutes = parseInt(parts[1]);
+      const seconds = parseInt(parts[2]);
+      return hours + (minutes / 60) + (seconds / 3600);
+    }
   }
+  
   return 0;
+};
+
+// Format hours to HH:MM:SS
+const formatHoursToTime = (hours) => {
+  const totalSeconds = Math.floor(hours * 3600);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
 const ProjectDetails = () => {
@@ -1444,7 +1456,7 @@ const ProjectDetails = () => {
   const dispatch = useDispatch();
 
   const { user } = useSelector((state) => state.auth);
-  const { projects: apiProjects = [] } = useSelector((state) => state.api);
+  const { projects: apiProjects = [], projectWorkSummary } = useSelector((state) => state.api);
   const { projects: localProjects = [] } = useSelector((state) => state.projects);
   
   const { 
@@ -1465,7 +1477,6 @@ const ProjectDetails = () => {
   
   const [project, setProject] = useState(null);
   const [projectActivities, setProjectActivities] = useState([]);
-  const [workSummary, setWorkSummary] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
   
@@ -1495,7 +1506,7 @@ const ProjectDetails = () => {
     description: ""
   });
 
-  
+  // Helper function to get project activities
   const getProjectActivities = useCallback(() => {
     return projectActivities;
   }, [projectActivities]);
@@ -1514,7 +1525,7 @@ const ProjectDetails = () => {
     }
   }, []);
 
-  
+  // Calculate days left
   const calculateDaysLeft = useCallback((endDate) => {
     if (!endDate) return null;
     try {
@@ -1530,7 +1541,7 @@ const ProjectDetails = () => {
     }
   }, []);
 
-  
+  // Get deadline badge
   const getDeadlineBadge = useCallback((endDate, isCompleted = false) => {
     if (isCompleted) return null;
     const days = calculateDaysLeft(endDate);
@@ -1563,34 +1574,6 @@ const ProjectDetails = () => {
     return "bg-red-500 dark:bg-red-600";
   };
 
-  // Fetch work summary from API
-  const fetchWorkSummary = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/detaildesign/project-work-summary/${id}/`, {
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setWorkSummary(data);
-        console.log("Work summary data:", data);
-        return data;
-      } else {
-        console.error("Failed to fetch work summary:", response.status);
-        setWorkSummary(null);
-        return null;
-      }
-    } catch (error) {
-      console.error("Error fetching work summary:", error);
-      setWorkSummary(null);
-      return null;
-    }
-  }, [id]);
-
   // Load all data
   useEffect(() => {
     const loadAllData = async () => {
@@ -1606,10 +1589,9 @@ const ProjectDetails = () => {
           dispatch(fetchSectors()).unwrap(),
           dispatch(fetchClients()).unwrap(),
           dispatch(fetchActivities()).unwrap(),
-          dispatch(fetchSubActivities()).unwrap()
+          dispatch(fetchSubActivities()).unwrap(),
+          dispatch(fetchProjectWorkSummary(id)).unwrap() // Add this line
         ]);
-        
-        await fetchWorkSummary();
       } catch (error) {
         console.error("Error loading data:", error);
         dispatch(showSnackbar({
@@ -1621,8 +1603,10 @@ const ProjectDetails = () => {
       }
     };
 
-    loadAllData();
-  }, [dispatch, fetchWorkSummary]);
+    if (id) {
+      loadAllData();
+    }
+  }, [dispatch, id]);
 
   // Build maps
   useEffect(() => {
@@ -1736,10 +1720,10 @@ const ProjectDetails = () => {
     let completedSubs = 0;
     let totalTimeSpent = 0;
     
-    // Process work summary from backend
-    if (workSummary && workSummary.activities && Array.isArray(workSummary.activities)) {
-      workSummary.activities.forEach(activity => {
-        // Process activity level users
+    // Process work summary from Redux store
+    if (projectWorkSummary && projectWorkSummary.activities && Array.isArray(projectWorkSummary.activities)) {
+      projectWorkSummary.activities.forEach(activity => {
+        // Process activity level users (if any)
         if (activity.users && Array.isArray(activity.users)) {
           activity.users.forEach(userLog => {
             if (userLog.emp_code) {
@@ -1750,24 +1734,19 @@ const ProjectDetails = () => {
                   tasks: [],
                   completedTasks: 0,
                   totalTimeSpent: 0,
-                  workEntries: [],
-                  activityTime: 0,
-                  subactivityTime: 0
+                  workEntries: []
                 });
               }
               const userData = allUsers.get(userLog.emp_code);
               const hoursSpent = timeToHours(userLog.total_time_spent);
               userData.totalTimeSpent += hoursSpent;
-              userData.activityTime += hoursSpent;
               totalTimeSpent += hoursSpent;
               
               userData.workEntries.push({
                 type: 'activity',
                 name: activity.activity_name,
                 timeSpent: userLog.total_time_spent,
-                hoursSpent: hoursSpent,
-                emp_code: userLog.emp_code,
-                name: userLog.name
+                hoursSpent: hoursSpent
               });
             }
           });
@@ -1778,7 +1757,12 @@ const ProjectDetails = () => {
           totalSubs += activity.subactivities.length;
           
           activity.subactivities.forEach(subactivity => {
-            if (subactivity.progress === 100) completedSubs++;
+            // Count completed subactivities if they have progress or completion criteria
+            // For now, we'll count based on if there's time spent
+            if (subactivity.users && subactivity.users.length > 0) {
+              // This is a rough estimate - adjust based on your business logic
+              completedSubs += subactivity.users.length > 0 ? 1 : 0;
+            }
             
             if (subactivity.users && Array.isArray(subactivity.users)) {
               subactivity.users.forEach(userLog => {
@@ -1790,23 +1774,20 @@ const ProjectDetails = () => {
                       tasks: [],
                       completedTasks: 0,
                       totalTimeSpent: 0,
-                      workEntries: [],
-                      activityTime: 0,
-                      subactivityTime: 0
+                      workEntries: []
                     });
                   }
                   const userData = allUsers.get(userLog.emp_code);
                   const hoursSpent = timeToHours(userLog.total_time_spent);
                   userData.totalTimeSpent += hoursSpent;
-                  userData.subactivityTime += hoursSpent;
                   totalTimeSpent += hoursSpent;
                   
                   userData.tasks.push({
                     subName: subactivity.subactivity_name,
                     activityName: activity.activity_name,
-                    progress: subactivity.progress || 0,
                     timeSpent: userLog.total_time_spent,
-                    hoursSpent: hoursSpent
+                    hoursSpent: hoursSpent,
+                    progress: 100 // Since they've logged time, assume completed
                   });
                   
                   userData.workEntries.push({
@@ -1814,12 +1795,10 @@ const ProjectDetails = () => {
                     name: subactivity.subactivity_name,
                     activityName: activity.activity_name,
                     timeSpent: userLog.total_time_spent,
-                    hoursSpent: hoursSpent,
-                    emp_code: userLog.emp_code,
-                    name: userLog.name
+                    hoursSpent: hoursSpent
                   });
                   
-                  if (subactivity.progress === 100) userData.completedTasks++;
+                  userData.completedTasks++;
                 }
               });
             }
@@ -1861,7 +1840,7 @@ const ProjectDetails = () => {
       completionRate: totalSubs > 0 ? (completedSubs / totalSubs * 100).toFixed(1) : 0,
       totalTimeSpent: totalTimeSpent.toFixed(1)
     };
-  }, [projectActivities, workSummary]);
+  }, [projectActivities, projectWorkSummary]);
 
   // Handle field update
   const handleFieldUpdate = async (activityId, subId, fieldName, value) => {
@@ -2235,8 +2214,8 @@ const ProjectDetails = () => {
                 <p className="font-medium">{userData.emp_code}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Total Tasks</p>
-                <p className="font-medium">{userData.tasks.length}</p>
+                <p className="text-xs text-gray-500">Total Tasks/Activities</p>
+                <p className="font-medium">{userData.tasks.length + (userData.workEntries?.filter(w => w.type === 'activity').length || 0)}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Completed Tasks</p>
@@ -2244,20 +2223,8 @@ const ProjectDetails = () => {
               </div>
               <div>
                 <p className="text-xs text-gray-500">Total Time Spent</p>
-                <p className="font-medium text-blue-600">{totalTimeSpent.toFixed(1)} hrs</p>
+                <p className="font-medium text-blue-600">{formatHoursToTime(totalTimeSpent)}</p>
               </div>
-              {userData.activityTime > 0 && (
-                <div>
-                  <p className="text-xs text-gray-500">Activity Level Time</p>
-                  <p className="font-medium text-purple-600">{userData.activityTime.toFixed(1)} hrs</p>
-                </div>
-              )}
-              {userData.subactivityTime > 0 && (
-                <div>
-                  <p className="text-xs text-gray-500">Sub-Activity Level Time</p>
-                  <p className="font-medium text-orange-600">{userData.subactivityTime.toFixed(1)} hrs</p>
-                </div>
-              )}
             </div>
             
             <h4 className="font-semibold text-gray-800 dark:text-white flex items-center gap-2">
@@ -2287,11 +2254,6 @@ const ProjectDetails = () => {
                         <span className="text-gray-500">Time Spent:</span>
                         <span className="font-medium">{entry.timeSpent}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <User size={10} className="text-gray-400" />
-                        <span className="text-gray-500">User:</span>
-                        <span>{entry.name}</span>
-                      </div>
                     </div>
                   </div>
                 ))
@@ -2303,9 +2265,11 @@ const ProjectDetails = () => {
                         <p className="font-medium text-gray-800 dark:text-white">{task.subName}</p>
                         <p className="text-xs text-gray-500">{task.activityName}</p>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${task.progress === 100 ? 'bg-green-100 text-green-600' : task.progress > 0 ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                        {task.progress}%
-                      </span>
+                      {task.progress && (
+                        <span className={`text-xs px-2 py-1 rounded-full ${task.progress === 100 ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                          {task.progress}%
+                        </span>
+                      )}
                     </div>
                     {task.timeSpent && (
                       <div className="text-xs mt-1">
@@ -2652,7 +2616,7 @@ const ProjectDetails = () => {
                 Team Members ({projectStats.totalUsers}) - Work Summary
                 {projectStats.totalTimeSpent > 0 && (
                   <span className="text-sm font-normal text-gray-500 ml-2">
-                    Total Time: {projectStats.totalTimeSpent} hrs
+                    Total Time: {formatHoursToTime(parseFloat(projectStats.totalTimeSpent))}
                   </span>
                 )}
               </h3>
@@ -2690,7 +2654,7 @@ const ProjectDetails = () => {
                       {member.totalTimeSpent > 0 && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Total Time:</span>
-                          <span className="font-semibold text-blue-600">{member.totalTimeSpent.toFixed(1)} hrs</span>
+                          <span className="font-semibold text-blue-600">{formatHoursToTime(member.totalTimeSpent)}</span>
                         </div>
                       )}
                       <div className="mt-2 pt-2 border-t border-gray-200">
