@@ -32,7 +32,7 @@ import { showSnackbar } from "../notifications/notificationSlice";
 import { fetchProjects, fetchCompanies, fetchSubCompanies, fetchSectors, fetchClients } from "../api/apiSlice";
 import { fetchUserTasks } from "../tasks/taskSlice";
 
-// Helper functions
+
 const getDaysUntilDeadline = (deadline) => {
   if (!deadline) return null;
   const today = new Date();

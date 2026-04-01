@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { hideSnackbar } from "./notificationSlice";
 import { useNavigate } from "react-router-dom";
 
-// Helper function to calculate days until deadline
+
 const getDaysUntilDeadline = (deadline) => {
   if (!deadline) return null;
   const today = new Date();
@@ -18,7 +18,7 @@ const getDaysUntilDeadline = (deadline) => {
   return diffDays;
 };
 
-// Get deadline status
+
 const getDeadlineStatus = (deadline) => {
   const days = getDaysUntilDeadline(deadline);
   if (days === null) return "UNKNOWN";
@@ -39,18 +39,17 @@ const NotificationBell = () => {
   const projects = useSelector(state => state.projects.projects);
   const snackbar = useSelector(state => state.notification);
 
-  // Generate notifications based on deadlines
   useEffect(() => {
     const newNotifications = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     projects.forEach(project => {
-      // Project level notifications
+      
       const projectDeadlineStatus = getDeadlineStatus(project.completionDate);
       const daysToProjectDeadline = getDaysUntilDeadline(project.completionDate);
 
-      // Critical deadlines (0-2 days)
+      
       if ((projectDeadlineStatus === "TODAY" || projectDeadlineStatus === "CRITICAL") && project.progress < 100) {
         newNotifications.push({
           id: `project-critical-${project.id}`,
@@ -62,7 +61,7 @@ const NotificationBell = () => {
           priority: 1
         });
       }
-      // Warning deadlines (3-7 days)
+      
       else if (projectDeadlineStatus === "WARNING" && project.progress < 100) {
         newNotifications.push({
           id: `project-warning-${project.id}`,
@@ -74,7 +73,7 @@ const NotificationBell = () => {
           priority: 2
         });
       }
-      // Upcoming deadlines (8-14 days)
+      
       else if (projectDeadlineStatus === "UPCOMING" && project.progress < 100) {
         newNotifications.push({
           id: `project-upcoming-${project.id}`,
@@ -87,7 +86,7 @@ const NotificationBell = () => {
         });
       }
 
-      // Activity level notifications
+      
       project.activities?.forEach(activity => {
         const activityDeadlineStatus = getDeadlineStatus(activity.endDate);
         const daysToActivityDeadline = getDaysUntilDeadline(activity.endDate);
@@ -114,7 +113,7 @@ const NotificationBell = () => {
           });
         }
 
-        // Sub-activity level notifications
+        
         activity.subActivities?.forEach(sub => {
           const subDeadlineStatus = getDeadlineStatus(sub.endDate);
           const daysToSubDeadline = getDaysUntilDeadline(sub.endDate);
@@ -143,7 +142,7 @@ const NotificationBell = () => {
         });
       });
 
-      // Delayed projects
+      
       if (project.status === "DELAYED") {
         newNotifications.push({
           id: `delayed-${project.id}`,
@@ -157,12 +156,12 @@ const NotificationBell = () => {
       }
     });
 
-    // Sort by priority (1 = highest)
+    
     const sortedNotifications = newNotifications.sort((a, b) => a.priority - b.priority);
     setNotifications(sortedNotifications.slice(0, 10)); // Show 10 most important
   }, [projects]);
 
-  // Handle snackbar from Redux
+  
   useEffect(() => {
     if (snackbar.open) {
       const timer = setTimeout(() => {

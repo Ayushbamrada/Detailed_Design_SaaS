@@ -14,8 +14,6 @@ import {
 } from "lucide-react";
 import { showSnackbar } from "../notifications/notificationSlice";
 
-// Note: approval/rejection functions need to be added to projectSlice.js
-// For now, we'll dispatch custom actions and handle them in the component
 
 const ExtensionApproval = () => {
   const dispatch = useDispatch();
@@ -28,16 +26,15 @@ const ExtensionApproval = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [expandedRequest, setExpandedRequest] = useState(null);
 
-  // Filter requests based on user role
+
   const filteredRequests = extensionRequests.filter(req => {
     if (user?.role === "SUPER_ADMIN") return true;
     if (user?.role === "ADMIN") return true;
-    return false; // Users don't see approval page
+    return false;
   });
 
   const handleApprove = (request) => {
-    // In a real app, you would dispatch an action to update the store
-    // For now, we'll just show a success message
+  
     dispatch(showSnackbar({
       message: `Extension for ${request.projectName} approved successfully`,
       type: "success"
@@ -138,7 +135,7 @@ const ExtensionApproval = () => {
                 "border-red-200"
               }`}
             >
-              {/* Header */}
+              
               <div className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -206,7 +203,7 @@ const ExtensionApproval = () => {
                     )}
                   </div>
 
-                  {/* Actions - Only show for pending requests */}
+                 
                   {request.status === "PENDING" && (
                     <div className="flex gap-2 ml-4">
                       <button
@@ -240,7 +237,6 @@ const ExtensionApproval = () => {
                   </button>
                 </div>
 
-                {/* Expanded Details */}
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
@@ -289,7 +285,7 @@ const ExtensionApproval = () => {
         })}
       </div>
 
-      {/* Reject Modal */}
+      
       <AnimatePresence>
         {showRejectModal && selectedRequest && (
           <motion.div

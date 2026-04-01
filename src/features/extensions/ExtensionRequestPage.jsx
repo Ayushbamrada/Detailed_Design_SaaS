@@ -13,9 +13,9 @@ import {
   CheckCircle,
   Download
 } from "lucide-react";
-import { requestExtension } from "../projects/projectSlice"; // ✅ Correct path
+import { requestExtension } from "../projects/projectSlice"; 
 import { showSnackbar } from "../notifications/notificationSlice";
-// import { format } from "date-fns";
+
 
 const ExtensionRequestPage = () => {
   const { id } = useParams();

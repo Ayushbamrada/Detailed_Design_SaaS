@@ -100,14 +100,14 @@ const Sidebar = () => {
     },
     
     // User specific - My Projects
-    {
-      name: "My Projects",
-      icon: Briefcase,
-      path: "/my-projects",
-      roles: ["USER"],
-      badge: null,
-      description: "View my assigned projects",
-    },
+    // {
+    //   name: "My Projects",
+    //   icon: Briefcase,
+    //   path: "/my-projects",
+    //   roles: ["USER"],
+    //   badge: null,
+    //   description: "View my assigned projects",
+    // },
     
     
     {

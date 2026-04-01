@@ -1,376 +1,4 @@
-// import { Routes, Route } from "react-router-dom";
-// import Login from "../features/auth/Login";
-// import Layout from "../components/layout/Layout";
-// import Dashboard from "../features/dashboard/Dashboard";
-// import ProtectedRoute from "../features/auth/ProtectedRoute";
-// import Unauthorized from "../pages/Unauthorized";
-// import ProjectList from "../features/projects/ProjectList";
-// import ProjectDetails from "../features/projects/ProjectDetails";
-// import ExtensionRequestPage from "../features/extensions/ExtensionRequestPage";
-// import ProjectLogs from "../features/dailyLogs/ProjectLogs";
-// import DailyLogs from "../features/dailyLogs/DailyLogs";
-// import ContractorList from "../features/contractors/ContractorList";
-// import ExtensionApproval from "../features/extensions/ExtensionApproval";
-// import CreateProject from "../features/projects/CreateProject";
 
-
-
-
-// export default function AppRoutes() {
-//   return (
-//     <Routes>
-//       <Route path="/" element={<Login />} />
-//       <Route path="/unauthorized" element={<Unauthorized />} />
-
-//       <Route
-//         element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "USER"]}>
-//             <Layout />
-//           </ProtectedRoute>
-//         }
-//       >
-//         <Route path="/dashboard" element={<Dashboard />} />
-//         <Route path="/projects" element={<ProjectList />} />
-//         <Route path="/projects/:id" element={<ProjectDetails />} />
-//         <Route path="/projects/:id/extend" element={<ExtensionRequestPage />} />
-//         <Route path="/projects/:id/logs" element={<ProjectLogs />} />
-//         <Route path="/contractors" element={<ContractorList />} />
-//         <Route path="/extensions" element={<ExtensionApproval />} />
-//         <Route path="/daily-logs" element={<DailyLogs />} />
-//         <Route path="/projects/create" element={<CreateProject />} />
-//       </Route>
-//     </Routes>
-//   );
-// }
-
-// import { Routes, Route } from "react-router-dom";
-// import Login from "../features/auth/Login";
-// import Layout from "../components/layout/Layout";
-// import Dashboard from "../features/dashboard/Dashboard";
-// import ProtectedRoute from "../features/auth/ProtectedRoute";
-// import Unauthorized from "../pages/Unauthorized";
-// import ProjectList from "../features/projects/ProjectList";
-// import ProjectDetails from "../features/projects/ProjectDetails";
-// import ExtensionRequestPage from "../features/extensions/ExtensionRequestPage"; // ✅ Correct path
-// import ProjectLogs from "../features/dailyLogs/ProjectLogs";
-// import DailyLogs from "../features/dailyLogs/DailyLogs";
-// import ContractorList from "../features/contractors/ContractorList";
-// import ExtensionApproval from "../features/extensions/ExtensionApproval";
-// import CreateProject from "../features/projects/CreateProject";
-
-// export default function AppRoutes() {
-//   return (
-//     <Routes>
-//       <Route path="/" element={<Login />} />
-//       <Route path="/unauthorized" element={<Unauthorized />} />
-
-//       <Route
-//         element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "USER"]}>
-//             <Layout />
-//           </ProtectedRoute>
-//         }
-//       >
-//         <Route path="/dashboard" element={<Dashboard />} />
-//         <Route path="/projects" element={<ProjectList />} />
-//         <Route path="/projects/:id" element={<ProjectDetails />} />
-//         <Route path="/projects/:id/extend" element={<ExtensionRequestPage />} />
-//         <Route path="/projects/:id/logs" element={<ProjectLogs />} />
-//         <Route path="/contractors" element={<ContractorList />} />
-//         <Route path="/extensions" element={<ExtensionApproval />} />
-//         <Route path="/daily-logs" element={<DailyLogs />} />
-//         <Route path="/projects/create" element={<CreateProject />} />
-//       </Route>
-//     </Routes>
-//   );
-// }
-
-// import { Routes, Route } from "react-router-dom";
-// import Login from "../features/auth/Login";
-// import Layout from "../components/layout/Layout";
-// import DashboardWrapper from "../features/dashboard/DashboardWrapper";
-// import ProtectedRoute from "../features/auth/ProtectedRoute";
-// import Unauthorized from "../pages/Unauthorized";
-// import ProjectList from "../features/projects/ProjectList";
-// import ProjectDetails from "../features/projects/ProjectDetails";
-// import UserProjectDetails from "../features/projects/UserProjectDetails";
-// import UserProjectList from "../features/projects/UserProjectList"; // ✅ Add this import
-// import ExtensionRequestPage from "../features/extensions/ExtensionRequestPage";
-// import ProjectLogs from "../features/dailyLogs/ProjectLogs";
-// import DailyLogs from "../features/dailyLogs/DailyLogs";
-// import ContractorList from "../features/contractors/ContractorList";
-// import ExtensionApproval from "../features/extensions/ExtensionApproval";
-// import CreateProject from "../features/projects/CreateProject";
-
-// export default function AppRoutes() {
-//   return (
-//     <Routes>
-//       <Route path="/" element={<Login />} />
-//       <Route path="/unauthorized" element={<Unauthorized />} />
-
-//       <Route
-//         element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "USER"]}>
-//             <Layout />
-//           </ProtectedRoute>
-//         }
-//       >
-//         {/* Dashboard - Role based wrapper */}
-//         <Route path="/dashboard" element={<DashboardWrapper />} />
-
-//         {/* User specific routes - accessible only to USER role */}
-//         <Route path="/my-projects" element={
-//           <ProtectedRoute allowedRoles={["USER"]}>
-//             <UserProjectList />  {/* Now this is defined */}
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/my-projects/:id" element={
-//           <ProtectedRoute allowedRoles={["USER"]}>
-//             <UserProjectDetails />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/my-projects/:id/extend" element={
-//           <ProtectedRoute allowedRoles={["USER"]}>
-//             <ExtensionRequestPage />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/my-projects/:id/logs" element={
-//           <ProtectedRoute allowedRoles={["USER"]}>
-//             <ProjectLogs />
-//           </ProtectedRoute>
-//         } />
-
-//         {/* Admin/Super Admin specific routes */}
-//         <Route path="/projects" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <ProjectList />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/projects/:id" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <ProjectDetails />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/projects/create" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <CreateProject />
-//           </ProtectedRoute>
-//         } />
-
-//         {/* Common routes */}
-//         <Route path="/daily-logs" element={<DailyLogs />} />
-        
-//         {/* Admin only routes */}
-//         <Route path="/contractors" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <ContractorList />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/extensions" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <ExtensionApproval />
-//           </ProtectedRoute>
-//         } />
-//       </Route>
-//     </Routes>
-//   );
-// }
-
-// import { Routes, Route } from "react-router-dom";
-// import Login from "../features/auth/Login";
-// import Layout from "../components/layout/Layout";
-// import DashboardWrapper from "../features/dashboard/DashboardWrapper";
-// import ProtectedRoute from "../features/auth/ProtectedRoute";
-// import Unauthorized from "../pages/Unauthorized";
-// import ProjectList from "../features/projects/ProjectList";
-// import ProjectDetails from "../features/projects/ProjectDetails";
-// import UserProjectDetails from "../features/projects/UserProjectDetails";
-// import UserProjectList from "../features/projects/UserProjectList";
-// import ExtensionRequestPage from "../features/extensions/ExtensionRequestPage";
-// import ProjectLogs from "../features/dailyLogs/ProjectLogs";
-// import DailyLogs from "../features/dailyLogs/DailyLogs";
-// import ContractorList from "../features/contractors/ContractorList";
-// import ExtensionApproval from "../features/extensions/ExtensionApproval";
-// import CreateProject from "../features/projects/CreateProject";
-
-// export default function AppRoutes() {
-//   return (
-//     <Routes>
-//       <Route path="/" element={<Login />} />
-//       <Route path="/unauthorized" element={<Unauthorized />} />
-
-//       <Route
-//         element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "USER"]}>
-//             <Layout />
-//           </ProtectedRoute>
-//         }
-//       >
-//         {/* Dashboard - Role based wrapper */}
-//         <Route path="/dashboard" element={<DashboardWrapper />} />
-
-//         {/* ===== COMMON PROJECT ROUTES ===== */}
-//         {/* These routes work for ALL authenticated users */}
-        
-//         {/* Project List - Shows different content based on role */}
-//         <Route path="/projects" element={<ProjectList />} />
-        
-//         {/* Project Details - Shows different content based on role */}
-//         <Route path="/projects/:id" element={<ProjectDetails />} />
-        
-//         {/* Extension Request - Available to all users with proper access control inside */}
-//         <Route path="/projects/:id/extend" element={<ExtensionRequestPage />} />
-        
-//         {/* Project Logs - Available to all users */}
-//         <Route path="/projects/:id/logs" element={<ProjectLogs />} />
-        
-//         {/* Create Project - Only for admins */}
-//         <Route path="/projects/create" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <CreateProject />
-//           </ProtectedRoute>
-//         } />
-
-//         {/* ===== USER-SPECIFIC ROUTES ===== */}
-//         {/* These are separate views for users, but admins can also access if needed */}
-//         <Route path="/my-projects" element={
-//           <ProtectedRoute allowedRoles={["USER"]}>
-//             <UserProjectList />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/my-projects/:id" element={
-//           <ProtectedRoute allowedRoles={["USER"]}>
-//             <UserProjectDetails />
-//           </ProtectedRoute>
-//         } />
-
-//         {/* Common routes */}
-//         <Route path="/daily-logs" element={<DailyLogs />} />
-        
-//         {/* Admin only routes */}
-//         <Route path="/contractors" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <ContractorList />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/extensions" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <ExtensionApproval />
-//           </ProtectedRoute>
-//         } />
-//       </Route>
-//     </Routes>
-//   );
-// }
-
-// // src/routes.jsx
-// import { Routes, Route } from "react-router-dom";
-// import Login from "../features/auth/Login";
-// import Layout from "../components/layout/Layout";
-// import DashboardWrapper from "../features/dashboard/DashboardWrapper";
-// import ProtectedRoute from "../features/auth/ProtectedRoute";
-// import Unauthorized from "../pages/Unauthorized";
-// import ProjectList from "../features/projects/ProjectList";
-// import ProjectDetails from "../features/projects/ProjectDetails";
-// import UserProjectDetails from "../features/projects/UserProjectDetails";
-// import UserProjectList from "../features/projects/UserProjectList";
-// import ExtensionRequestPage from "../features/extensions/ExtensionRequestPage";
-// import ProjectLogs from "../features/dailyLogs/ProjectLogs";
-// import DailyLogs from "../features/dailyLogs/DailyLogs";
-// import ContractorList from "../features/contractors/ContractorList";
-// import ExtensionApproval from "../features/extensions/ExtensionApproval";
-// import CreateProject from "../features/projects/CreateProject";
-// import MyTasks from "../features/tasks/MyTasks";
-// import UserWorkLogs from "../features/tasks/UserWorkLogs";
-// import UserPickedProjectDetails from "../features/projects/UserPickedProjectDetails";
-// import ErrorBoundary from "../components/ErrorBoundary"; // Import ErrorBoundary
-
-// export default function AppRoutes() {
-//   return (
-//     <Routes>
-//       <Route path="/" element={<Login />} />
-//       <Route path="/unauthorized" element={<Unauthorized />} />
-
-//       <Route
-//         element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "USER"]}>
-//             <Layout />
-//           </ProtectedRoute>
-//         }
-//       >
-//         {/* Dashboard */}
-//         <Route path="/dashboard" element={<DashboardWrapper />} />
-
-//         {/* All Projects */}
-//         <Route path="/all-projects" element={<ProjectList />} />
-        
-//         {/* My Tasks - Wrapped with ErrorBoundary */}
-//         <Route 
-//           path="/my-tasks" 
-//           element={
-//             <ProtectedRoute allowedRoles={["USER"]}>
-//               <ErrorBoundary
-//                 title="Tasks Error"
-//                 message="We couldn't load your tasks. Please try again."
-//               >
-//                 <MyTasks />
-//               </ErrorBoundary>
-//             </ProtectedRoute>
-//           } 
-//         />
-
-//         {/* Common Project Routes */}
-//         <Route path="/projects" element={<ProjectList />} />
-//         <Route path="/projects/:id" element={<ProjectDetails />} />
-//         <Route path="/projects/:id/extend" element={<ExtensionRequestPage />} />
-//         <Route path="/projects/:id/logs" element={<ProjectLogs />} />
-        
-//         <Route path="/projects/create" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <CreateProject />
-//           </ProtectedRoute>
-//         } />
-
-//         {/* User-specific routes */}
-//         <Route path="/my-projects" element={
-//           <ProtectedRoute allowedRoles={["USER"]}>
-//             <UserProjectList />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/my-projects/:id" element={
-//           <ProtectedRoute allowedRoles={["USER"]}>
-//             <UserProjectDetails />
-//           </ProtectedRoute>
-//         } />
-
-//         {/* Common routes */}
-//         <Route path="/daily-logs" element={<DailyLogs />} />
-        
-//         {/* Admin only routes */}
-//         <Route path="/contractors" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <ContractorList />
-//           </ProtectedRoute>
-//         } />
-//         <Route path="/extensions" element={
-//           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-//             <ExtensionApproval />
-//           </ProtectedRoute>
-//         } />
-
-//         <Route path="/my-picked-projects/:id" element={
-//   <ProtectedRoute allowedRoles={["USER"]}>
-//     <UserPickedProjectDetails />
-//   </ProtectedRoute>
-// } />
-//       </Route>
-//     </Routes>
-//   );
-// }
-
-
-
-// src/routes.jsx
 import { Routes, Route } from "react-router-dom";
 import Login from "../features/auth/Login";
 import Layout from "../components/layout/Layout";
@@ -389,7 +17,7 @@ import ExtensionApproval from "../features/extensions/ExtensionApproval";
 import CreateProject from "../features/projects/CreateProject";
 import MyTasks from "../features/tasks/MyTasks";
 import UserPickedProjectDetails from "../features/projects/UserPickedProjectDetails";
-import UserWorkLogs from "../features/tasks/UserWorkLogs"; // Import new component
+import UserWorkLogs from "../features/tasks/UserWorkLogs";
 import ErrorBoundary from "../components/ErrorBoundary";
 
 export default function AppRoutes() {
@@ -405,13 +33,13 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        {/* Dashboard */}
+        
         <Route path="/dashboard" element={<DashboardWrapper />} />
 
-        {/* All Projects */}
+        
         <Route path="/all-projects" element={<ProjectList />} />
         
-        {/* My Tasks - For Users */}
+        {/*For Users */}
         <Route 
           path="/my-tasks" 
           element={
@@ -426,7 +54,7 @@ export default function AppRoutes() {
           } 
         />
 
-        {/* My Work Logs - For Users (only their own logs) */}
+        {/*For Users (only their own logs) */}
         <Route 
           path="/my-work-logs" 
           element={
@@ -441,7 +69,7 @@ export default function AppRoutes() {
           } 
         />
 
-        {/* Common Project Routes */}
+        {/*Common*/}
         <Route path="/projects" element={<ProjectList />} />
         <Route path="/projects/:id" element={<ProjectDetails />} />
         <Route path="/projects/:id/extend" element={<ExtensionRequestPage />} />
@@ -465,7 +93,7 @@ export default function AppRoutes() {
           </ProtectedRoute>
         } />
 
-        {/* Common routes - Daily Logs for Admin/Super Admin */}
+        {/* Common routes*/}
         <Route path="/daily-logs" element={
           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
             <DailyLogs />

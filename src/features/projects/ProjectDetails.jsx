@@ -178,7 +178,7 @@ const ProjectDetails = () => {
   const [loadingSubMessage, setLoadingSubMessage] = useState("Fetching project details...");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // UI State
+  
   const [expandedActivities, setExpandedActivities] = useState({});
   const [editingSubActivity, setEditingSubActivity] = useState(null);
   const [editValue, setEditValue] = useState(0);
@@ -424,7 +424,7 @@ const ProjectDetails = () => {
     return sectorId;
   }, [project, sectorMap]);
 
-  const getProjectDepartment = useCallback(() => {
+  const getProjectClient = useCallback(() => {
     const clientId = project?.client || project?.client_id || project?.department;
     if (!clientId) return "—";
     if (typeof clientId === 'string' && clientMap[clientId]) return clientMap[clientId];
@@ -1030,10 +1030,10 @@ const ProjectDetails = () => {
                   </h3>
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <DetailItem label="Company" value={getProjectCompany()} />
-                    <DetailItem label="Sub Company" value={getProjectSubCompany()} />
+                    {/* <DetailItem label="Sub Company" value={getProjectSubCompany()} /> */}
                     <DetailItem label="Location" value={getProjectLocation()} icon={<MapPin size={12} />} />
                     <DetailItem label="Sector" value={getProjectSector()} />
-                    <DetailItem label="Department" value={getProjectDepartment()} />
+                    <DetailItem label="Client" value={getProjectClient()} />
                     <DetailItem label="Total Length" value={getProjectTotalLength()} icon={<Ruler size={12} />} />
                     <DetailItem label="Workorder Cost" value={getProjectCost()} icon={<IndianRupee size={12} />} />
                     <DetailItem label="LOA Date" value={getProjectLoaDate()} icon={<Calendar size={12} />} />

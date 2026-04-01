@@ -1,4 +1,3 @@
-
 // import { useState, useEffect, useRef } from "react";
 // import { motion, AnimatePresence } from "framer-motion";
 // import { useDispatch, useSelector } from "react-redux";
@@ -126,12 +125,12 @@
 //     project_name: "",
 //     short_name: "",
 //     company: "",
-//     sub_company: "",
 //     location: "",
 //     sector: "",
 //     client: "",
 //     total_length: "",
 //     workorder_cost: "",
+//     gst_type: "exclude", 
 //     director_proposal_date: "",
 //     project_confirmation_date: "",
 //     loa_date: "",
@@ -143,7 +142,7 @@
 //   const [currentStep, setCurrentStep] = useState(1);
 //   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
+  
 //   const [sectorsList, setSectorsList] = useState([]);
 //   const [sectorsMap, setSectorsMap] = useState({});
 //   const [clientsList, setClientsList] = useState([]);
@@ -151,11 +150,14 @@
 //   const [masterActivities, setMasterActivities] = useState(INITIAL_MASTER_ACTIVITIES);
 //   const [customActivities, setCustomActivities] = useState([]);
 
-  
+
 //   const [clientSearch, setClientSearch] = useState("");
 //   const [showClientDropdown, setShowClientDropdown] = useState(false);
 //   const clientDropdownRef = useRef(null);
 
+  
+//   const [showAddSectorModal, setShowAddSectorModal] = useState(false);
+//   const [showAddClientModal, setShowAddClientModal] = useState(false);
 //   const [newSector, setNewSector] = useState("");
 //   const [newClient, setNewClient] = useState("");
 
@@ -180,7 +182,7 @@
 //     unit: "Km"
 //   });
 
-//   // Fetch initial data on component mount
+  
 //   useEffect(() => {
 //     const fetchInitialData = async () => {
 //       try {
@@ -193,20 +195,20 @@
 //           dispatch(fetchSubActivities())
 //         ]);
 //       } catch (error) {
-//         console.log("Using fallback data due to API error",error);
+//         console.log("Using fallback data due to API error", error);
 //       }
 //     };
 
 //     fetchInitialData();
 
-//     // Cleanup function to clear data when component unmounts
+    
 //     return () => {
 //       dispatch(clearActivities());
 //       dispatch(clearSubActivities());
 //     };
 //   }, [dispatch]);
 
-//   // Update sectors list and map when data loads
+
 //   useEffect(() => {
 //     if (sectors && sectors.length > 0) {
 //       const map = {};
@@ -222,7 +224,7 @@
 //     }
 //   }, [sectors]);
 
-//   // Update clients list and map when data loads
+  
 //   useEffect(() => {
 //     if (clients && clients.length > 0) {
 //       const map = {};
@@ -244,17 +246,15 @@
 //     }
 //   }, [clients]);
 
-//   // Update activities when data loads - FIXED to prevent duplicates
+  
 //   useEffect(() => {
 //     console.log("Activities from API:", activities);
 //     console.log("SubActivities from API:", subActivities);
 
 //     if (activities && activities.length > 0) {
-//       // Format activities from API - use a Map to prevent duplicates by name
 //       const activityMap = new Map();
 
 //       activities.forEach(activity => {
-//         // Find sub-activities that belong to this activity
 //         const activitySubs = subActivities.filter(
 //           sub => sub.activity === activity.id
 //         ) || [];
@@ -264,16 +264,14 @@
 //           name: activity.activity_name || activity.name,
 //           subActivities: activitySubs.length > 0
 //             ? activitySubs.map(sub => ({
-//               id: sub.id,
-//               name: sub.subactivity_name || sub.name,
-//               unit: sub.unit_display || sub.unit || "Km"
-//             }))
+//                 id: sub.id,
+//                 name: sub.subactivity_name || sub.name,
+//                 unit: sub.unit_display || sub.unit || "Km"
+//               }))
 //             : [],
 //           isCustom: false
 //         };
 
-//         // Use activity name as key to prevent duplicates
-//         // If same name exists, keep the one with more sub-activities
 //         const existing = activityMap.get(formattedActivity.name);
 //         if (!existing || existing.subActivities.length < formattedActivity.subActivities.length) {
 //           activityMap.set(formattedActivity.name, formattedActivity);
@@ -285,13 +283,10 @@
 //       setMasterActivities(formattedActivities);
 //     } else {
 //       console.log("Using fallback activities");
-//       // Keep using INITIAL_MASTER_ACTIVITIES
 //     }
-
-
 //   }, [activities, subActivities]);
 
-//   // Handle resize for responsive
+  
 //   useEffect(() => {
 //     const handleResize = () => {
 //       setIsMobile(window.innerWidth < 768);
@@ -301,7 +296,7 @@
 //     return () => window.removeEventListener("resize", handleResize);
 //   }, []);
 
-//   // Close client dropdown when clicking outside
+  
 //   useEffect(() => {
 //     const handleClickOutside = (event) => {
 //       if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target)) {
@@ -313,7 +308,6 @@
 //     return () => document.removeEventListener("mousedown", handleClickOutside);
 //   }, []);
 
-  
 //   const filteredClients = clientsList.filter(client =>
 //     client.toLowerCase().includes(clientSearch.toLowerCase())
 //   );
@@ -323,6 +317,13 @@
 //     setForm(prev => ({
 //       ...prev,
 //       [name]: value
+//     }));
+//   };
+
+//   const handleGstTypeChange = (e) => {
+//     setForm(prev => ({
+//       ...prev,
+//       gst_type: e.target.checked ? "include" : "exclude"
 //     }));
 //   };
 
@@ -370,11 +371,47 @@
 
 //   const handleSubActivityPlannedQtyChange = (activityName, subActivityName, value) => {
 //     const numValue = parseFloat(value) || 0;
-//     console.log(subActivityPlannedQtys, "before change");
 //     setSubActivityPlannedQtys(prev => ({
 //       ...prev,
 //       [`${activityName}_${subActivityName}`]: numValue
 //     }));
+//   };
+
+  
+//   const handleAddSector = async () => {
+//     if (!newSector.trim()) {
+//       dispatch(showSnackbar({ message: "Please enter sector name", type: "error" }));
+//       return;
+//     }
+//     try {
+//       await dispatch(createSector({ name: newSector })).unwrap();
+//       dispatch(showSnackbar({ message: "Sector added successfully", type: "success" }));
+//     } catch (error) {
+//       dispatch(showSnackbar({ message: "Sector added locally", type: "success" }));
+//     }
+//     setSectorsList(prev => [...prev, newSector]);
+//     setForm(prev => ({ ...prev, sector: newSector }));
+//     setNewSector("");
+//     setShowAddSectorModal(false);
+//   };
+
+  
+//   const handleAddClient = async () => {
+//     if (!newClient.trim()) {
+//       dispatch(showSnackbar({ message: "Please enter client name", type: "error" }));
+//       return;
+//     }
+//     try {
+//       await dispatch(createClient({ name: newClient })).unwrap();
+//       dispatch(showSnackbar({ message: "Client added successfully", type: "success" }));
+//     } catch (error) {
+//       dispatch(showSnackbar({ message: "Client added locally", type: "success" }));
+//     }
+//     setClientsList(prev => [...prev, newClient]);
+//     setForm(prev => ({ ...prev, client: newClient }));
+//     setClientSearch(newClient);
+//     setNewClient("");
+//     setShowAddClientModal(false);
 //   };
 
 //   const handleAddActivity = async (e) => {
@@ -422,7 +459,6 @@
 //       unit: newSubActivity.unit
 //     };
 
-//     // Check if it's a master activity or custom activity
 //     const masterIndex = masterActivities.findIndex(act => act.name === selectedActivityForSub);
 
 //     if (masterIndex !== -1) {
@@ -462,7 +498,6 @@
 //       setCustomActivities(prev => prev.filter(a => a.name !== activityName));
 //       setSelectedActivities(prev => prev.filter(a => a !== activityName));
 
-//       // Clean up related state
 //       const newWeightages = { ...activityWeightages };
 //       delete newWeightages[activityName];
 //       setActivityWeightages(newWeightages);
@@ -509,7 +544,6 @@
 //         }));
 //       }
 
-//       // Clean up related state
 //       const key = `${activityName}_${subActivityName}`;
 //       const newUnits = { ...subActivityUnits };
 //       delete newUnits[key];
@@ -658,7 +692,6 @@
 
 //     setIsSubmitting(true);
 
-//     // Show loading message
 //     dispatch(showSnackbar({
 //       message: "Creating project... This may take a moment.",
 //       type: "info"
@@ -669,7 +702,6 @@
 //       let createdActivityIds = [];
 //       const activityIdMap = {};
 
-//       // STEP 1: Prepare all activities data as an array for bulk creation
 //       const activitiesPayload = selectedActivities.map((actName) => {
 //         const dates = activityDates[actName];
 //         const weightage = activityWeightages[actName] || 0;
@@ -682,16 +714,11 @@
 //         };
 //       });
 
-//       console.log("Creating all activities with payload:", activitiesPayload);
-
-      
 //       let activitiesResponse;
 
-      
 //       if (typeof createActivitiesBulk !== 'undefined' && createActivitiesBulk) {
 //         activitiesResponse = await dispatch(createActivitiesBulk(activitiesPayload)).unwrap();
 //       } else {
-        
 //         console.warn("createActivitiesBulk not available, falling back to individual creation");
 //         const activityPromises = activitiesPayload.map(activityData =>
 //           dispatch(createActivity(activityData)).unwrap()
@@ -699,28 +726,15 @@
 //         activitiesResponse = await Promise.all(activityPromises);
 //       }
 
-//       console.log("Activities created:", activitiesResponse);
-
-      
 //       if (Array.isArray(activitiesResponse)) {
-        
 //         createdActivityIds = activitiesResponse.map(act => act.id);
-
-        
 //         selectedActivities.forEach((actName, index) => {
 //           activityIdMap[actName] = activitiesResponse[index]?.id;
 //         });
 //       } else {
-        
 //         createdActivityIds = [activitiesResponse.id];
 //         activityIdMap[selectedActivities[0]] = activitiesResponse.id;
 //       }
-
-//       console.log("Activity ID map:", activityIdMap);
-//       console.log("Created activity IDs:", createdActivityIds);
-
-      
-//       console.log("Creating sub-activities in bulk...");
 
 //       const bulkSubPromises = [];
 
@@ -731,26 +745,24 @@
 
 //         if (selectedSubs.length === 0) continue;
 
-        
 //         const subActivitiesPayload = selectedSubs.map((subName) => {
 //           const subObj = activityObj.subActivities.find(s => s.name === subName);
 //           const key = `${actName}_${subName}`;
-//           const unit = subActivityUnits[key] || subObj.unit;
+//           const unit = subActivityUnits[key] || subObj?.unit;
 //           const plannedQty = subActivityPlannedQtys[key] || 0;
-//           const submissionpayment = subActivityPlannedQtys[(key + "_" + "subpayment")] || 0;
-//           const approvalpayment = subActivityPlannedQtys[(key + "_" + "approvalpayment")] || 0;
-//           const chainagestart = subActivityPlannedQtys[(key + "_" + "chainagestart")] || 0;
-//           const chainageend = subActivityPlannedQtys[(key + "_" + "chainageend")] || 0;
-//           const description = subActivityPlannedQtys[(key + "_" + "description")] || "";
+//           const submissionpayment = subActivityPlannedQtys[(key + "_subpayment")] || 0;
+//           const approvalpayment = subActivityPlannedQtys[(key + "_approvalpayment")] || 0;
+//           const chainagestart = subActivityPlannedQtys[(key + "_chainagestart")] || 0;
+//           const chainageend = subActivityPlannedQtys[(key + "_chainageend")] || 0;
+//           const description = subActivityPlannedQtys[(key + "_description")] || "";
 
-          
 //           const isStatusBased = unit === 'status';
 
 //           return {
 //             subactivity_name: subName,
-//             unit: isStatusBased ? 'status' : unit, 
-//             total_quantity: isStatusBased ? 1 : plannedQty, 
-//             range: isStatusBased ? 'status' : null, 
+//             unit: isStatusBased ? 'status' : unit,
+//             total_quantity: isStatusBased ? 1 : plannedQty,
+//             range: isStatusBased ? 'status' : null,
 //             activity: activityId,
 //             submission_payment: submissionpayment,
 //             approval_payment: approvalpayment,
@@ -760,13 +772,9 @@
 //           };
 //         });
 
-//         console.log(`Creating ${subActivitiesPayload.length} sub-activities for activity: ${actName}`, subActivitiesPayload);
-
-//         // Create all sub-activities for this activity in one API call
 //         if (typeof createSubActivitiesBulk !== 'undefined' && createSubActivitiesBulk) {
 //           bulkSubPromises.push(dispatch(createSubActivitiesBulk(subActivitiesPayload)).unwrap());
 //         } else {
-//           // Fallback to individual creation
 //           const promises = subActivitiesPayload.map(data =>
 //             dispatch(createSubActivity(data)).unwrap()
 //           );
@@ -774,51 +782,41 @@
 //         }
 //       }
 
-//       // Wait for all bulk sub-activity creations to complete
 //       if (bulkSubPromises.length > 0) {
 //         await Promise.all(bulkSubPromises);
 //         console.log("All sub-activities created successfully");
 //       }
 
-//       // STEP 3: Find IDs for company, sub-company, sector, client
 //       const selectedCompany = companies.find(c => c.name === form.company);
-//       const selectedSubCompany = subCompanies.find(c => c.name === form.sub_company);
 //       const sectorId = sectorsMap[form.sector] || null;
 //       const clientId = clientsMap[form.client] || null;
 
-//       // STEP 4: Create project with the activity IDs
 //       const projectData = {
 //         project_code: form.project_code,
 //         project_name: form.project_name,
 //         short_name: form.short_name,
 //         company: selectedCompany?.id || null,
-//         sub_company: selectedSubCompany?.id || null,
 //         sector: sectorId,
 //         client: clientId,
 //         location: form.location,
 //         total_length: parseFloat(form.total_length),
 //         workorder_cost: parseFloat(form.workorder_cost) || 0,
+//         gst_type: form.gst_type,
 //         director_proposal_date: form.director_proposal_date,
 //         project_confirmation_date: form.project_confirmation_date,
 //         loa_date: form.loa_date,
 //         completion_date: form.completion_date,
-//         activities: createdActivityIds, // Send ONLY the IDs
+//         activities: createdActivityIds,
 //       };
 
-//       console.log("Sending project data with activity IDs:", JSON.stringify(projectData, null, 2));
-
-//       // STEP 5: Create the project
 //       const apiResult = await dispatch(createProjectApi(projectData)).unwrap();
-//       console.log("API Response:", apiResult);
 
-//       // STEP 6: Also update local Redux store for immediate UI update
 //       dispatch(addProject({
 //         id: apiResult.id || `temp_${Date.now()}`,
 //         code: form.project_code,
 //         name: form.project_name,
 //         shortName: form.short_name,
 //         company: form.company,
-//         subCompany: form.sub_company,
 //         location: form.location,
 //         sector: form.sector,
 //         department: form.client,
@@ -843,7 +841,7 @@
 //             subActivities: selectedSubs.map((subName, subIdx) => {
 //               const subObj = activityObj.subActivities.find(s => s.name === subName);
 //               const key = `${actName}_${subName}`;
-//               const unit = subActivityUnits[key] || subObj.unit;
+//               const unit = subActivityUnits[key] || subObj?.unit;
 //               const plannedQty = subActivityPlannedQtys[key] || 0;
 
 //               return {
@@ -871,37 +869,25 @@
 //     } catch (error) {
 //       console.error("Project creation error:", error);
 
-      
 //       let errorMessage = "Failed to create project";
 
-//       if (error.response) {
-//         console.error("Error response data:", error.response.data);
-
-//         if (error.response.data) {
-//           if (typeof error.response.data === 'string') {
-//             errorMessage = error.response.data;
-//           } else if (error.response.data.message) {
-//             errorMessage = error.response.data.message;
-//           } else if (error.response.data.error) {
-//             errorMessage = error.response.data.error;
-//           } else if (error.response.data.detail) {
-//             errorMessage = error.response.data.detail;
-//           } else if (error.response.data.non_field_errors) {
-//             errorMessage = error.response.data.non_field_errors.join(', ');
-//           } else {
-            
-//             try {
-//               const errors = Object.entries(error.response.data)
-//                 .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-//                 .join(', ');
-//               if (errors) errorMessage = errors;
-//             } catch {
-//               errorMessage = "Unknown error occurred";
-//             }
+//       if (error.response?.data) {
+//         if (typeof error.response.data === 'string') {
+//           errorMessage = error.response.data;
+//         } else if (error.response.data.message) {
+//           errorMessage = error.response.data.message;
+//         } else if (error.response.data.detail) {
+//           errorMessage = error.response.data.detail;
+//         } else {
+//           try {
+//             const errors = Object.entries(error.response.data)
+//               .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+//               .join(', ');
+//             if (errors) errorMessage = errors;
+//           } catch {
+//             errorMessage = "Unknown error occurred";
 //           }
 //         }
-//       } else if (error.message) {
-//         errorMessage = error.message;
 //       }
 
 //       dispatch(showSnackbar({
@@ -947,7 +933,101 @@
 //         </div>
 //       )}
 
-//       {/* Add Activity Modal */}
+//       {/* Add Sector Modal */}
+//       <AnimatePresence>
+//         {showAddSectorModal && (
+//           <motion.div
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+//             onClick={() => closeModal(setShowAddSectorModal)}
+//           >
+//             <motion.div
+//               initial={{ scale: 0.9 }}
+//               animate={{ scale: 1 }}
+//               exit={{ scale: 0.9 }}
+//               className="bg-white rounded-2xl p-6 max-w-md w-full"
+//               onClick={(e) => e.stopPropagation()}
+//             >
+//               <h3 className="text-lg md:text-xl font-bold mb-4">Add New Sector</h3>
+//               <input
+//                 type="text"
+//                 placeholder="Enter sector name"
+//                 value={newSector}
+//                 onChange={(e) => setNewSector(e.target.value)}
+//                 className="w-full p-3 border rounded-xl text-sm md:text-base mb-4"
+//                 autoFocus
+//               />
+//               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+//                 <button
+//                   type="button"
+//                   onClick={() => closeModal(setShowAddSectorModal)}
+//                   className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm md:text-base"
+//                 >
+//                   Cancel
+//                 </button>
+//                 <button
+//                   type="button"
+//                   onClick={handleAddSector}
+//                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm md:text-base"
+//                 >
+//                   Add Sector
+//                 </button>
+//               </div>
+//             </motion.div>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+
+//       {/* Add Client Modal */}
+//       <AnimatePresence>
+//         {showAddClientModal && (
+//           <motion.div
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+//             onClick={() => closeModal(setShowAddClientModal)}
+//           >
+//             <motion.div
+//               initial={{ scale: 0.9 }}
+//               animate={{ scale: 1 }}
+//               exit={{ scale: 0.9 }}
+//               className="bg-white rounded-2xl p-6 max-w-md w-full"
+//               onClick={(e) => e.stopPropagation()}
+//             >
+//               <h3 className="text-lg md:text-xl font-bold mb-4">Add New Client</h3>
+//               <input
+//                 type="text"
+//                 placeholder="Enter client name"
+//                 value={newClient}
+//                 onChange={(e) => setNewClient(e.target.value)}
+//                 className="w-full p-3 border rounded-xl text-sm md:text-base mb-4"
+//                 autoFocus
+//               />
+//               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+//                 <button
+//                   type="button"
+//                   onClick={() => closeModal(setShowAddClientModal)}
+//                   className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm md:text-base"
+//                 >
+//                   Cancel
+//                 </button>
+//                 <button
+//                   type="button"
+//                   onClick={handleAddClient}
+//                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm md:text-base"
+//                 >
+//                   Add Client
+//                 </button>
+//               </div>
+//             </motion.div>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+
+//       {/* Add Activity Modal - Original */}
 //       <AnimatePresence>
 //         {showAddActivityModal && (
 //           <motion.div
@@ -1004,7 +1084,7 @@
 //         )}
 //       </AnimatePresence>
 
-//       {/* Add Sub-Activity Modal */}
+//       {/* Add Sub-Activity Modal - Original */}
 //       <AnimatePresence>
 //         {showAddSubActivityModal && (
 //           <motion.div
@@ -1095,7 +1175,6 @@
 //           </p>
 //         </div>
 
-//         {/* Mobile Step Indicator */}
 //         {isMobile && (
 //           <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
 //             <motion.div
@@ -1108,445 +1187,382 @@
 //         )}
 //       </div>
 
-//       {/* ================= FORM SECTION ================= */}
 //       <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
 //         {/* Step 1: Basic Information */}
 //         <motion.div
-//           initial={false}
-//           animate={{
-//             display: !isMobile || currentStep === 1 ? "block" : "none",
-//             opacity: !isMobile || currentStep === 1 ? 1 : 0
-//           }}
-//           className="bg-white rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl p-4 md:p-8 border border-gray-100"
+//   initial={false}
+//   animate={{
+//     display: !isMobile || currentStep === 1 ? "block" : "none",
+//     opacity: !isMobile || currentStep === 1 ? 1 : 0
+//   }}
+//   className="bg-white rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl p-4 md:p-8 border border-gray-100"
+// >
+//   <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+//     <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
+//     <span>Basic Information</span>
+//   </h3>
+
+//   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+//     {/* Project Code */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Project Code *</label>
+//       <div className="relative">
+//         <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+//         <input
+//           type="text"
+//           name="project_code"
+//           value={form.project_code}
+//           onChange={handleChange}
+//           className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         />
+//       </div>
+//     </div>
+
+//     {/* Project Name */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Project Name *</label>
+//       <div className="relative">
+//         <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+//         <input
+//           type="text"
+//           name="project_name"
+//           value={form.project_name}
+//           onChange={handleChange}
+//           className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         />
+//       </div>
+//     </div>
+
+//     {/* Short Name */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Short Name *</label>
+//       <div className="relative">
+//         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔤</span>
+//         <input
+//           type="text"
+//           name="short_name"
+//           value={form.short_name}
+//           onChange={handleChange}
+//           className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         />
+//       </div>
+//     </div>
+
+//     {/* Location */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Location</label>
+//       <div className="relative">
+//         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+//         <input
+//           type="text"
+//           name="location"
+//           value={form.location}
+//           onChange={handleChange}
+//           className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         />
+//       </div>
+//     </div>
+
+//     {/* Company */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Company *</label>
+//       <div className="relative">
+//         <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+//         <select
+//           name="company"
+//           value={form.company}
+//           onChange={handleChange}
+//           className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 appearance-none"
 //         >
-//           <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
-//             <div className="w-1 h-5 md:h-6 bg-blue-600 rounded-full"></div>
-//             <span>Basic Information</span>
-//             {isMobile && <span className="text-xs text-gray-500 ml-auto">Step 1/3</span>}
-//           </h3>
+//           <option value="">Select Company</option>
+//           {companies.map((company) => (
+//             <option key={company.id} value={company.name}>
+//               {company.name}
+//             </option>
+//           ))}
+//         </select>
+//       </div>
+//     </div>
 
-//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-//             {/* Project Code */}
-//             <div className="relative">
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <Hash size={18} />
-//               </div>
-//               <input
-//                 type="text"
-//                 name="project_code"
-//                 placeholder="Project Code *"
-//                 value={form.project_code}
-//                 onChange={handleChange}
-//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
-//               />
-//             </div>
+//     {/* Sector (FIXED BUTTON ALIGNMENT) */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Sector</label>
+//       <div className="relative">
+//         <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
 
-//             {/* Project Name */}
-//             <div className="relative">
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <Briefcase size={18} />
-//               </div>
-//               <input
-//                 type="text"
-//                 name="project_name"
-//                 placeholder="Project Name *"
-//                 value={form.project_name}
-//                 onChange={handleChange}
-//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
-//               />
-//             </div>
-
-//             {/* Short Name */}
-//             <div className="relative">
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <span className="text-lg">🔤</span>
-//               </div>
-//               <input
-//                 type="text"
-//                 name="short_name"
-//                 placeholder="Short Name *"
-//                 value={form.short_name}
-//                 onChange={handleChange}
-//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
-//               />
-//             </div>
-
-//             {/* Location */}
-//             <div className="relative">
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <MapPin size={18} />
-//               </div>
-//               <input
-//                 type="text"
-//                 name="location"
-//                 placeholder="Location"
-//                 value={form.location}
-//                 onChange={handleChange}
-//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
-//               />
-//             </div>
-
-//             {/* Company Selection */}
-//             <div className="relative">
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <Building2 size={18} />
-//               </div>
-//               <select
-//                 name="company"
-//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50 hover:bg-white appearance-none"
-//                 onChange={handleChange}
-//                 value={form.company}
-//               >
-//                 <option value="">Select Company *</option>
-//                 {companies.map((company) => (
-//                   <option key={company.id} value={company.name}>
-//                     {company.name}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-
-//             {/* Sub Company */}
-//             <div className="relative">
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <Building2 size={18} />
-//               </div>
-//               <select
-//                 name="sub_company"
-//                 className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50 hover:bg-white appearance-none"
-//                 onChange={handleChange}
-//                 value={form.sub_company}
-//               >
-//                 <option value="">Select Sub Company</option>
-//                 {subCompanies.map((subCompany) => (
-//                   <option key={subCompany.id} value={subCompany.name}>
-//                     {subCompany.name}
-//                   </option>
-//                 ))}
-//               </select>
-//             </div>
-
-//             {/* Sector with Add */}
-//             <div className="flex gap-2">
-//               <div className="relative flex-1">
-//                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                   <Briefcase size={18} />
-//                 </div>
-//                 <select
-//                   name="sector"
-//                   className="w-full pl-10 pr-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50 hover:bg-white appearance-none"
-//                   onChange={handleChange}
-//                   value={form.sector}
-//                 >
-//                   <option value="">Select Sector</option>
-//                   {sectorsList.map((sector, index) => (
-//                     <option key={`sector-${index}-${sector}`} value={sector}>
-//                       {sector}
-//                     </option>
-//                   ))}
-//                 </select>
-//               </div>
-//               {/* <button
-//                 type="button"
-//                 onClick={async () => {
-//                   if (newSector && !sectorsList.includes(newSector)) {
-//                     try {
-//                       await dispatch(createSector({ name: newSector })).unwrap();
-//                       setSectorsList([...sectorsList, newSector]);
-//                       setNewSector("");
-//                       dispatch(showSnackbar({
-//                         message: "Sector added successfully",
-//                         type: "success"
-//                       }));
-//                     } catch (error) {
-//                       setSectorsList([...sectorsList, newSector]);
-//                       setNewSector("");
-//                       dispatch(showSnackbar({
-//                         message: "Sector added locally",
-//                         type: "success"
-//                       }));
-//                     }
-//                   }
-//                 }}
-//                 className="bg-blue-600 text-white px-3 md:px-4 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-1 text-sm"
-//                 title="Add new sector"
-//               >
-//                 <Plus size={16} />
-//               </button> */}
-//             </div>
-
-//             {/* Add New Sector Input */}
-//             <div className="flex gap-2">
-//               <input
-//               type="text"
-//               placeholder="Add New Sector"
-//               value={newSector}
-//               onChange={(e) => setNewSector(e.target.value)}
-//               className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//               />
-//               <button
-//                 type="button"
-//                 onClick={async () => {
-//                   if (newSector && !sectorsList.includes(newSector)) {
-//                     try {
-//                       await dispatch(createSector({ name: newSector })).unwrap();
-//                       setSectorsList([...sectorsList, newSector]);
-//                       setNewSector("");
-//                       dispatch(showSnackbar({
-//                         message: "Sector added successfully",
-//                         type: "success"
-//                       }));
-//                     } catch (error) {
-//                       setSectorsList([...sectorsList, newSector]);
-//                       setNewSector("");
-//                       dispatch(showSnackbar({
-//                         message: "Sector added locally",
-//                         type: "success"
-//                       }));
-//                     }
-//                   }
-//                 }}
-//                 className="bg-blue-600 text-white px-3 md:px-4 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-1 text-sm"
-//                 title="Add new sector"
-//               >
-//                 <Plus size={16} />
-//               </button>
-//             </div>
-
-//             {/* Client with Search */}
-//             <div className="relative" ref={clientDropdownRef}>
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <Users size={18} />
-//               </div>
-//               <input
-//                 type="text"
-//                 placeholder="Search Client"
-//                 name="client"
-//                 value={clientSearch}
-//                 onClick={() => setShowClientDropdown(true)}
-//                 onChange={(e) => {
-//                   setClientSearch(e.target.value);
-//                   setShowClientDropdown(true);
-//                 }}
-//                 className="w-full pl-10 pr-10 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//               />
-//               <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-
-//               <AnimatePresence>
-//                 {showClientDropdown && (
-//                   <motion.div
-//                     initial={{ opacity: 0, y: -10 }}
-//                     animate={{ opacity: 1, y: 0 }}
-//                     exit={{ opacity: 0, y: -10 }}
-//                     className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto"
-//                   >
-//                     {filteredClients.length > 0 ? (
-//                       filteredClients.map((client, index) => (
-//                         <div
-//                           key={`client-${index}-${client}`}
-//                           onClick={() => {
-//                             setForm({ ...form, client: client });
-//                             setClientSearch(client);
-//                             setShowClientDropdown(false);
-//                           }}
-//                           className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
-//                         >
-//                           {client}
-//                         </div>
-//                       ))
-//                     ) : (
-//                       <div className="px-3 py-2 text-gray-400 text-sm">No clients found</div>
-//                     )}
-//                   </motion.div>
-//                 )}
-//               </AnimatePresence>
-//             </div>
-
-//             {/* Add New Client */}
-//             <div className="flex gap-2">
-//               <input
-//                 type="text"
-//                 placeholder="Add New Client"
-//                 value={newClient}
-//                 onChange={(e) => setNewClient(e.target.value)}
-//                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//               />
-//               <button
-//                 type="button"
-//                 onClick={async () => {
-//                   if (newClient && !clientsList.includes(newClient)) {
-//                     try {
-//                       await dispatch(createClient({ name: newClient })).unwrap();
-//                       setClientsList([...clientsList, newClient]);
-//                       setNewClient("");
-//                       dispatch(showSnackbar({
-//                         message: "Client added successfully",
-//                         type: "success"
-//                       }));
-//                     } catch (error) {
-//                       setClientsList([...clientsList, newClient]);
-//                       setNewClient("");
-//                       dispatch(showSnackbar({
-//                         message: "Client added locally",
-//                         type: "success"
-//                       }));
-//                     }
-//                   }
-//                 }}
-//                 className="bg-blue-600 text-white px-3 md:px-4 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-1 text-sm"
-//                 title="Add new client"
-//               >
-//                 <Plus size={16} />
-//               </button>
-//             </div>
-//           </div>
-
-//           {/* Mobile Navigation Buttons */}
-//           {isMobile && (
-//             <div className="flex justify-end mt-6">
-//               <button
-//                 type="button"
-//                 onClick={nextStep}
-//                 className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
-//               >
-//                 Next: Project Details
-//                 <ChevronRight size={16} />
-//               </button>
-//             </div>
-//           )}
-//         </motion.div>
-
-//         {/* Step 2: Project Specifications & Dates */}
-//         <motion.div
-//           initial={false}
-//           animate={{
-//             display: !isMobile || currentStep === 2 ? "block" : "none",
-//             opacity: !isMobile || currentStep === 2 ? 1 : 0
-//           }}
-//           className="bg-white rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl p-4 md:p-8 border border-gray-100"
+//         <select
+//           name="sector"
+//           value={form.sector}
+//           onChange={handleChange}
+//           className="w-full pl-9 pr-10 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 appearance-none"
 //         >
-//           <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
-//             <div className="w-1 h-5 md:h-6 bg-green-600 rounded-full"></div>
-//             <span>Project Specifications & Dates</span>
-//             {isMobile && <span className="text-xs text-gray-500 ml-auto">Step 2/3</span>}
-//           </h3>
+//           <option value="">Select Sector</option>
+//           {sectorsList.map((sector, i) => (
+//             <option key={i} value={sector}>{sector}</option>
+//           ))}
+//         </select>
 
-//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-//             {/* Total Length */}
-//             <div className="relative">
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <Ruler size={18} />
-//               </div>
-//               <input
-//                 type="number"
-//                 name="total_length"
-//                 step="0.01"
-//                 placeholder="Total Length *"
-//                 value={form.total_length}
-//                 onChange={handleChange}
-//                 className="w-full pl-10 pr-16 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//               />
-//               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs md:text-sm">km</span>
-//             </div>
+//         <button
+//           type="button"
+//           onClick={() => setShowAddSectorModal(true)}
+//           className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center"
+//         >
+//           <Plus size={14} />
+//         </button>
+//       </div>
+//     </div>
 
-//             {/* Workorder Cost */}
-//             <div className="relative">
-//               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-//                 <IndianRupee size={18} />
-//               </div>
-//               <input
-//                 type="number"
-//                 name="workorder_cost"
-//                 placeholder="Workorder Cost"
-//                 value={form.workorder_cost}
-//                 onChange={handleChange}
-//                 className="w-full pl-10 pr-16 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//               />
-//               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs md:text-sm">Lakhs</span>
-//             </div>
+   
+// <div className="flex flex-col gap-1">
+//   <label className="text-xs text-gray-500">Client</label>
 
-//             {/* Dates */}
-//             <div className="space-y-1">
-//               <label className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-1">
-//                 <Calendar size={12} /> Director Proposal Date *
-//               </label>
-//               <input
-//                 type="date"
-//                 name="director_proposal_date"
-//                 value={form.director_proposal_date}
-//                 onChange={handleChange}
-//                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//                 required
-//               />
-//             </div>
+//   <div
+//     className="relative"
+//     ref={clientDropdownRef}
+//     onClick={(e) => e.stopPropagation()}
+//   >
+    
+//     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
 
-//             <div className="space-y-1">
-//               <label className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-1">
-//                 <Calendar size={12} /> Project Confirmation Date *
-//               </label>
-//               <input
-//                 type="date"
-//                 name="project_confirmation_date"
-//                 value={form.project_confirmation_date}
-//                 onChange={handleChange}
-//                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//                 required
-//               />
-//             </div>
+    
+//     <input
+//       type="text"
+//       value={clientSearch}
+//       placeholder="Select Client"
+//       onFocus={() => setShowClientDropdown(true)}
+//       onChange={(e) => {
+//         setClientSearch(e.target.value);
+//         setShowClientDropdown(true);
+//       }}
+//       className="w-full pl-9 pr-16 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//     />
 
-//             <div className="space-y-1">
-//               <label className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-1">
-//                 <Calendar size={12} /> LOA Date *
-//               </label>
-//               <input
-//                 type="date"
-//                 name="loa_date"
-//                 value={form.loa_date}
-//                 onChange={handleChange}
-//                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//                 required
-//               />
-//             </div>
+//     {/* Search Icon */}
+//     {/* <Search className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400" size={14} /> */}
 
-//             <div className="space-y-1">
-//               <label className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-1">
-//                 <Calendar size={12} /> Project Completion/Deadline Date *
-//               </label>
-//               <input
-//                 type="date"
-//                 name="completion_date"
-//                 value={form.completion_date}
-//                 onChange={handleChange}
-//                 className="w-full px-3 py-2.5 md:py-3 text-sm md:text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
-//                 required
-//               />
+  
+//     <button
+//       type="button"
+//       onClick={(e) => {
+//         e.stopPropagation();
+//         setShowAddClientModal(true);
+//       }}
+//       className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center"
+//     >
+//       <Plus size={14} />
+//     </button>
+
+    
+//     {showClientDropdown && (
+//       <div className="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+
+//         {(clientSearch
+//           ? clients.filter((c) =>
+//               c.name?.toLowerCase().includes(clientSearch.toLowerCase())
+//             )
+//           : clients
+//         ).length > 0 ? (
+
+//           (clientSearch
+//             ? clients.filter((c) =>
+//                 c.name?.toLowerCase().includes(clientSearch.toLowerCase())
+//               )
+//             : clients
+//           ).map((client) => (
+//             <div
+//               key={client.id}
+//               onClick={(e) => {
+//                 e.stopPropagation();
+
+//                 setForm({
+//                   ...form,
+//                   client: client.id   // ✅ store ID
+//                 });
+
+//                 setClientSearch(client.name); // ✅ show name
+//                 setShowClientDropdown(false);
+//               }}
+//               className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+//             >
+//               {client.name}   {/* ✅ FIXED */}
 //             </div>
+//           ))
+
+//         ) : (
+//           <div className="px-3 py-2 text-gray-400 text-sm">
+//             No clients found
 //           </div>
+//         )}
+//       </div>
+//     )}
+//   </div>
+// </div>
+//   </div>
+// </motion.div>
 
-//           {/* Mobile Navigation Buttons */}
-//           {isMobile && (
-//             <div className="flex justify-between mt-6">
-//               <button
-//                 type="button"
-//                 onClick={prevStep}
-//                 className="bg-gray-600 text-white px-6 py-2.5 rounded-xl hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm"
-//               >
-//                 <ChevronLeft size={16} />
-//                 Previous
-//               </button>
-//               <button
-//                 type="button"
-//                 onClick={nextStep}
-//                 className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
-//               >
-//                 Next: Activities
-//                 <ChevronRight size={16} />
-//               </button>
-//             </div>
-//           )}
-//         </motion.div>
+//        {/* Step 2: Project Specifications & Dates */}
+// <motion.div
+//   initial={false}
+//   animate={{
+//     display: !isMobile || currentStep === 2 ? "block" : "none",
+//     opacity: !isMobile || currentStep === 2 ? 1 : 0
+//   }}
+//   className="bg-white rounded-xl md:rounded-3xl shadow-lg md:shadow-2xl p-4 md:p-8 border border-gray-100"
+// >
+//   <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+//     <div className="w-1 h-6 bg-green-600 rounded-full"></div>
+//     <span>Project Specifications & Dates</span>
+//     {isMobile && <span className="text-xs text-gray-500 ml-auto">Step 2/3</span>}
+//   </h3>
 
-//         {/* Step 3: Activities */}
+//   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+//     {/* Total Length */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Total Length *</label>
+//       <div className="relative">
+//         <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+//         <input
+//           type="number"
+//           name="total_length"
+//           step="0.01"
+//           value={form.total_length}
+//           onChange={handleChange}
+//           className="w-full pl-9 pr-14 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         />
+//         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">km</span>
+//       </div>
+//     </div>
+
+//     {/* Workorder Cost */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Workorder Cost</label>
+//       <div className="relative">
+//         <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+//         <input
+//           type="number"
+//           name="workorder_cost"
+//           value={form.workorder_cost}
+//           onChange={handleChange}
+//           className="w-full pl-9 pr-16 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         />
+//         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">Lakhs</span>
+//       </div>
+//     </div>
+
+//     {/* GST Checkbox - FIXED */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500">Tax Option</label>
+
+//       <div
+//         onClick={handleGstTypeChange}
+//         className={`h-11 flex items-center justify-between px-4 border rounded-lg cursor-pointer transition-all
+//           ${form.gst_type === "include"
+//             ? "border-blue-500 bg-blue-50"
+//             : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+//           }`}
+//       >
+//         <span className="text-sm text-gray-700 font-medium">
+//           Including GST
+//         </span>
+
+//         <input
+//           type="checkbox"
+//           checked={form.gst_type === "include"}
+//           readOnly
+//           className="w-5 h-5 text-blue-600 pointer-events-none"
+//         />
+//       </div>
+//     </div>
+
+//     {/* Director Proposal Date */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500 flex items-center gap-1">
+//         <Calendar size={12} /> Director Proposal Date *
+//       </label>
+//       <input
+//         type="date"
+//         name="director_proposal_date"
+//         value={form.director_proposal_date}
+//         onChange={handleChange}
+//         className="w-full px-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         required
+//       />
+//     </div>
+
+//     {/* Project Confirmation Date */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500 flex items-center gap-1">
+//         <Calendar size={12} /> Project Confirmation Date *
+//       </label>
+//       <input
+//         type="date"
+//         name="project_confirmation_date"
+//         value={form.project_confirmation_date}
+//         onChange={handleChange}
+//         className="w-full px-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         required
+//       />
+//     </div>
+
+//     {/* LOA Date */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500 flex items-center gap-1">
+//         <Calendar size={12} /> LOA Date *
+//       </label>
+//       <input
+//         type="date"
+//         name="loa_date"
+//         value={form.loa_date}
+//         onChange={handleChange}
+//         className="w-full px-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         required
+//       />
+//     </div>
+
+//     {/* Completion Date */}
+//     <div className="flex flex-col gap-1">
+//       <label className="text-xs text-gray-500 flex items-center gap-1">
+//         <Calendar size={12} /> Completion Date *
+//       </label>
+//       <input
+//         type="date"
+//         name="completion_date"
+//         value={form.completion_date}
+//         onChange={handleChange}
+//         className="w-full px-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+//         required
+//       />
+//     </div>
+
+//   </div>
+
+//   {/* Mobile Navigation */}
+//   {isMobile && (
+//     <div className="flex justify-between mt-6">
+//       <button
+//         type="button"
+//         onClick={prevStep}
+//         className="bg-gray-600 text-white px-6 py-2.5 rounded-xl hover:bg-gray-700 flex items-center gap-2 text-sm"
+//       >
+//         <ChevronLeft size={16} />
+//         Previous
+//       </button>
+
+//       <button
+//         type="button"
+//         onClick={nextStep}
+//         className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 flex items-center gap-2 text-sm"
+//       >
+//         Next: Activities
+//         <ChevronRight size={16} />
+//       </button>
+//     </div>
+//   )}
+// </motion.div>
+
+//         {/* Step 3: Activities - FULL ORIGINAL CODE PRESERVED */}
 //         <motion.div
 //           initial={false}
 //           animate={{
@@ -1575,7 +1591,6 @@
 //             </button>
 //           </div>
 
-//           {/* Activity Weightage Summary */}
 //           {selectedActivities.length > 0 && (
 //             <div className="mb-4 p-3 bg-blue-50 rounded-xl">
 //               <div className="flex items-center justify-between">
@@ -1587,7 +1602,6 @@
 //             </div>
 //           )}
 
-//           {/* Activity Selection Grid */}
 //           {loading ? (
 //             <div className="text-center py-8">
 //               <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
@@ -1608,7 +1622,6 @@
 //                       onClick={() => {
 //                         if (isSelected) {
 //                           setSelectedActivities(prev => prev.filter((a) => a !== activity.name));
-//                           // Clean up related state
 //                           const newWeightages = { ...activityWeightages };
 //                           delete newWeightages[activity.name];
 //                           setActivityWeightages(newWeightages);
@@ -1622,7 +1635,6 @@
 //                           setSelectedSubActivities(newSubSelections);
 //                         } else {
 //                           setSelectedActivities(prev => [...prev, activity.name]);
-//                           // Initialize with all sub-activities selected by default
 //                           const allSubs = activity.subActivities.map(sub => sub.name);
 //                           setSelectedSubActivities(prev => ({
 //                             ...prev,
@@ -1684,7 +1696,6 @@
 //             </div>
 //           )}
 
-//           {/* Selected Activities with Configuration */}
 //           <AnimatePresence>
 //             {selectedActivities.length > 0 && (
 //               <motion.div
@@ -1710,7 +1721,6 @@
 //                       layout
 //                       className="border border-gray-200 rounded-xl md:rounded-2xl overflow-hidden bg-gray-50"
 //                     >
-//                       {/* Activity Header */}
 //                       <div
 //                         onClick={() => setExpandedActivity(isExpanded ? null : actName)}
 //                         className="flex items-center justify-between p-3 md:p-4 cursor-pointer hover:bg-gray-100 transition-colors"
@@ -1740,7 +1750,6 @@
 //                         </div>
 //                       </div>
 
-//                       {/* Expanded Content */}
 //                       <AnimatePresence>
 //                         {isExpanded && (
 //                           <motion.div
@@ -1749,7 +1758,6 @@
 //                             exit={{ height: 0, opacity: 0 }}
 //                             className="border-t border-gray-200 bg-white p-3 md:p-4"
 //                           >
-//                             {/* Activity Weightage */}
 //                             <div className="mb-3 md:mb-4">
 //                               <label className="block text-xs font-medium text-gray-600 mb-1">
 //                                 Activity Weightage (% of total project) *
@@ -1769,7 +1777,6 @@
 //                               </div>
 //                             </div>
 
-//                             {/* Activity Dates */}
 //                             <div className="grid grid-cols-2 gap-2 md:gap-3 mb-3 md:mb-4">
 //                               <div className="space-y-1">
 //                                 <label className="text-xs font-medium text-gray-600">Start Date *</label>
@@ -1791,7 +1798,6 @@
 //                               </div>
 //                             </div>
 
-//                             {/* Sub-activities Selection and Configuration */}
 //                             <div className="flex justify-between items-center mb-2">
 //                               <h6 className="font-medium text-gray-700 text-xs md:text-sm">Sub-activities:</h6>
 //                               <button
@@ -1876,8 +1882,8 @@
 //                                               type="number"
 //                                               min="0"
 //                                               step="0.01"
-//                                               value={subActivityPlannedQtys[(key + "_" + "subpayment")] || ''}
-//                                               onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_" + "subpayment"), e.target.value)}
+//                                               value={subActivityPlannedQtys[(key + "_subpayment")] || ''}
+//                                               onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_subpayment"), e.target.value)}
 //                                               className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
 //                                               placeholder="Enter payment in %"
 //                                             />
@@ -1888,22 +1894,22 @@
 //                                               type="number"
 //                                               min="0"
 //                                               step="0.01"
-//                                               value={subActivityPlannedQtys[(key + "_" + "approvalpayment")] || ''}
-//                                               onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_" + "approvalpayment"), e.target.value)}
+//                                               value={subActivityPlannedQtys[(key + "_approvalpayment")] || ''}
+//                                               onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_approvalpayment"), e.target.value)}
 //                                               className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
 //                                               placeholder="Enter payment in %"
 //                                             />
 //                                           </div>
 
-//                                           <div className="grid grid-cols-2 gap-2">
+//                                           <div className="grid grid-cols-2 gap-2 col-span-3">
 //                                             <div>
 //                                               <label className="block text-[10px] text-gray-500 mb-1">Chainage Start</label>
 //                                               <input
 //                                                 type="number"
 //                                                 min="0"
 //                                                 step="0.01"
-//                                                 value={subActivityPlannedQtys[(key + "_" + "chainagestart")] || ''}
-//                                                 onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_" + "chainagestart"), e.target.value)}
+//                                                 value={subActivityPlannedQtys[(key + "_chainagestart")] || ''}
+//                                                 onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_chainagestart"), e.target.value)}
 //                                                 className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
 //                                                 placeholder="001"
 //                                               />
@@ -1914,8 +1920,8 @@
 //                                                 type="number"
 //                                                 min="0"
 //                                                 step="0.01"
-//                                                 value={subActivityPlannedQtys[(key + "_" + "chainageend")] || ''}
-//                                                 onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_" + "chainageend"), e.target.value)}
+//                                                 value={subActivityPlannedQtys[(key + "_chainageend")] || ''}
+//                                                 onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_chainageend"), e.target.value)}
 //                                                 className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
 //                                                 placeholder="802"
 //                                               />
@@ -1923,7 +1929,7 @@
 //                                           </div>
 
 //                                           {currentUnit === "status" && (
-//                                             <div className="col-span-2">
+//                                             <div className="col-span-3">
 //                                               <div className="text-[10px] text-blue-600 bg-blue-50 p-1 rounded flex items-center gap-1">
 //                                                 <Info size={10} />
 //                                                 Status-based - no quantity needed
@@ -1934,8 +1940,8 @@
 //                                         <div className="ml-4 py-2">
 //                                           <label className="block text-[10px] text-gray-500 mb-1">Description</label>
 //                                           <textarea
-//                                             value={subActivityPlannedQtys[key + "_"+ "description"] || ''}
-//                                             onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_" + "description"), e.target.value)}
+//                                             value={subActivityPlannedQtys[key + "_description"] || ''}
+//                                             onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_description"), e.target.value)}
 //                                             className="w-full px-3 py-2 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 mt-2"
 //                                             placeholder="Enter any specific details or instructions for this sub-activity"
 //                                             rows={2}
@@ -1968,7 +1974,6 @@
 //             </motion.div>
 //           )}
 
-//           {/* Mobile Navigation Buttons */}
 //           {isMobile && (
 //             <div className="flex justify-between mt-6">
 //               <button
@@ -2000,7 +2005,6 @@
 //           )}
 //         </motion.div>
 
-//         {/* Desktop Submit Button */}
 //         {!isMobile && (
 //           <div className="flex justify-center">
 //             <button
@@ -2028,6 +2032,7 @@
 // };
 
 // export default CreateProject;
+
 
 
 
@@ -2080,13 +2085,12 @@ import {
 import { showSnackbar } from "../notifications/notificationSlice";
 import { addProject } from "./projectSlice";
 import { UNIT_OPTIONS } from '../../utils/unitMapping';
-
-// Initial master activities as fallback (will be used if API fails)
+//fallback
 const INITIAL_MASTER_ACTIVITIES = [
-  // {
-  //   name: "Field Team Mobilization Advance",
-  //   subActivities: [{ name: "Mobilization", unit: "status" }],
-  // },
+  {
+  name: "Field Team Mobilization Advance",
+  subActivities: [{ name: "Mobilization", unit: "status" }],
+  },
   {
     name: "Field Activities",
     subActivities: [
@@ -2134,25 +2138,21 @@ const INITIAL_MASTER_ACTIVITIES = [
     ],
   },
 ];
-
 const CreateProject = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
-  // Get data from Redux store
+  
   const {
     companies = [],
-    subCompanies = [],
+    // subCompanies = [],
     sectors = [],
     clients = [],
     activities = [],
     subActivities = [],
     loading
   } = useSelector((state) => state.api);
-
   console.log(useSelector((state) => state.api), "API data from Redux store");
-
-  
+ 
   const [form, setForm] = useState({
     project_code: "",
     project_name: "",
@@ -2163,49 +2163,41 @@ const CreateProject = () => {
     client: "",
     total_length: "",
     workorder_cost: "",
-    gst_type: "exclude", 
+    gst_type: "exclude",
     director_proposal_date: "",
     project_confirmation_date: "",
     loa_date: "",
     completion_date: "",
   });
-
-  
+ 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  
+ 
   const [sectorsList, setSectorsList] = useState([]);
   const [sectorsMap, setSectorsMap] = useState({});
   const [clientsList, setClientsList] = useState([]);
   const [clientsMap, setClientsMap] = useState({});
   const [masterActivities, setMasterActivities] = useState(INITIAL_MASTER_ACTIVITIES);
   const [customActivities, setCustomActivities] = useState([]);
-
-
   const [clientSearch, setClientSearch] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const clientDropdownRef = useRef(null);
-
-  
+ 
   const [showAddSectorModal, setShowAddSectorModal] = useState(false);
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [newSector, setNewSector] = useState("");
   const [newClient, setNewClient] = useState("");
-
-  
+ 
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [activityWeightages, setActivityWeightages] = useState({});
   const [expandedActivity, setExpandedActivity] = useState(null);
   const [activityDates, setActivityDates] = useState({});
-
-  
+ 
   const [selectedSubActivities, setSelectedSubActivities] = useState({});
   const [subActivityPlannedQtys, setSubActivityPlannedQtys] = useState({});
   const [subActivityUnits, setSubActivityUnits] = useState({});
-
-  
+ 
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const [showAddSubActivityModal, setShowAddSubActivityModal] = useState(false);
   const [selectedActivityForSub, setSelectedActivityForSub] = useState(null);
@@ -2214,8 +2206,7 @@ const CreateProject = () => {
     name: "",
     unit: "Km"
   });
-
-  
+ 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -2231,17 +2222,13 @@ const CreateProject = () => {
         console.log("Using fallback data due to API error", error);
       }
     };
-
     fetchInitialData();
-
-    
+   
     return () => {
       dispatch(clearActivities());
       dispatch(clearSubActivities());
     };
   }, [dispatch]);
-
-
   useEffect(() => {
     if (sectors && sectors.length > 0) {
       const map = {};
@@ -2249,15 +2236,13 @@ const CreateProject = () => {
         map[sector.name] = sector.id;
       });
       setSectorsMap(map);
-
       const uniqueSectors = [...new Set(sectors.map(s => s.name))];
       setSectorsList(uniqueSectors);
     } else {
       setSectorsList(["Highway", "Bridge", "Metro", "Railway", "Building"]);
     }
   }, [sectors]);
-
-  
+ 
   useEffect(() => {
     if (clients && clients.length > 0) {
       const map = {};
@@ -2265,7 +2250,6 @@ const CreateProject = () => {
         map[client.name] = client.id;
       });
       setClientsMap(map);
-
       const uniqueClients = [...new Set(clients.map(c => c.name))];
       setClientsList(uniqueClients);
     } else {
@@ -2278,20 +2262,16 @@ const CreateProject = () => {
       ]);
     }
   }, [clients]);
-
-  
+ 
   useEffect(() => {
     console.log("Activities from API:", activities);
     console.log("SubActivities from API:", subActivities);
-
     if (activities && activities.length > 0) {
       const activityMap = new Map();
-
       activities.forEach(activity => {
         const activitySubs = subActivities.filter(
           sub => sub.activity === activity.id
         ) || [];
-
         const formattedActivity = {
           id: activity.id,
           name: activity.activity_name || activity.name,
@@ -2304,13 +2284,11 @@ const CreateProject = () => {
             : [],
           isCustom: false
         };
-
         const existing = activityMap.get(formattedActivity.name);
         if (!existing || existing.subActivities.length < formattedActivity.subActivities.length) {
           activityMap.set(formattedActivity.name, formattedActivity);
         }
       });
-
       const formattedActivities = Array.from(activityMap.values());
       console.log("Formatted activities (no duplicates):", formattedActivities);
       setMasterActivities(formattedActivities);
@@ -2318,33 +2296,27 @@ const CreateProject = () => {
       console.log("Using fallback activities");
     }
   }, [activities, subActivities]);
-
-  
+ 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  
+ 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (clientDropdownRef.current && !clientDropdownRef.current.contains(event.target)) {
         setShowClientDropdown(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   const filteredClients = clientsList.filter(client =>
     client.toLowerCase().includes(clientSearch.toLowerCase())
   );
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({
@@ -2352,14 +2324,12 @@ const CreateProject = () => {
       [name]: value
     }));
   };
-
   const handleGstTypeChange = (e) => {
     setForm(prev => ({
       ...prev,
       gst_type: e.target.checked ? "include" : "exclude"
     }));
   };
-
   const handleActivityDateChange = (activityName, field, value) => {
     setActivityDates(prev => ({
       ...prev,
@@ -2369,7 +2339,6 @@ const CreateProject = () => {
       }
     }));
   };
-
   const handleActivityWeightageChange = (activityName, value) => {
     const numValue = parseFloat(value) || 0;
     setActivityWeightages(prev => ({
@@ -2377,7 +2346,6 @@ const CreateProject = () => {
       [activityName]: numValue
     }));
   };
-
   const handleSubActivitySelection = (activityName, subActivityName, checked) => {
     setSelectedSubActivities(prev => {
       const activitySubs = prev[activityName] || [];
@@ -2394,14 +2362,12 @@ const CreateProject = () => {
       }
     });
   };
-
   const handleSubActivityUnitChange = (activityName, subActivityName, unit) => {
     setSubActivityUnits(prev => ({
       ...prev,
       [`${activityName}_${subActivityName}`]: unit
     }));
   };
-
   const handleSubActivityPlannedQtyChange = (activityName, subActivityName, value) => {
     const numValue = parseFloat(value) || 0;
     setSubActivityPlannedQtys(prev => ({
@@ -2409,8 +2375,7 @@ const CreateProject = () => {
       [`${activityName}_${subActivityName}`]: numValue
     }));
   };
-
-  
+ 
   const handleAddSector = async () => {
     if (!newSector.trim()) {
       dispatch(showSnackbar({ message: "Please enter sector name", type: "error" }));
@@ -2427,30 +2392,31 @@ const CreateProject = () => {
     setNewSector("");
     setShowAddSectorModal(false);
   };
-
-  
+ 
   const handleAddClient = async () => {
     if (!newClient.trim()) {
       dispatch(showSnackbar({ message: "Please enter client name", type: "error" }));
       return;
     }
     try {
-      await dispatch(createClient({ name: newClient })).unwrap();
+      const createdClient = await dispatch(createClient({ name: newClient })).unwrap();
       dispatch(showSnackbar({ message: "Client added successfully", type: "success" }));
+      setClientsList(prev => [...prev, newClient]);
+      setForm(prev => ({ ...prev, client: createdClient.id })); // FIXED: now stores ID from API response
+      setClientSearch(newClient);
+      setNewClient("");
+      setShowAddClientModal(false);
     } catch (error) {
       dispatch(showSnackbar({ message: "Client added locally", type: "success" }));
+      setClientsList(prev => [...prev, newClient]);
+      setClientSearch(newClient);
+      setNewClient("");
+      setShowAddClientModal(false);
     }
-    setClientsList(prev => [...prev, newClient]);
-    setForm(prev => ({ ...prev, client: newClient }));
-    setClientSearch(newClient);
-    setNewClient("");
-    setShowAddClientModal(false);
   };
-
   const handleAddActivity = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (!newActivityName.trim()) {
       dispatch(showSnackbar({
         message: "Please enter activity name",
@@ -2458,27 +2424,22 @@ const CreateProject = () => {
       }));
       return;
     }
-
     const newActivity = {
       name: newActivityName,
       subActivities: [],
       isCustom: true
     };
-
     setCustomActivities(prev => [...prev, newActivity]);
     setNewActivityName("");
     setShowAddActivityModal(false);
-
     dispatch(showSnackbar({
       message: "Activity added successfully",
       type: "success"
     }));
   };
-
   const handleAddSubActivity = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (!newSubActivity.name.trim()) {
       dispatch(showSnackbar({
         message: "Please enter sub-activity name",
@@ -2486,14 +2447,11 @@ const CreateProject = () => {
       }));
       return;
     }
-
     const newSub = {
       name: newSubActivity.name,
       unit: newSubActivity.unit
     };
-
     const masterIndex = masterActivities.findIndex(act => act.name === selectedActivityForSub);
-
     if (masterIndex !== -1) {
       setMasterActivities(prev => prev.map((act, index) => {
         if (index === masterIndex) {
@@ -2515,46 +2473,36 @@ const CreateProject = () => {
         return act;
       }));
     }
-
     setNewSubActivity({ name: "", unit: "Km" });
     setShowAddSubActivityModal(false);
     setSelectedActivityForSub(null);
-
     dispatch(showSnackbar({
       message: "Sub-activity added successfully",
       type: "success"
     }));
   };
-
   const handleDeleteActivity = (activityName) => {
     if (window.confirm(`Are you sure you want to delete activity "${activityName}"?`)) {
       setCustomActivities(prev => prev.filter(a => a.name !== activityName));
       setSelectedActivities(prev => prev.filter(a => a !== activityName));
-
       const newWeightages = { ...activityWeightages };
       delete newWeightages[activityName];
       setActivityWeightages(newWeightages);
-
       const newDates = { ...activityDates };
       delete newDates[activityName];
       setActivityDates(newDates);
-
       const newSubSelections = { ...selectedSubActivities };
       delete newSubSelections[activityName];
       setSelectedSubActivities(newSubSelections);
-
       dispatch(showSnackbar({
         message: "Activity deleted successfully",
         type: "success"
       }));
     }
   };
-
   const handleDeleteSubActivity = (activityName, subActivityName) => {
     if (window.confirm(`Are you sure you want to delete sub-activity "${subActivityName}"?`)) {
-
       const masterIndex = masterActivities.findIndex(act => act.name === activityName);
-
       if (masterIndex !== -1) {
         setMasterActivities(prev => prev.map(act => {
           if (act.name === activityName) {
@@ -2576,34 +2524,28 @@ const CreateProject = () => {
           return act;
         }));
       }
-
       const key = `${activityName}_${subActivityName}`;
       const newUnits = { ...subActivityUnits };
       delete newUnits[key];
       setSubActivityUnits(newUnits);
-
       const newQtys = { ...subActivityPlannedQtys };
       delete newQtys[key];
       setSubActivityPlannedQtys(newQtys);
-
       if (selectedSubActivities[activityName]) {
         setSelectedSubActivities(prev => ({
           ...prev,
           [activityName]: prev[activityName].filter(name => name !== subActivityName)
         }));
       }
-
       dispatch(showSnackbar({
         message: "Sub-activity deleted successfully",
         type: "success"
       }));
     }
   };
-
   const getAllActivities = () => {
     return [...masterActivities, ...customActivities];
   };
-
   const validateDates = () => {
     const dates = [
       { name: "Director Proposal", value: form.director_proposal_date },
@@ -2611,7 +2553,6 @@ const CreateProject = () => {
       { name: "LOA", value: form.loa_date },
       { name: "Completion", value: form.completion_date }
     ];
-
     for (let i = 0; i < dates.length - 1; i++) {
       if (dates[i].value && dates[i + 1].value) {
         if (new Date(dates[i].value) > new Date(dates[i + 1].value)) {
@@ -2625,7 +2566,6 @@ const CreateProject = () => {
     }
     return true;
   };
-
   const validate = () => {
     if (!form.project_code || !form.project_name || !form.short_name) {
       dispatch(showSnackbar({
@@ -2655,7 +2595,6 @@ const CreateProject = () => {
       }));
       return false;
     }
-
     const totalWeightage = Object.values(activityWeightages).reduce((sum, w) => sum + (w || 0), 0);
     if (Math.abs(totalWeightage - 100) > 0.01) {
       dispatch(showSnackbar({
@@ -2664,7 +2603,6 @@ const CreateProject = () => {
       }));
       return false;
     }
-
     for (const activityName of selectedActivities) {
       const dates = activityDates[activityName];
       if (!dates?.startDate || !dates?.endDate) {
@@ -2682,11 +2620,9 @@ const CreateProject = () => {
         return false;
       }
     }
-
     for (const activityName of selectedActivities) {
       const activityObj = getAllActivities().find((a) => a.name === activityName);
       const selectedSubs = selectedSubActivities[activityName] || [];
-
       if (selectedSubs.length === 0) {
         dispatch(showSnackbar({
           message: `Please select at least one sub-activity for ${activityName}`,
@@ -2694,12 +2630,10 @@ const CreateProject = () => {
         }));
         return false;
       }
-
       for (const subName of selectedSubs) {
         const key = `${activityName}_${subName}`;
         const unit = subActivityUnits[key] || activityObj.subActivities.find(s => s.name === subName)?.unit || "Km";
         const plannedQty = subActivityPlannedQtys[key];
-
         if (unit !== "status" && (!plannedQty || plannedQty <= 0)) {
           dispatch(showSnackbar({
             message: `Please enter planned quantity for ${subName} in ${activityName}`,
@@ -2709,36 +2643,27 @@ const CreateProject = () => {
         }
       }
     }
-
     if (!validateDates()) {
       return false;
     }
-
     return true;
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (!validate()) return;
-
     setIsSubmitting(true);
-
     dispatch(showSnackbar({
       message: "Creating project... This may take a moment.",
       type: "info"
     }));
-
     try {
       const allActivities = getAllActivities();
       let createdActivityIds = [];
       const activityIdMap = {};
-
       const activitiesPayload = selectedActivities.map((actName) => {
         const dates = activityDates[actName];
         const weightage = activityWeightages[actName] || 0;
-
         return {
           activity_name: actName,
           weightage: weightage,
@@ -2746,9 +2671,7 @@ const CreateProject = () => {
           end_date: dates.endDate,
         };
       });
-
       let activitiesResponse;
-
       if (typeof createActivitiesBulk !== 'undefined' && createActivitiesBulk) {
         activitiesResponse = await dispatch(createActivitiesBulk(activitiesPayload)).unwrap();
       } else {
@@ -2758,7 +2681,6 @@ const CreateProject = () => {
         );
         activitiesResponse = await Promise.all(activityPromises);
       }
-
       if (Array.isArray(activitiesResponse)) {
         createdActivityIds = activitiesResponse.map(act => act.id);
         selectedActivities.forEach((actName, index) => {
@@ -2768,16 +2690,12 @@ const CreateProject = () => {
         createdActivityIds = [activitiesResponse.id];
         activityIdMap[selectedActivities[0]] = activitiesResponse.id;
       }
-
       const bulkSubPromises = [];
-
       for (const actName of selectedActivities) {
         const activityObj = allActivities.find((a) => a.name === actName);
         const activityId = activityIdMap[actName];
         const selectedSubs = selectedSubActivities[actName] || [];
-
         if (selectedSubs.length === 0) continue;
-
         const subActivitiesPayload = selectedSubs.map((subName) => {
           const subObj = activityObj.subActivities.find(s => s.name === subName);
           const key = `${actName}_${subName}`;
@@ -2788,9 +2706,7 @@ const CreateProject = () => {
           const chainagestart = subActivityPlannedQtys[(key + "_chainagestart")] || 0;
           const chainageend = subActivityPlannedQtys[(key + "_chainageend")] || 0;
           const description = subActivityPlannedQtys[(key + "_description")] || "";
-
           const isStatusBased = unit === 'status';
-
           return {
             subactivity_name: subName,
             unit: isStatusBased ? 'status' : unit,
@@ -2804,7 +2720,6 @@ const CreateProject = () => {
             description: description
           };
         });
-
         if (typeof createSubActivitiesBulk !== 'undefined' && createSubActivitiesBulk) {
           bulkSubPromises.push(dispatch(createSubActivitiesBulk(subActivitiesPayload)).unwrap());
         } else {
@@ -2814,16 +2729,13 @@ const CreateProject = () => {
           bulkSubPromises.push(Promise.all(promises));
         }
       }
-
       if (bulkSubPromises.length > 0) {
         await Promise.all(bulkSubPromises);
         console.log("All sub-activities created successfully");
       }
-
       const selectedCompany = companies.find(c => c.name === form.company);
       const sectorId = sectorsMap[form.sector] || null;
-      const clientId = clientsMap[form.client] || null;
-
+      const clientId = form.client || null; // FIXED: now directly uses ID stored in form.client (no more clientsMap lookup)
       const projectData = {
         project_code: form.project_code,
         project_name: form.project_name,
@@ -2831,6 +2743,7 @@ const CreateProject = () => {
         company: selectedCompany?.id || null,
         sector: sectorId,
         client: clientId,
+        sub_company: undefined, // FIXED: added to satisfy backend (accepts null/blank as per your requirement)
         location: form.location,
         total_length: parseFloat(form.total_length),
         workorder_cost: parseFloat(form.workorder_cost) || 0,
@@ -2841,9 +2754,7 @@ const CreateProject = () => {
         completion_date: form.completion_date,
         activities: createdActivityIds,
       };
-
       const apiResult = await dispatch(createProjectApi(projectData)).unwrap();
-
       dispatch(addProject({
         id: apiResult.id || `temp_${Date.now()}`,
         code: form.project_code,
@@ -2863,7 +2774,6 @@ const CreateProject = () => {
           const activityObj = allActivities.find((a) => a.name === actName);
           const dates = activityDates[actName];
           const selectedSubs = selectedSubActivities[actName] || [];
-
           return {
             id: createdActivityIds[idx] || `a${idx + 1}_${Date.now()}`,
             name: actName,
@@ -2876,7 +2786,6 @@ const CreateProject = () => {
               const key = `${actName}_${subName}`;
               const unit = subActivityUnits[key] || subObj?.unit;
               const plannedQty = subActivityPlannedQtys[key] || 0;
-
               return {
                 id: `s${idx + 1}_${subIdx + 1}_${Date.now()}`,
                 name: subName,
@@ -2892,18 +2801,14 @@ const CreateProject = () => {
           };
         }),
       }));
-
       dispatch(showSnackbar({
         message: "Project created successfully!",
         type: "success"
       }));
-
       navigate("/projects");
     } catch (error) {
       console.error("Project creation error:", error);
-
       let errorMessage = "Failed to create project";
-
       if (error.response?.data) {
         if (typeof error.response.data === 'string') {
           errorMessage = error.response.data;
@@ -2922,7 +2827,6 @@ const CreateProject = () => {
           }
         }
       }
-
       dispatch(showSnackbar({
         message: errorMessage,
         type: "error"
@@ -2931,16 +2835,12 @@ const CreateProject = () => {
       setIsSubmitting(false);
     }
   };
-
   const closeModal = (setter) => {
     setter(false);
   };
-
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 3));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
-
   const totalWeightage = Object.values(activityWeightages).reduce((sum, w) => sum + (w || 0), 0);
-
   const getUnitDisplay = (unit) => {
     if (unit === 'status') return 'Status';
     if (unit === 'Km') return 'Km';
@@ -2948,7 +2848,6 @@ const CreateProject = () => {
     if (unit === 'Percentage') return '%';
     return unit;
   };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -2965,7 +2864,6 @@ const CreateProject = () => {
           </div>
         </div>
       )}
-
       {/* Add Sector Modal */}
       <AnimatePresence>
         {showAddSectorModal && (
@@ -3012,7 +2910,6 @@ const CreateProject = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Add Client Modal */}
       <AnimatePresence>
         {showAddClientModal && (
@@ -3059,7 +2956,6 @@ const CreateProject = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Add Activity Modal - Original */}
       <AnimatePresence>
         {showAddActivityModal && (
@@ -3116,7 +3012,6 @@ const CreateProject = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Add Sub-Activity Modal - Original */}
       <AnimatePresence>
         {showAddSubActivityModal && (
@@ -3145,14 +3040,12 @@ const CreateProject = () => {
                     <X size={20} />
                   </button>
                 </div>
-
                 <div className="space-y-3 md:space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Activity: <span className="text-blue-600">{selectedActivityForSub}</span>
                     </label>
                   </div>
-
                   <input
                     type="text"
                     placeholder="Sub-activity name"
@@ -3161,7 +3054,6 @@ const CreateProject = () => {
                     className="w-full p-2.5 md:p-3 border rounded-xl text-sm md:text-base"
                     required
                   />
-
                   <select
                     value={newSubActivity.unit}
                     onChange={(e) => setNewSubActivity({ ...newSubActivity, unit: e.target.value })}
@@ -3174,7 +3066,6 @@ const CreateProject = () => {
                     ))}
                   </select>
                 </div>
-
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-6">
                   <button
                     type="button"
@@ -3195,7 +3086,6 @@ const CreateProject = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Header with Mobile Step Indicator */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -3207,7 +3097,6 @@ const CreateProject = () => {
             Fields marked with * are required
           </p>
         </div>
-
         {isMobile && (
           <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
             <motion.div
@@ -3219,7 +3108,6 @@ const CreateProject = () => {
           </div>
         )}
       </div>
-
       <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
         {/* Step 1: Basic Information */}
         <motion.div
@@ -3234,9 +3122,7 @@ const CreateProject = () => {
     <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
     <span>Basic Information</span>
   </h3>
-
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-
     {/* Project Code */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500">Project Code *</label>
@@ -3251,7 +3137,6 @@ const CreateProject = () => {
         />
       </div>
     </div>
-
     {/* Project Name */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500">Project Name *</label>
@@ -3266,7 +3151,6 @@ const CreateProject = () => {
         />
       </div>
     </div>
-
     {/* Short Name */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500">Short Name *</label>
@@ -3281,7 +3165,6 @@ const CreateProject = () => {
         />
       </div>
     </div>
-
     {/* Location */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500">Location</label>
@@ -3296,7 +3179,6 @@ const CreateProject = () => {
         />
       </div>
     </div>
-
     {/* Company */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500">Company *</label>
@@ -3317,13 +3199,11 @@ const CreateProject = () => {
         </select>
       </div>
     </div>
-
     {/* Sector (FIXED BUTTON ALIGNMENT) */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500">Sector</label>
       <div className="relative">
         <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-
         <select
           name="sector"
           value={form.sector}
@@ -3335,30 +3215,26 @@ const CreateProject = () => {
             <option key={i} value={sector}>{sector}</option>
           ))}
         </select>
-
         <button
           type="button"
           onClick={() => setShowAddSectorModal(true)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center"
+          className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
         >
           <Plus size={14} />
         </button>
       </div>
     </div>
-
-   
+  
 <div className="flex flex-col gap-1">
   <label className="text-xs text-gray-500">Client</label>
-
   <div
     className="relative"
     ref={clientDropdownRef}
     onClick={(e) => e.stopPropagation()}
   >
-    
+   
     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-
-    
+   
     <input
       type="text"
       value={clientSearch}
@@ -3370,33 +3246,28 @@ const CreateProject = () => {
       }}
       className="w-full pl-9 pr-16 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
     />
-
     {/* Search Icon */}
     {/* <Search className="absolute right-10 top-1/2 -translate-y-1/2 text-gray-400" size={14} /> */}
-
-  
+ 
     <button
       type="button"
       onClick={(e) => {
         e.stopPropagation();
         setShowAddClientModal(true);
       }}
-      className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center"
+      className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
     >
       <Plus size={14} />
     </button>
-
-    
+   
     {showClientDropdown && (
       <div className="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-
         {(clientSearch
           ? clients.filter((c) =>
               c.name?.toLowerCase().includes(clientSearch.toLowerCase())
             )
           : clients
         ).length > 0 ? (
-
           (clientSearch
             ? clients.filter((c) =>
                 c.name?.toLowerCase().includes(clientSearch.toLowerCase())
@@ -3407,21 +3278,18 @@ const CreateProject = () => {
               key={client.id}
               onClick={(e) => {
                 e.stopPropagation();
-
                 setForm({
                   ...form,
-                  client: client.id   // ✅ store ID
+                  client: client.id // ✅ store ID
                 });
-
                 setClientSearch(client.name); // ✅ show name
                 setShowClientDropdown(false);
               }}
               className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
             >
-              {client.name}   {/* ✅ FIXED */}
+              {client.name} {/* ✅ FIXED */}
             </div>
           ))
-
         ) : (
           <div className="px-3 py-2 text-gray-400 text-sm">
             No clients found
@@ -3433,7 +3301,6 @@ const CreateProject = () => {
 </div>
   </div>
 </motion.div>
-
        {/* Step 2: Project Specifications & Dates */}
 <motion.div
   initial={false}
@@ -3448,9 +3315,7 @@ const CreateProject = () => {
     <span>Project Specifications & Dates</span>
     {isMobile && <span className="text-xs text-gray-500 ml-auto">Step 2/3</span>}
   </h3>
-
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-
     {/* Total Length */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500">Total Length *</label>
@@ -3467,7 +3332,6 @@ const CreateProject = () => {
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">km</span>
       </div>
     </div>
-
     {/* Workorder Cost */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500">Workorder Cost</label>
@@ -3483,32 +3347,48 @@ const CreateProject = () => {
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">Lakhs</span>
       </div>
     </div>
-
-    {/* GST Checkbox - FIXED */}
-    <div className="flex flex-col gap-1">
-      <label className="text-xs text-gray-500">Tax Option</label>
-
-      <div
-        onClick={handleGstTypeChange}
-        className={`h-11 flex items-center justify-between px-4 border rounded-lg cursor-pointer transition-all
-          ${form.gst_type === "include"
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-200 bg-gray-50 hover:bg-gray-100"
-          }`}
-      >
-        <span className="text-sm text-gray-700 font-medium">
-          Including GST
+    
+<div className="flex flex-col gap-1">
+  <label className="text-xs text-gray-500">Tax Option</label>
+  <div
+    onClick={() => {
+      setForm(prev => ({
+        ...prev,
+        gst_type: prev.gst_type === "include" ? "exclude" : "include"
+      }));
+    }}
+    className={`h-11 flex items-center justify-between px-4 border rounded-lg cursor-pointer transition-all select-none
+      ${form.gst_type === "include"
+        ? "border-blue-500 bg-blue-50"
+        : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+      }`}
+  >
+    <div className="flex items-center gap-3">
+      <span className="text-sm text-gray-700 font-medium">
+        Including GST
+      </span>
+      {form.gst_type === "include" && (
+        <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full font-medium">
+          INCLUDED
         </span>
-
-        <input
-          type="checkbox"
-          checked={form.gst_type === "include"}
-          readOnly
-          className="w-5 h-5 text-blue-600 pointer-events-none"
-        />
-      </div>
+      )}
     </div>
 
+    {/* Custom Toggle Switch */}
+    <div className={`w-11 h-6 rounded-full p-0.5 transition-all duration-200 flex items-center
+      ${form.gst_type === "include" ? "bg-blue-600" : "bg-gray-300"}`}>
+      <div 
+        className={`w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-200
+          ${form.gst_type === "include" ? "translate-x-5" : "translate-x-0"}`}
+      />
+    </div>
+  </div>
+  <p className="text-[10px] text-gray-500 mt-0.5">
+    {form.gst_type === "include" 
+      ? "GST will be included in the workorder cost" 
+      : "GST will be excluded from the workorder cost"}
+  </p>
+</div>
     {/* Director Proposal Date */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500 flex items-center gap-1">
@@ -3523,7 +3403,6 @@ const CreateProject = () => {
         required
       />
     </div>
-
     {/* Project Confirmation Date */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500 flex items-center gap-1">
@@ -3538,7 +3417,6 @@ const CreateProject = () => {
         required
       />
     </div>
-
     {/* LOA Date */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500 flex items-center gap-1">
@@ -3553,7 +3431,6 @@ const CreateProject = () => {
         required
       />
     </div>
-
     {/* Completion Date */}
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500 flex items-center gap-1">
@@ -3568,9 +3445,7 @@ const CreateProject = () => {
         required
       />
     </div>
-
   </div>
-
   {/* Mobile Navigation */}
   {isMobile && (
     <div className="flex justify-between mt-6">
@@ -3582,7 +3457,6 @@ const CreateProject = () => {
         <ChevronLeft size={16} />
         Previous
       </button>
-
       <button
         type="button"
         onClick={nextStep}
@@ -3594,7 +3468,6 @@ const CreateProject = () => {
     </div>
   )}
 </motion.div>
-
         {/* Step 3: Activities - FULL ORIGINAL CODE PRESERVED */}
         <motion.div
           initial={false}
@@ -3613,7 +3486,6 @@ const CreateProject = () => {
               </span>
               {isMobile && <span className="text-xs text-gray-500 ml-auto">Step 3/3</span>}
             </h3>
-
             <button
               type="button"
               onClick={() => setShowAddActivityModal(true)}
@@ -3623,7 +3495,6 @@ const CreateProject = () => {
               Add New Activity
             </button>
           </div>
-
           {selectedActivities.length > 0 && (
             <div className="mb-4 p-3 bg-blue-50 rounded-xl">
               <div className="flex items-center justify-between">
@@ -3634,7 +3505,6 @@ const CreateProject = () => {
               </div>
             </div>
           )}
-
           {loading ? (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
@@ -3646,7 +3516,6 @@ const CreateProject = () => {
                 const isSelected = selectedActivities.includes(activity.name);
                 const isCustom = activity.isCustom;
                 const uniqueKey = `activity-${index}-${activity.name}`;
-
                 return (
                   <div key={uniqueKey} className="relative group">
                     <motion.div
@@ -3658,11 +3527,9 @@ const CreateProject = () => {
                           const newWeightages = { ...activityWeightages };
                           delete newWeightages[activity.name];
                           setActivityWeightages(newWeightages);
-
                           const newDates = { ...activityDates };
                           delete newDates[activity.name];
                           setActivityDates(newDates);
-
                           const newSubSelections = { ...selectedSubActivities };
                           delete newSubSelections[activity.name];
                           setSelectedSubActivities(newSubSelections);
@@ -3694,7 +3561,6 @@ const CreateProject = () => {
                         </span>
                       )}
                     </motion.div>
-
                     {isCustom && (
                       <button
                         type="button"
@@ -3708,7 +3574,6 @@ const CreateProject = () => {
                         <X size={12} />
                       </button>
                     )}
-
                     {isSelected && (
                       <button
                         type="button"
@@ -3728,7 +3593,6 @@ const CreateProject = () => {
               })}
             </div>
           )}
-
           <AnimatePresence>
             {selectedActivities.length > 0 && (
               <motion.div
@@ -3741,13 +3605,11 @@ const CreateProject = () => {
                   <Calendar size={16} className="text-blue-600" />
                   Configure Activities
                 </h4>
-
                 {selectedActivities.map((actName) => {
                   const activityObj = getAllActivities().find((a) => a.name === actName);
                   const isExpanded = expandedActivity === actName;
                   const isCustom = activityObj?.isCustom;
                   const selectedSubs = selectedSubActivities[actName] || [];
-
                   return (
                     <motion.div
                       key={`config-${actName}`}
@@ -3772,7 +3634,6 @@ const CreateProject = () => {
                             {selectedSubs.length}/{activityObj?.subActivities.length || 0} selected
                           </span>
                         </div>
-
                         <div className="flex items-center gap-2 md:gap-3 ml-2">
                           {activityDates[actName]?.startDate && activityDates[actName]?.endDate && (
                             <div className="text-[10px] md:text-xs text-gray-500 hidden md:block">
@@ -3782,7 +3643,6 @@ const CreateProject = () => {
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
                       </div>
-
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div
@@ -3809,7 +3669,6 @@ const CreateProject = () => {
                                 <Percent size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                               </div>
                             </div>
-
                             <div className="grid grid-cols-2 gap-2 md:gap-3 mb-3 md:mb-4">
                               <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-600">Start Date *</label>
@@ -3830,7 +3689,6 @@ const CreateProject = () => {
                                 />
                               </div>
                             </div>
-
                             <div className="flex justify-between items-center mb-2">
                               <h6 className="font-medium text-gray-700 text-xs md:text-sm">Sub-activities:</h6>
                               <button
@@ -3845,14 +3703,12 @@ const CreateProject = () => {
                                 Add New
                               </button>
                             </div>
-
                             <div className="space-y-2 md:space-y-3">
                               {activityObj?.subActivities.map((sub, subIndex) => {
                                 const isSelected = selectedSubs.includes(sub.name);
                                 const key = `${actName}_${sub.name}`;
                                 const currentUnit = subActivityUnits[key] || sub.unit;
                                 const subUniqueKey = `sub-${actName}-${subIndex}-${sub.name}`;
-
                                 return (
                                   <div key={subUniqueKey} className="bg-gray-50 p-2 md:p-3 rounded-lg border border-gray-200">
                                     <div className="flex items-center justify-between mb-2">
@@ -3875,7 +3731,6 @@ const CreateProject = () => {
                                         </button>
                                       )}
                                     </div>
-
                                     {isSelected && (
                                       <div>
                                         <div className="grid grid-cols-3 gap-2 mt-2 pl-5">
@@ -3893,7 +3748,6 @@ const CreateProject = () => {
                                               ))}
                                             </select>
                                           </div>
-
                                           {currentUnit !== "status" && (
                                             <div>
                                               <label className="block text-[10px] text-gray-500 mb-1">Planned Quantity</label>
@@ -3908,7 +3762,6 @@ const CreateProject = () => {
                                               />
                                             </div>
                                           )}
-
                                           <div>
                                             <label className="block text-[10px] text-gray-500 mb-1">Submission Payment</label>
                                             <input
@@ -3933,7 +3786,6 @@ const CreateProject = () => {
                                               placeholder="Enter payment in %"
                                             />
                                           </div>
-
                                           <div className="grid grid-cols-2 gap-2 col-span-3">
                                             <div>
                                               <label className="block text-[10px] text-gray-500 mb-1">Chainage Start</label>
@@ -3960,7 +3812,6 @@ const CreateProject = () => {
                                               />
                                             </div>
                                           </div>
-
                                           {currentUnit === "status" && (
                                             <div className="col-span-3">
                                               <div className="text-[10px] text-blue-600 bg-blue-50 p-1 rounded flex items-center gap-1">
@@ -3995,7 +3846,6 @@ const CreateProject = () => {
               </motion.div>
             )}
           </AnimatePresence>
-
           {selectedActivities.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -4006,7 +3856,6 @@ const CreateProject = () => {
               <p className="text-xs md:text-sm">Select activities above</p>
             </motion.div>
           )}
-
           {isMobile && (
             <div className="flex justify-between mt-6">
               <button
@@ -4037,7 +3886,6 @@ const CreateProject = () => {
             </div>
           )}
         </motion.div>
-
         {!isMobile && (
           <div className="flex justify-center">
             <button
@@ -4063,5 +3911,4 @@ const CreateProject = () => {
     </motion.div>
   );
 };
-
 export default CreateProject;
