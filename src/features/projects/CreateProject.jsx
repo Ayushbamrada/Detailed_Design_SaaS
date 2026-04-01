@@ -2368,13 +2368,47 @@ const CreateProject = () => {
       [`${activityName}_${subActivityName}`]: unit
     }));
   };
+  // const handleSubActivityPlannedQtyChange = (activityName, subActivityName, value) => {
+  //   const numValue = parseFloat(value) || 0;
+  //   setSubActivityPlannedQtys(prev => ({
+  //     ...prev,
+  //     [`${activityName}_${subActivityName}`]: numValue
+  //   }));
+  // };
+
+
   const handleSubActivityPlannedQtyChange = (activityName, subActivityName, value) => {
+  // Check if this is a description field
+  if (subActivityName.includes('_description') || 
+      subActivityName.includes('_subpayment') || 
+      subActivityName.includes('_approvalpayment') || 
+      subActivityName.includes('_chainagestart') || 
+      subActivityName.includes('_chainageend')) {
+    // For description and payment fields, we might want to keep them as strings or numbers
+    // For description specifically, keep as string
+    if (subActivityName.includes('_description')) {
+      setSubActivityPlannedQtys(prev => ({
+        ...prev,
+        [`${activityName}_${subActivityName}`]: value // Keep as string
+      }));
+    } else {
+      // For other fields (payments, chainage), treat as numbers
+      const numValue = value === '' ? '' : parseFloat(value);
+      const finalValue = isNaN(numValue) ? '' : numValue;
+      setSubActivityPlannedQtys(prev => ({
+        ...prev,
+        [`${activityName}_${subActivityName}`]: finalValue
+      }));
+    }
+  } else {
+    // For quantity fields
     const numValue = parseFloat(value) || 0;
     setSubActivityPlannedQtys(prev => ({
       ...prev,
       [`${activityName}_${subActivityName}`]: numValue
     }));
-  };
+  }
+};
  
   const handleAddSector = async () => {
     if (!newSector.trim()) {
@@ -2402,7 +2436,7 @@ const CreateProject = () => {
       const createdClient = await dispatch(createClient({ name: newClient })).unwrap();
       dispatch(showSnackbar({ message: "Client added successfully", type: "success" }));
       setClientsList(prev => [...prev, newClient]);
-      setForm(prev => ({ ...prev, client: createdClient.id })); // FIXED: now stores ID from API response
+      setForm(prev => ({ ...prev, client: createdClient.id }));
       setClientSearch(newClient);
       setNewClient("");
       setShowAddClientModal(false);
@@ -3280,14 +3314,14 @@ const CreateProject = () => {
                 e.stopPropagation();
                 setForm({
                   ...form,
-                  client: client.id // ✅ store ID
+                  client: client.id 
                 });
-                setClientSearch(client.name); // ✅ show name
+                setClientSearch(client.name); 
                 setShowClientDropdown(false);
               }}
               className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
             >
-              {client.name} {/* ✅ FIXED */}
+              {client.name} 
             </div>
           ))
         ) : (

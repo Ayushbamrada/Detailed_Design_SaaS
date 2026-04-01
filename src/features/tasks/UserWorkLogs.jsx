@@ -606,7 +606,7 @@ const UserWorkLogs = () => {
                   <div className="flex items-center gap-3 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <Building2 size={12} />
-                      Project ID: {sub.project_id}
+                      {/* Project ID: {sub.project_id} */}
                     </span>
                   </div>
                 </div>
@@ -615,12 +615,12 @@ const UserWorkLogs = () => {
                     <p className="text-xs text-gray-500">Time Spent</p>
                     <p className="text-lg font-bold text-blue-600">{formatDuration(sub.total_time_spent)}</p>
                   </div>
-                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  {/* <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-green-500 rounded-full"
                       style={{ width: `${Math.min(100, (parseInt(sub.total_time_spent?.split(':')[0]) || 0) * 10)}%` }}
                     />
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </motion.div>

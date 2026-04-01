@@ -398,7 +398,7 @@ const LogCard = ({ log, onDelete, userRole, isExpanded, onToggle }) => {
               </div>
 
               {/* Related Entities */}
-              {(log.activity_detail || log.subactivity_detail) && (
+              {/* {(log.activity_detail || log.subactivity_detail) && (
                 <div>
                   <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                     Related Entities
@@ -422,7 +422,7 @@ const LogCard = ({ log, onDelete, userRole, isExpanded, onToggle }) => {
                     )}
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           </motion.div>
         )}

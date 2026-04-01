@@ -110,22 +110,22 @@ const Sidebar = () => {
     // },
     
     
-    {
-      name: "Contractors",
-      icon: HardHat,
-      path: "/contractors",
-      roles: ["SUPER_ADMIN", "ADMIN"],
-      badge: null,
-      description: "Manage contractors",
-    },
-    {
-      name: "Extensions",
-      icon: FileClock,
-      path: "/extensions",
-      roles: ["SUPER_ADMIN", "ADMIN"],
-      badge: "pending",
-      description: "Extension requests",
-    },
+    // {
+    //   name: "Contractors",
+    //   icon: HardHat,
+    //   path: "/contractors",
+    //   roles: ["SUPER_ADMIN", "ADMIN"],
+    //   badge: null,
+    //   description: "Manage contractors",
+    // },
+    // {
+    //   name: "Extensions",
+    //   icon: FileClock,
+    //   path: "/extensions",
+    //   roles: ["SUPER_ADMIN", "ADMIN"],
+    //   badge: "pending",
+    //   description: "Extension requests",
+    // },
     // {
     //   name: "Equipment",
     //   icon: Wrench,
@@ -298,7 +298,7 @@ const Sidebar = () => {
                   <span className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent block leading-tight">
                     Detailed Design
                   </span>
-                  <span className="block text-[10px] text-gray-500">Enterprise Suite</span>
+                  {/* <span className="block text-[10px] text-gray-500">Enterprise Suite</span> */}
                 </div>
               </motion.div>
             ) : (

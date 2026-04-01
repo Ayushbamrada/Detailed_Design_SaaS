@@ -1322,104 +1322,201 @@ const UserProjectDetails = () => {
       <AnimatePresence>
         {showTimeLogModal && selectedTask && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowTimeLogModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-2xl p-6 max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-gray-800">Log Work Hours</h3>
-                <button onClick={() => setShowTimeLogModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
-                  <X size={20} />
-                </button>
-              </div>
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  exit={{ opacity: 0 }}
+  className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+  onClick={() => setShowTimeLogModal(false)}
+>
+  <motion.div
+    initial={{ scale: 0.95, y: 30 }}
+    animate={{ scale: 1, y: 0 }}
+    exit={{ scale: 0.95, y: 30 }}
+    className="bg-white rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-gray-100"
+    onClick={(e) => e.stopPropagation()}
+  >
+    {/* Header */}
+    <div className="flex justify-between items-center mb-5">
+      <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+        <Clock size={20} className="text-blue-500" />
+        Log Work Hours
+      </h3>
+      <button
+        onClick={() => setShowTimeLogModal(false)}
+        className="p-2 hover:bg-gray-100 rounded-lg transition"
+      >
+        <X size={18} />
+      </button>
+    </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Task</label>
-                <p className="text-gray-800 font-medium">{selectedTask.subactivity_name}</p>
-                <p className="text-sm text-gray-500">{selectedTask.project_name}</p>
-              </div>
+    {/* Task Info */}
+    <div className="mb-5 p-3 bg-gray-50 rounded-xl border">
+      <p className="font-medium text-gray-800">{selectedTask.subactivity_name}</p>
+      <p className="text-sm text-gray-500">{selectedTask.project_name}</p>
+    </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input
-                  type="date"
-                  value={timeLogData.date}
-                  onChange={(e) => setTimeLogData({ ...timeLogData, date: e.target.value })}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+    {/* Date */}
+    <div className="mb-4">
+      <label className="text-sm font-medium text-gray-700 mb-1 block">Date</label>
+      <input
+        type="date"
+        value={timeLogData.date}
+        onChange={(e) =>
+          setTimeLogData({ ...timeLogData, date: e.target.value })
+        }
+        max={new Date().toISOString().split("T")[0]}
+        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    value={timeLogData.startTime}
-                    onChange={(e) => setTimeLogData({ ...timeLogData, startTime: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                  <input
-                    type="time"
-                    value={timeLogData.endTime}
-                    onChange={(e) => setTimeLogData({ ...timeLogData, endTime: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
+    {/* Time Selection */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+      {/* Start Time */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-1 block">
+          Start Time
+        </label>
+        <select
+          value={timeLogData.startTime}
+          onChange={(e) =>
+            setTimeLogData({ ...timeLogData, startTime: e.target.value })
+          }
+          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select</option>
+          {Array.from({ length: 24 }).map((_, hour) =>
+            ["00", "30"].map((min) => {
+              const time = `${String(hour).padStart(2, "0")}:${min}`;
+              return (
+                <option key={time} value={time}>
+                  {time}
+                </option>
+              );
+            })
+          )}
+        </select>
+      </div>
 
-              {timeLogData.startTime && timeLogData.endTime && (
-                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-blue-700">Total Hours:</span>
-                    <span className="text-lg font-bold text-blue-700">
-                      {calculateHours(timeLogData.startTime, timeLogData.endTime).toFixed(2)} hrs
-                    </span>
-                  </div>
-                </div>
-              )}
+      {/* End Time */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-1 block">
+          End Time
+        </label>
+        <select
+          value={timeLogData.endTime}
+          onChange={(e) =>
+            setTimeLogData({ ...timeLogData, endTime: e.target.value })
+          }
+          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select</option>
+          {Array.from({ length: 24 }).map((_, hour) =>
+            ["00", "30"].map((min) => {
+              const time = `${String(hour).padStart(2, "0")}:${min}`;
+              return (
+                <option key={time} value={time}>
+                  {time}
+                </option>
+              );
+            })
+          )}
+        </select>
+      </div>
+    </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={timeLogData.description}
-                  onChange={(e) => setTimeLogData({ ...timeLogData, description: e.target.value })}
-                  placeholder="Describe the work done..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+    {/* Quick Presets */}
+    <div className="flex flex-wrap gap-2 mb-4">
+      {[
+        { label: "Full Day", start: "09:00", end: "18:00" },
+        { label: "Half Day", start: "09:00", end: "13:00" },
+        { label: "Evening", start: "14:00", end: "18:00" },
+      ].map((preset) => (
+        <button
+          key={preset.label}
+          onClick={() =>
+            setTimeLogData({
+              ...timeLogData,
+              startTime: preset.start,
+              endTime: preset.end,
+            })
+          }
+          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+        >
+          {preset.label}
+        </button>
+      ))}
+    </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowTimeLogModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveTimeLog}
-                  disabled={isSaving}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                >
-                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  Save Record
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+    {/* Validation + Total */}
+    {timeLogData.startTime && timeLogData.endTime && (
+      <div className="mb-4 p-3 rounded-lg border bg-blue-50">
+        {timeLogData.endTime <= timeLogData.startTime ? (
+          <p className="text-red-500 text-sm font-medium">
+            End time must be after start time
+          </p>
+        ) : (
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-blue-700">Total Hours:</span>
+            <span className="text-lg font-semibold text-blue-700">
+              {calculateHours(
+                timeLogData.startTime,
+                timeLogData.endTime
+              ).toFixed(2)}{" "}
+              hrs
+            </span>
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Description */}
+    <div className="mb-5">
+      <label className="text-sm font-medium text-gray-700 mb-1 block">
+        Description
+      </label>
+      <textarea
+        value={timeLogData.description}
+        onChange={(e) =>
+          setTimeLogData({
+            ...timeLogData,
+            description: e.target.value,
+          })
+        }
+        placeholder="Describe what you worked on..."
+        rows={3}
+        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+
+    {/* Actions */}
+    <div className="flex gap-3">
+      <button
+        onClick={() => setShowTimeLogModal(false)}
+        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+      >
+        Cancel
+      </button>
+
+      <button
+        onClick={handleSaveTimeLog}
+        disabled={
+          isSaving ||
+          !timeLogData.startTime ||
+          !timeLogData.endTime ||
+          timeLogData.endTime <= timeLogData.startTime
+        }
+        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition"
+      >
+        {isSaving ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <Save size={16} />
+        )}
+        Save
+      </button>
+    </div>
+  </motion.div>
+</motion.div>
         )}
       </AnimatePresence>
 
@@ -1691,7 +1788,7 @@ const UserProjectDetails = () => {
                                         )}
                                       </div>
 
-                                      {/* Direct Time Log Button - Only for incomplete tasks */}
+                                      
                                       {!isSubCompleted && (
                                         <button
                                           onClick={() => {
@@ -1717,7 +1814,7 @@ const UserProjectDetails = () => {
                                       )}
                                     </div>
 
-                                    {/* Removed Sub-Activity Progress Bar */}
+                                    
                                   </div>
                                 );
                               })}
