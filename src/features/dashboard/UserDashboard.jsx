@@ -19,11 +19,11 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const projects = useSelector((state) => state.projects.projects);
-  
+
   // Memoize assigned projects to prevent unnecessary recalculations
-  const assignedProjects = useMemo(() => 
-    projects.filter(project => 
-      project.assignedUsers?.includes(user?.id) || 
+  const assignedProjects = useMemo(() =>
+    projects.filter(project =>
+      project.assignedUsers?.includes(user?.id) ||
       project.createdBy === user?.id
     ), [projects, user?.id]
   );
@@ -45,11 +45,11 @@ const UserDashboard = () => {
       const completed = assignedProjects.filter(p => p.status === "COMPLETED").length;
       const delayed = assignedProjects.filter(p => p.status === "DELAYED").length;
       const ongoing = total - completed - delayed;
-      
-      const avgProgress = total > 0 
+
+      const avgProgress = total > 0
         ? Math.round(assignedProjects.reduce((sum, p) => sum + (p.progress || 0), 0) / total)
         : 0;
-      
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const sevenDaysFromNow = new Date(today);
@@ -126,11 +126,11 @@ const UserDashboard = () => {
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Calendar size={16} />
-            <span>{new Date().toLocaleDateString('en-IN', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
+            <span>{new Date().toLocaleDateString('en-IN', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
             })}</span>
           </div>
         </div>
@@ -166,11 +166,11 @@ const UserDashboard = () => {
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Calendar size={16} />
-          <span>{new Date().toLocaleDateString('en-IN', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+          <span>{new Date().toLocaleDateString('en-IN', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
           })}</span>
         </div>
       </div>
@@ -357,7 +357,7 @@ const UserDashboard = () => {
           <div className="space-y-4">
             {stats.deadlineNear.map((project) => {
               const daysLeft = getDaysLeft(project.completionDate);
-              
+
               return (
                 <div key={project.id} className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border border-yellow-100">
                   <div>
@@ -394,7 +394,7 @@ const UserDashboard = () => {
         <div className="space-y-4">
           {assignedProjects.slice(0, 5).map((project) => {
             const daysLeft = getDaysLeft(project.completionDate);
-            
+
             return (
               <div
                 key={project.id}
@@ -402,41 +402,38 @@ const UserDashboard = () => {
                 className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer border border-gray-100"
               >
                 <div className="flex items-center gap-3 flex-1">
-                  <div className={`w-2 h-2 rounded-full ${
-                    project.status === "COMPLETED" ? "bg-green-500" :
-                    project.status === "DELAYED" ? "bg-red-500" : 
-                    daysLeft !== null && daysLeft <= 2 ? "bg-orange-500" : "bg-blue-500"
-                  }`} />
+                  <div className={`w-2 h-2 rounded-full ${project.status === "COMPLETED" ? "bg-green-500" :
+                      project.status === "DELAYED" ? "bg-red-500" :
+                        daysLeft !== null && daysLeft <= 2 ? "bg-orange-500" : "bg-blue-500"
+                    }`} />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium text-gray-800">{project.name}</h4>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        project.status === "COMPLETED" ? "bg-green-100 text-green-600" :
-                        project.status === "DELAYED" ? "bg-red-100 text-red-600" :
-                        "bg-blue-100 text-blue-600"
-                      }`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${project.status === "COMPLETED" ? "bg-green-100 text-green-600" :
+                          project.status === "DELAYED" ? "bg-red-100 text-red-600" :
+                            "bg-blue-100 text-blue-600"
+                        }`}>
                         {project.status}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500">Code: {project.code}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-700">
                       {project.progress}%
                     </p>
                     {project.status !== "COMPLETED" && daysLeft !== null && (
-                      <p className={`text-xs ${
-                        daysLeft < 0 ? "text-red-600" :
-                        daysLeft === 0 ? "text-orange-600" :
-                        daysLeft <= 2 ? "text-orange-500" :
-                        "text-gray-400"
-                      }`}>
-                        {daysLeft < 0 ? "Overdue" : 
-                         daysLeft === 0 ? "Due today" :
-                         `${daysLeft} days`}
+                      <p className={`text-xs ${daysLeft < 0 ? "text-red-600" :
+                          daysLeft === 0 ? "text-orange-600" :
+                            daysLeft <= 2 ? "text-orange-500" :
+                              "text-gray-400"
+                        }`}>
+                        {daysLeft < 0 ? "Overdue" :
+                          daysLeft === 0 ? "Due today" :
+                            `${daysLeft} days`}
                       </p>
                     )}
                   </div>

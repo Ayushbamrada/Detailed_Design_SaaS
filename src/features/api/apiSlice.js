@@ -3,6 +3,7 @@ import { companyService } from '../../services/companyService';
 import { subCompanyService } from '../../services/subCompanyService';
 import { sectorService } from '../../services/sectorService';
 import { clientService } from '../../services/clientService';
+import { tlService } from '../../services/tlservices';
 import { activityService } from '../../services/activityService';
 import { subActivityService } from '../../services/subActivityService';
 import { projectService } from '../../services/projectService';
@@ -14,6 +15,7 @@ const initialState = {
   subCompanies: [],
   sectors: [],
   clients: [],
+  tls: [],
   activities: [],
   subActivities: [],
   projectWorkSummary: null,
@@ -208,6 +210,20 @@ export const updateActivityProgress = createAsyncThunk(
   }
 );
 
+
+// Tls thunks 
+export const fetchTls = createAsyncThunk(
+  'wfm/ourcompanyuserlessdetail/null/null/',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await tlService.getTls();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 // ============ SUB-ACTIVITY THUNKS ============
 export const fetchSubActivities = createAsyncThunk(
   'api/fetchSubActivities',
@@ -333,12 +349,12 @@ export const deleteProject = createAsyncThunk(
 // Helper function to add unique items to array
 const addUniqueItems = (state, newItems, key = 'id') => {
   if (!newItems) return;
-  
+
   const itemsToAdd = Array.isArray(newItems) ? newItems : [newItems];
-  
+
   itemsToAdd.forEach(newItem => {
     if (!newItem || !newItem[key]) return;
-    
+
     const exists = state.some(existingItem => existingItem[key] === newItem[key]);
     if (!exists) {
       state.push(newItem);
@@ -375,18 +391,18 @@ const apiSlice = createSlice({
   extraReducers: (builder) => {
     builder
 
-    .addCase(fetchProjectWorkSummary.pending, (state) => {
-  state.loading = true;
-  state.error = null;
-})
-.addCase(fetchProjectWorkSummary.fulfilled, (state, action) => {
-  state.loading = false;
-  state.projectWorkSummary = action.payload; // Add this to initialState
-})
-.addCase(fetchProjectWorkSummary.rejected, (state, action) => {
-  state.loading = false;
-  state.error = action.payload;
-})
+      .addCase(fetchProjectWorkSummary.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchProjectWorkSummary.fulfilled, (state, action) => {
+        state.loading = false;
+        state.projectWorkSummary = action.payload; // Add this to initialState
+      })
+      .addCase(fetchProjectWorkSummary.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       // ============ COMPANIES ============
       .addCase(fetchCompanies.pending, (state) => {
         state.loading = true;
@@ -460,6 +476,22 @@ const apiSlice = createSlice({
       .addCase(createClient.fulfilled, (state, action) => {
         addUniqueItems(state.clients, action.payload);
       })
+
+      // Tls
+
+      .addCase(fetchTls.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTls.fulfilled, (state, action) => {
+        state.loading = false;
+        state.tls = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchTls.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
 
       // ============ ACTIVITIES ============
       .addCase(fetchActivities.pending, (state) => {
