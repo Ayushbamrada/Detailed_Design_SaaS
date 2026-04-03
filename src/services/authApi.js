@@ -2,12 +2,13 @@
 import axios from 'axios';
 
 
-const AUTH_BASE_URL = 'https://6mpwdglt-8000.inc1.devtunnels.ms';
+let AUTH_BASE_URL = 'https://6mpwdglt-8000.inc1.devtunnels.ms';
+AUTH_BASE_URL = 'https://ksncfd6v-8007.inc1.devtunnels.ms';
 
 const authApi = axios.create({
   baseURL: AUTH_BASE_URL,
   headers: {
-    'Content-Type': 'multipart/form-data', 
+    'Content-Type': 'multipart/form-data',
   },
 });
 

@@ -19,7 +19,8 @@ import MyTasks from "../features/tasks/MyTasks";
 import UserPickedProjectDetails from "../features/projects/UserPickedProjectDetails";
 import UserWorkLogs from "../features/tasks/UserWorkLogs";
 import ErrorBoundary from "../components/ErrorBoundary";
-
+import TlProjectList from "../features/projects/Tlprojects";
+import SubmittedTasks from "../features/tasks/SubmittedTask";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -28,20 +29,20 @@ export default function AppRoutes() {
 
       <Route
         element={
-          <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "USER"]}>
+          <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "USER", "TL"]}>
             <Layout />
           </ProtectedRoute>
         }
       >
-        
+
         <Route path="/dashboard" element={<DashboardWrapper />} />
 
-        
+
         <Route path="/all-projects" element={<ProjectList />} />
-        
+
         {/*For Users */}
-        <Route 
-          path="/my-tasks" 
+        <Route
+          path="/my-tasks"
           element={
             <ProtectedRoute allowedRoles={["USER"]}>
               <ErrorBoundary
@@ -51,12 +52,12 @@ export default function AppRoutes() {
                 <MyTasks />
               </ErrorBoundary>
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/*For Users (only their own logs) */}
-        <Route 
-          path="/my-work-logs" 
+        <Route
+          path="/my-work-logs"
           element={
             <ProtectedRoute allowedRoles={["USER"]}>
               <ErrorBoundary
@@ -66,7 +67,21 @@ export default function AppRoutes() {
                 <UserWorkLogs />
               </ErrorBoundary>
             </ProtectedRoute>
-          } 
+          }
+        />
+
+        <Route
+          path="/my-work-logs"
+          element={
+            <ProtectedRoute allowedRoles={["USER"]}>
+              <ErrorBoundary
+                title="Work Logs Error"
+                message="We couldn't load your work logs. Please try again."
+              >
+                <UserWorkLogs />
+              </ErrorBoundary>
+            </ProtectedRoute>
+          }
         />
 
         {/*Common*/}
@@ -74,7 +89,7 @@ export default function AppRoutes() {
         <Route path="/projects/:id" element={<ProjectDetails />} />
         <Route path="/projects/:id/extend" element={<ExtensionRequestPage />} />
         <Route path="/projects/:id/logs" element={<ProjectLogs />} />
-        
+
         <Route path="/projects/create" element={
           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
             <CreateProject />
@@ -99,7 +114,7 @@ export default function AppRoutes() {
             <DailyLogs />
           </ProtectedRoute>
         } />
-        
+
         {/* Admin only routes */}
         <Route path="/contractors" element={
           <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
@@ -115,6 +130,20 @@ export default function AppRoutes() {
         <Route path="/my-picked-projects/:id" element={
           <ProtectedRoute allowedRoles={["USER"]}>
             <UserPickedProjectDetails />
+          </ProtectedRoute>
+        } />
+
+
+        {/* {tl routes} */}
+        <Route path="/tl-projects" element={
+          <ProtectedRoute allowedRoles={["TL"]}>
+            <TlProjectList />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/submitted-task" element={
+          <ProtectedRoute allowedRoles={["TL"]}>
+            <SubmittedTasks />
           </ProtectedRoute>
         } />
       </Route>

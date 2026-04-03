@@ -1,11 +1,33 @@
 
 import api from './api';
 
+
+
 export const projectService = {
-  
-  getProjects: async () => {
+
+  // getProjects: async () => {
+  //   try {
+  //     const response = await api.get('/project/');
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('Error fetching projects:', error);
+  //     throw error;
+  //   }
+  // },
+
+  getProjects: async (user) => {
     try {
-      const response = await api.get('/project/');
+      let url;
+      let emp_code = sessionStorage.getItem('emp_code')
+      // 🔥 Role-based API logic
+      if (user?.role === 'TL') {
+        url = `user-assigned-projects/${emp_code}/`;
+      } else {
+        url = '/project/';
+      }
+
+      const response = await api.get(url);
+      console.log(response.data, 'response data')
       return response.data;
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -13,7 +35,7 @@ export const projectService = {
     }
   },
 
-  
+
   getProject: async (projectId) => {
     try {
       const response = await api.get(`/project/${projectId}/`);
@@ -24,7 +46,7 @@ export const projectService = {
     }
   },
 
-  
+
   createProject: async (projectData) => {
     try {
       console.log('Creating project with data:', projectData);
@@ -35,10 +57,10 @@ export const projectService = {
       if (error.response) {
         console.error('Error response data:', error.response.data);
         console.error('Error response status:', error.response.status);
-        
+
         const enhancedError = new Error(
-          error.response.data?.message || 
-          JSON.stringify(error.response.data) || 
+          error.response.data?.message ||
+          JSON.stringify(error.response.data) ||
           'Failed to create project'
         );
         enhancedError.response = error.response;
@@ -54,11 +76,11 @@ export const projectService = {
     }
   },
 
-  
+
   updateProjectProgress: async (projectId, progressData) => {
     try {
       console.log('Updating project progress with PUT:', { projectId, progressData });
-      
+
       const response = await api.put(`/project/${projectId}/`, progressData);
       return response.data;
     } catch (error) {
@@ -67,7 +89,7 @@ export const projectService = {
     }
   },
 
-  
+
   updateProject: async (projectId, projectData) => {
     try {
       const response = await api.put(`/project/${projectId}/`, projectData);

@@ -49,59 +49,7 @@ import {
 import { showSnackbar } from "../notifications/notificationSlice";
 import { addProject } from "./projectSlice";
 import { UNIT_OPTIONS } from '../../utils/unitMapping';
-//fallback
-const INITIAL_MASTER_ACTIVITIES = [
-  {
-    name: "Field Team Mobilization Advance",
-    subActivities: [{ name: "Mobilization", unit: "status" }],
-  },
-  {
-    name: "Field Activities",
-    subActivities: [
-      { name: "Topo Survey", unit: "Km" },
-      { name: "Traffic Survey and Soil Sampling", unit: "Nos." },
-      { name: "Geotech Investigations", unit: "Nos." },
-      { name: "FWD", unit: "Km" },
-    ],
-  },
-  {
-    name: "Design Scope",
-    subActivities: [
-      { name: "TCS", unit: "Nos." },
-      { name: "MCW", unit: "Km" },
-      { name: "Cross Road", unit: "Nos." },
-      { name: "Service Road", unit: "Km" },
-      { name: "Slip Road", unit: "Km" },
-      { name: "Interchange", unit: "Km" },
-      { name: "PDR", unit: "status" },
-      { name: "DBR", unit: "status" },
-      { name: "Drain", unit: "Km" },
-      { name: "Miscellaneous Highway", unit: "Percentage" },
-      { name: "Signage", unit: "Km" },
-      { name: "Junction Box", unit: "Nos." },
-      { name: "Box Culverts", unit: "Nos." },
-      { name: "Pipe Culverts", unit: "Nos." },
-      { name: "FO", unit: "Nos." },
-      { name: "MNB", unit: "Nos." },
-      { name: "MJB", unit: "Nos." },
-      { name: "ROB", unit: "Nos." },
-      { name: "FOB", unit: "Nos." },
-      { name: "VUP", unit: "Nos." },
-      { name: "VOP", unit: "Nos." },
-      { name: "SVUP", unit: "Nos." },
-      { name: "LVUP", unit: "Nos." },
-      { name: "RUB", unit: "Nos." },
-      { name: "PUP", unit: "Nos." },
-      { name: "Tunnel Design", unit: "status" },
-      { name: "Cut and Cover Design", unit: "status" },
-      { name: "Slope Protection", unit: "Km" },
-      { name: "Retaining Wall/Toe/RE wall/Breast Wall/RS wall", unit: "status" },
-      { name: "Miscellaneous Structure", unit: "Percentage" },
-      { name: "Approval from Proof and Safety", unit: "Percentage" },
-      { name: "Approval from Authority", unit: "Percentage" },
-    ],
-  },
-];
+
 const CreateProject = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -147,7 +95,7 @@ const CreateProject = () => {
   const [tlsList, setTlsList] = useState([]);
   const [tlsMap, setTlsMap] = useState({});
   const [clientsMap, setClientsMap] = useState({});
-  const [masterActivities, setMasterActivities] = useState(INITIAL_MASTER_ACTIVITIES);
+  const [masterActivities, setMasterActivities] = useState([]);
   const [customActivities, setCustomActivities] = useState([]);
   const [clientSearch, setClientSearch] = useState("");
   const [tlSearch, setTlSearch] = useState("");
@@ -249,14 +197,6 @@ const CreateProject = () => {
       setClientsMap(map);
       const uniqueClients = [...new Set(clients.map(c => c.name))];
       setClientsList(uniqueClients);
-    } else {
-      setClientsList([
-        "A S Traders", "AGIPL", "Ajay Parkash", "AMAG", "Ambar Infra",
-        "Ambay Infra", "Amit Chopra", "Apco", "Arcons", "Arnac",
-        "BCC", "BRO", "Ceigall", "DCC", "Gawar",
-        "HG Infra", "KCC", "MRG", "PNC", "RKC",
-        "Sadbhav", "SKS Infra", "VRC"
-      ]);
     }
   }, [clients]);
 
@@ -558,11 +498,9 @@ const CreateProject = () => {
       setNewClient("");
       setShowAddClientModal(false);
     } catch (error) {
-      dispatch(showSnackbar({ message: "Client added locally", type: "success" }));
-      setClientsList(prev => [...prev, newClient]);
-      setClientSearch(newClient);
-      setNewClient("");
-      setShowAddClientModal(false);
+
+
+
     }
   };
   const handleAddActivity = async (e) => {
@@ -1148,7 +1086,7 @@ const CreateProject = () => {
                 autoFocus
               />
               <select name="" id=""
-                placeholder="Enter sector name"
+                placeholder="Enter unit"
                 value={newSector.unit}
                 onChange={(e) => setNewSector({ ...newSector, unit: e.target.value })}
                 className="w-full p-3 border rounded-xl text-sm md:text-base mb-4"

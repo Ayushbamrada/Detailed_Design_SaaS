@@ -1048,12 +1048,9 @@ const ProjectDetails = () => {
     return sectorId;
   };
   const getProjectClient = () => {
-    const clientId = project?.client || project?.client_id || project?.department;
-    if (!clientId) return "—";
-    if (typeof clientId === 'string' && clientMap[clientId]) return clientMap[clientId];
-    if (typeof clientId === 'object' && clientId?.name) return clientId.name;
-    if (project?.client_detail?.name) return project.client_detail.name;
-    return clientId;
+
+    if (project?.client_detail?.client_name) return project.client_detail.client_name;
+
   };
   const getProjectTotalLength = () => `${project?.total_length || project?.totalLength || 0} km`;
   const getProjectCost = () => `₹ ${project?.cost || project?.workorder_cost || 0} Lakhs`;
