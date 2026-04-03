@@ -288,16 +288,18 @@ export const updateSubActivityStatus = createAsyncThunk(
 // ============ PROJECT THUNKS ============
 export const fetchProjects = createAsyncThunk(
   'api/fetchProjects',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      const response = await projectService.getProjects();
+      const { auth } = getState();
+      const user = auth.user;
+
+      const response = await projectService.getProjects(user);
       return Array.isArray(response) ? response : [];
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
-
 export const createProject = createAsyncThunk(
   'api/createProject',
   async (projectData, { rejectWithValue }) => {

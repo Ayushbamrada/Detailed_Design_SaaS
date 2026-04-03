@@ -59,7 +59,7 @@ const Sidebar = () => {
       badge: null,
       description: "Overview & Analytics",
     },
-    
+
     // Work Logs - Different for User vs Admin
     // Admin sees all logs, User sees only their own logs
     {
@@ -78,7 +78,7 @@ const Sidebar = () => {
       badge: null,
       description: "My work hours & logs",
     },
-    
+
     // All Projects - For everyone to pick tasks
     {
       name: "All Projects",
@@ -88,7 +88,25 @@ const Sidebar = () => {
       badge: null,
       description: "Browse all projects and pick tasks",
     },
-    
+
+    {
+      name: "My Projects",
+      icon: FolderKanban,
+      path: "/tl-projects",
+      roles: ["TL"],
+      badge: null,
+      description: "My Projects",
+    },
+
+    {
+      name: "Submitted Task",
+      icon: FolderKanban,
+      path: "/submitted-task",
+      roles: ["TL"],
+      badge: null,
+      description: "Submitted Task",
+    },
+
     // My Tasks - For users to manage picked tasks
     {
       name: "My Tasks",
@@ -98,7 +116,7 @@ const Sidebar = () => {
       badge: null,
       description: "View and manage your picked tasks",
     },
-    
+
     // User specific - My Projects
     // {
     //   name: "My Projects",
@@ -108,8 +126,8 @@ const Sidebar = () => {
     //   badge: null,
     //   description: "View my assigned projects",
     // },
-    
-    
+
+
     // {
     //   name: "Contractors",
     //   icon: HardHat,
@@ -142,7 +160,7 @@ const Sidebar = () => {
     //   badge: null,
     //   description: "Material inventory",
     // },
-    
+
     // // Super Admin only
     // {
     //   name: "Analytics",
@@ -173,16 +191,20 @@ const Sidebar = () => {
   const filteredMenu = menuItems.filter((item) => item.roles.includes(user?.role));
 
   // Separate menu sections for better organization
-  const mainMenu = filteredMenu.filter(item => 
-    ["Dashboard", "Daily Logs", "My Work Logs", "All Projects", "My Tasks", "My Projects"].includes(item.name)
+  const mainMenu = filteredMenu.filter(item =>
+    ["Dashboard", "Daily Logs", "My Work Logs", "All Projects", "My Tasks", "My Projects", "Submitted Task"].includes(item.name)
   );
-  
-  const managementMenu = filteredMenu.filter(item => 
+
+  const managementMenu = filteredMenu.filter(item =>
     ["Contractors", "Extensions", "Equipment", "Materials"].includes(item.name)
   );
-  
-  const adminMenu = filteredMenu.filter(item => 
+
+  const adminMenu = filteredMenu.filter(item =>
     ["Analytics", "User Management", "Settings"].includes(item.name)
+  );
+
+  const tLMenu = filteredMenu.filter(item =>
+    ["My Projects", "Submitted Task"].includes(item.name)
   );
 
   const getBadgeColor = (badge) => {
@@ -283,7 +305,7 @@ const Sidebar = () => {
                 className="flex items-center gap-3 min-w-0"
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
-                  <img 
+                  <img
                     src={logo}
                     alt="Logo"
                     className="w-10 h-10 object-contain"
@@ -307,7 +329,7 @@ const Sidebar = () => {
                 animate={{ scale: 1 }}
                 className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center overflow-hidden"
               >
-                <img 
+                <img
                   src={logo}
                   alt="Logo"
                   className="w-10 h-10 object-contain"
@@ -380,6 +402,24 @@ const Sidebar = () => {
                   ))}
                 </div>
               )}
+              {/* {tLMenu.length > 0 && (
+                <div className="space-y-0.5">
+                  {(!desktopCollapsed || isMobile) && (
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-1">
+                      Tl
+                    </p>
+                  )}
+                  {tLMenu.map((item, index) => (
+                    <MenuItem
+                      key={index}
+                      item={item}
+                      desktopCollapsed={desktopCollapsed && !isMobile}
+                      getBadgeColor={getBadgeColor}
+                      isMobile={isMobile}
+                    />
+                  ))}
+                </div>
+              )} */}
             </nav>
           </div>
 
@@ -490,7 +530,7 @@ const MenuItem = ({
   return (
     <NavLink to={item.path}>
       {({ isActive: routeActive }) => (
-        <div 
+        <div
           ref={itemRef}
           className="relative"
           onMouseEnter={handleMouseEnter}

@@ -83,11 +83,15 @@ const DashboardWrapper = () => {
   switch (user.role) {
     case 'USER':
       return <UserDashboard />;
-      
+
     case 'ADMIN':
     case 'SUPER_ADMIN':
       return <Dashboard />;
-      
+
+
+    case 'TL':
+      return <Dashboard />;
+
     default:
       console.error('DashboardWrapper - Unrecognized role:', user.role);
       return <RoleError role={user.role} />;
