@@ -25,7 +25,9 @@ import {
   AlertCircle,
   Percent,
   Edit3,
-  Loader2
+  Loader2,
+  CardSim,
+  IdCard
 } from "lucide-react";
 import {
   fetchCompanies,
@@ -135,8 +137,8 @@ const CreateProject = () => {
     loa_date: "",
     completion_date: "",
     assigned_to: '',
+    clientbranch: "",
   });
-  console.log(form, 'form data')
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,14 +166,24 @@ const CreateProject = () => {
   });
 
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
-  const [newCompany, setNewCompany] = useState("");
+  const [newCompany, setNewCompany] = useState({
+    name: "",
+    gst_no: ""
+  });
   const [showAddSectorModal, setShowAddSectorModal] = useState(false);
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [newSector, setNewSector] = useState({
     name: "",
     unit: ""
   });
-  const [newClient, setNewClient] = useState("");
+  const [newClient, setNewClient] = useState({
+    code: "",
+    client_name: "",
+    contact: "",
+    pan_no: "",
+    status: "active",
+    address: ""
+  });
 
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [activityWeightages, setActivityWeightages] = useState({});
@@ -199,8 +211,31 @@ const CreateProject = () => {
     activityType: 'single'
   });
 
+
+
   // const [activityType, setActivityType] = useState("single");
   const [multiActivities, setMultiActivities] = useState([]);
+
+  const [branches, setBranches] = useState([
+    { name: "", gst: "", state: "", status: "Active" }
+  ]);
+
+  const addBranch = () => {
+    setBranches([...branches, { name: "", gst: "", state: "", status: "Active" }]);
+  };
+
+  const removeBranch = (index) => {
+    setBranches(branches.filter((_, i) => i !== index));
+  };
+
+  const handleBranchChange = (index, field, value) => {
+    const updated = [...branches];
+    updated[index][field] = value;
+    setBranches(updated);
+
+    console.log(branches, newClient);
+
+  };
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -355,9 +390,9 @@ const CreateProject = () => {
     document.addEventListener("mousedown", handleClickTlOutside);
     return () => document.removeEventListener("mousedown", handleClickTlOutside);
   }, []);
-  const filteredClients = clientsList.filter(client =>
-    client.toLowerCase().includes(clientSearch.toLowerCase())
-  );
+  // const filteredClients = clientsList.filter(client =>
+  //   client.toLowerCase().includes(clientSearch.toLowerCase())
+  // );
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({
@@ -453,17 +488,18 @@ const CreateProject = () => {
 
 
   const handleAddCompany = async () => {
-    const trimmedName = newCompany.trim();
+    const trimmedName = newCompany?.name.trim();
+    const trimmedgst = newCompany?.gst_no.trim();
 
     // Check if name is empty
-    if (!trimmedName) {
+    if (!trimmedName || !trimmedgst) {
       dispatch(showSnackbar({ message: "Please enter company name", type: "error" }));
       return;
     }
 
     // Check for duplicate in existing companies list (case-insensitive)
     const isDuplicate = companies.some(
-      company => company.name?.toLowerCase() === trimmedName.toLowerCase()
+      company => company.name?.toLowerCase() === trimmedName.toLowerCase() || company.gst_no?.toLowerCase() === trimmedgst.toLowerCase()
     );
 
     if (isDuplicate) {
@@ -476,16 +512,19 @@ const CreateProject = () => {
 
     try {
       // Try to add via API
-      const result = await dispatch(createCompany({ name: trimmedName })).unwrap();
+      const result = await dispatch(createCompany({ name: trimmedName, gst_no: trimmedgst })).unwrap();
       dispatch(showSnackbar({ message: "Company added successfully!", type: "success" }));
 
       // Refresh companies list
       await dispatch(fetchCompanies());
 
       // Auto-select the newly added company
-      setForm(prev => ({ ...prev, company: trimmedName }));
+      setForm(prev => ({ ...prev, company: trimmedName, gst_no: trimmedgst }));
 
-      setNewCompany("");
+      setNewCompany({
+        name: "",
+        gst_no: ""
+      });
       setShowAddCompanyModal(false);
 
     } catch (error) {
@@ -545,23 +584,47 @@ const CreateProject = () => {
   };
 
   const handleAddClient = async () => {
-    if (!newClient.trim()) {
-      dispatch(showSnackbar({ message: "Please enter client name", type: "error" }));
+    if (!newClient?.code.trim() || !newClient?.client_name.trim() || !newClient?.contact.trim() || !newClient?.pan_no.trim() || !newClient?.address.trim() || !newClient?.status.trim() || !branches[0]?.gst.trim() || !branches[0]?.name.trim() || !branches[0]?.state.trim() || !branches[0]?.status.trim()) {
+      dispatch(showSnackbar({ message: "Please enter all required fields", type: "error" }));
       return;
     }
     try {
-      const createdClient = await dispatch(createClient({ name: newClient })).unwrap();
+      const createdClient = await dispatch(createClient(
+        {
+          "client_name": newClient?.client_name,
+          "address": newClient?.address,
+          "phone": newClient?.contact,
+          "pan_no": newClient?.pan_no,
+          "client_code": newClient?.code,
+          "status": newClient?.status,
+          "branches": branches
+        }
+      )).unwrap();
       dispatch(showSnackbar({ message: "Client added successfully", type: "success" }));
       setClientsList(prev => [...prev, newClient]);
       setForm(prev => ({ ...prev, client: createdClient.id }));
-      setClientSearch(newClient);
-      setNewClient("");
+      setClientSearch(newClient?.client_name);
+      setNewClient({
+        code: "",
+        client_name: "",
+        contact: "",
+        pan_no: "",
+        status: "",
+        address: ""
+      });
       setShowAddClientModal(false);
     } catch (error) {
       dispatch(showSnackbar({ message: "Client added locally", type: "success" }));
-      setClientsList(prev => [...prev, newClient]);
-      setClientSearch(newClient);
-      setNewClient("");
+      setClientsList(prev => [...prev, newClient?.client_name]);
+      setClientSearch(newClient?.client_name);
+      setNewClient({
+        code: "",
+        client_name: "",
+        contact: "",
+        pan_no: "",
+        status: "",
+        address: ""
+      });
       setShowAddClientModal(false);
     }
   };
@@ -996,6 +1059,7 @@ const CreateProject = () => {
         short_name: form.short_name,
         company: selectedCompany?.id || null,
         sector: sectorId,
+        clientbranch: form.clientbranch,
         client: clientId,
         sub_company: undefined,
         location: form.location,
@@ -1021,6 +1085,7 @@ const CreateProject = () => {
         sector: form.sector,
         department: form.client,
         totalLength: form.total_length,
+        clientbranch: form.clientbranch,
         cost: form.workorder_Amount,
         directorProposalDate: form.director_proposal_date,
         projectConfirmationDate: form.project_confirmation_date,
@@ -1199,35 +1264,149 @@ const CreateProject = () => {
             onClick={() => closeModal(setShowAddClientModal)}
           >
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
+              initial={{ scale: 0.9, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-2xl p-6 max-w-md w-full"
+              className="bg-white rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg md:text-xl font-bold mb-4">Add New Client</h3>
-              <input
-                type="text"
-                placeholder="Enter client name"
-                value={newClient}
-                onChange={(e) => setNewClient(e.target.value)}
-                className="w-full p-3 border rounded-xl text-sm md:text-base mb-4"
-                autoFocus
-              />
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+              <h3 className="text-xl font-bold mb-6">Add New Client</h3>
+
+              {/* Company Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Client Code (P0001)"
+                  className="p-3 border rounded-xl"
+                  value={newClient.code}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, "code": e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Client Name"
+                  className="p-3 border rounded-xl"
+                  value={newClient.client_name}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, "client_name": e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="PAN Number"
+                  className="p-3 border rounded-xl"
+                  value={newClient.pan_no}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, "pan_no": e.target.value })}
+                />
+                <input
+                  type="number"
+                  placeholder="Contact Number"
+                  className="p-3 border rounded-xl"
+                  value={newClient.contact}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, "contact": e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Address"
+                  className="p-3 border rounded-xl"
+                  value={newClient.address}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, "address": e.target.value })}
+                />
+                <select className="p-3 border rounded-xl"
+                  value={newClient.status}
+                  onChange={(e) =>
+                    setNewClient({ ...newClient, "status": e.target.value })}>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+              </div>
+
+              {/* Branch Section */}
+              <div className="mt-6">
+                <h4 className="font-semibold mb-3">Branches</h4>
+
+                {branches.map((branch, index) => (
+                  <div
+                    key={index}
+                    className="border rounded-xl p-4 mb-4 bg-gray-50"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Branch Name"
+                        value={branch.name}
+                        onChange={(e) =>
+                          handleBranchChange(index, "name", e.target.value)
+                        }
+                        className="p-2 border rounded-lg"
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="GST Number"
+                        value={branch.gst}
+                        onChange={(e) =>
+                          handleBranchChange(index, "gst", e.target.value)
+                        }
+                        className="p-2 border rounded-lg"
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="State"
+                        value={branch.state}
+                        onChange={(e) =>
+                          handleBranchChange(index, "state", e.target.value)
+                        }
+                        className="p-2 border rounded-lg"
+                      />
+
+                      <select
+                        value={branch.status}
+                        onChange={(e) =>
+                          handleBranchChange(index, "status", e.target.value)
+                        }
+                        className="p-2 border rounded-lg"
+                      >
+                        <option>Active</option>
+                        <option>Inactive</option>
+                      </select>
+                    </div>
+
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={() => removeBranch(index)}
+                        className="text-red-500 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
                 <button
-                  type="button"
+                  onClick={addBranch}
+                  className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  + Add Branch
+                </button>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 mt-6">
+                <button
                   onClick={() => closeModal(setShowAddClientModal)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm md:text-base"
+                  className="px-4 py-2 border rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
                   onClick={handleAddClient}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm md:text-base"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg"
                 >
-                  Add Client
+                  Save Client
                 </button>
               </div>
             </motion.div>
@@ -1257,8 +1436,16 @@ const CreateProject = () => {
               <input
                 type="text"
                 placeholder="Enter company name"
-                value={newCompany}
-                onChange={(e) => setNewCompany(e.target.value)}
+                value={newCompany?.name}
+                onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
+                className="w-full p-3 border rounded-xl text-sm md:text-base mb-4"
+                autoFocus
+              />
+              <input
+                type="text"
+                placeholder="Enter company GST"
+                value={newCompany?.gst_no}
+                onChange={(e) => setNewCompany({ ...newCompany, gst_no: e.target.value })}
                 className="w-full p-3 border rounded-xl text-sm md:text-base mb-4"
                 autoFocus
               />
@@ -1695,6 +1882,22 @@ const CreateProject = () => {
                 </button>
               </div>
             </div>
+            {form.company &&
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Company GST</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    name="location"
+                    disabled="true"
+                    value={(companies.filter((data) => data?.name == form.company)[0]?.gst_no)}
+                    onChange={handleChange}
+                    className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            }
 
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500">Sector</label>
@@ -1755,18 +1958,18 @@ const CreateProject = () => {
                 >
                   <Plus size={14} />
                 </button>
-
+                {console.log(clients, "testing")}
                 {showClientDropdown && (
                   <div className="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {(clientSearch
                       ? clients.filter((c) =>
-                        c.name?.toLowerCase().includes(clientSearch.toLowerCase())
+                        c.client_name?.toLowerCase().includes(clientSearch?.toLowerCase())
                       )
                       : clients
                     ).length > 0 ? (
                       (clientSearch
                         ? clients.filter((c) =>
-                          c.name?.toLowerCase().includes(clientSearch.toLowerCase())
+                          c.client_name?.toLowerCase().includes(clientSearch?.toLowerCase())
                         )
                         : clients
                       ).map((client) => (
@@ -1778,12 +1981,12 @@ const CreateProject = () => {
                               ...form,
                               client: client.id
                             });
-                            setClientSearch(client.name);
+                            setClientSearch(client.client_name);
                             setShowClientDropdown(false);
                           }}
                           className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
                         >
-                          {client.name}
+                          {client.client_name}
                         </div>
                       ))
                     ) : (
@@ -1795,6 +1998,62 @@ const CreateProject = () => {
                 )}
               </div>
             </div>
+
+
+            {form.client &&
+              <>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500">Company PAN</label>
+                  <div className="relative">
+                    <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      name="location"
+                      disabled="true"
+                      value={(clients.filter((data) => data?.id == form.client)[0]?.pan_no)}
+                      onChange={handleChange}
+                      className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500">Branch</label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <select
+                      name="clientbranch"
+                      value={form.clientbranch}
+                      onChange={handleChange}
+                      className="w-full pl-9 pr-10 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 appearance-none"
+                    >
+                      <option value="">Select Branch</option>
+                      {clients.filter((data) => data?.id == form.client)[0]?.branches?.map((branch, i) => (
+                        <option key={i} value={branch?.gst}>{branch?.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </>
+            }
+
+            {
+              form.clientbranch &&
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Company PAN</label>
+                <div className="relative">
+                  <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    name="location"
+                    disabled="true"
+                    value={(clients.filter((data) => data?.id == form.client)[0]?.branches.filter((data) => data.gst == form.clientbranch)[0]?.gst)}
+                    onChange={handleChange}
+                    className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            }
 
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500">Select TL</label>
