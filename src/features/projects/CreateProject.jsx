@@ -1315,14 +1315,17 @@ const CreateProject = () => {
                       </select>
                     </div>
 
-                    <div className="flex justify-end mt-2">
-                      <button
-                        onClick={() => removeBranch(index)}
-                        className="text-red-500 text-sm"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                    {
+                      index > 0 && (
+                        <div className="flex justify-end mt-2">
+                          <button
+                            onClick={() => removeBranch(index)}
+                            className="text-red-500 text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
                   </div>
                 ))}
 
@@ -1383,7 +1386,7 @@ const CreateProject = () => {
               />
               <input
                 type="text"
-                placeholder="Enter company GST"
+                placeholder="Enter company GST No."
                 value={newCompany?.gst_no}
                 onChange={(e) => setNewCompany({ ...newCompany, gst_no: e.target.value })}
                 className="w-full p-3 border rounded-xl text-sm md:text-base mb-4"
@@ -1980,7 +1983,7 @@ const CreateProject = () => {
             {
               form.clientbranch &&
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500">Company PAN</label>
+                <label className="text-xs text-gray-500">Company GST</label>
                 <div className="relative">
                   <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input
@@ -2421,6 +2424,9 @@ const CreateProject = () => {
                   Configure Activities
                 </h4>
                 {selectedActivities.map((actName) => {
+                  console.log(actName, "selected activity", selectedSubActivities[actName], getAllActivities().find((a) => a.name === actName), "selected sub activities");
+
+
                   const activityObj = getAllActivities().find((a) => a.name === actName);
                   const isExpanded = expandedActivity === actName;
                   const isCustom = activityObj?.isCustom;
@@ -2519,177 +2525,6 @@ const CreateProject = () => {
                               </button>
                             </div>
                             <div className="space-y-2 md:space-y-3">
-                              {console.log(activityObj?.subActivities, "subactivity")}
-                              {/* {activityObj?.subActivities.map((sub, subIndex, wholeArray) => {
-
-
-                                const sameNameCount = wholeArray.slice(0, subIndex).filter(s => s.name === sub.name).length;
-
-                                const displayName = sameNameCount > 0 ? `${sub.name} - ${sameNameCount + 1}` : sub.name;
-
-                                const isSelected = selectedSubs.includes(sub.name);
-                                const key = `${actName}_${sub.name}`;
-                                const currentUnit = subActivityUnits[key] || sub.unit;
-                                const subUniqueKey = `sub-${actName}-${subIndex}-${sub.name}`;
-                                return (
-                                  <div key={subUniqueKey} className="bg-gray-50 p-2 md:p-3 rounded-lg border border-gray-200">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="flex items-center gap-2">
-                                        <input
-                                          type="checkbox"
-                                          checked={isSelected}
-                                          onChange={(e) => handleSubActivitySelection(actName, sub.name, e.target.checked)}
-                                          className="w-3 h-3 md:w-4 md:h-4 text-blue-600 rounded focus:ring-blue-500"
-                                        />
-                                        <span className="text-xs md:text-sm font-medium text-gray-700">{displayName}</span>
-                                      </div>
-                                      {isCustom && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteSubActivity(actName, sub.name)}
-                                          className="text-red-500 hover:text-red-700"
-                                        >
-                                          <X size={12} />
-                                        </button>
-                                      )}
-                                    </div>
-                                    {isSelected && (
-                                      <div>
-                                        <div className="grid grid-cols-3 gap-2 mt-2 pl-5">
-                                          <div>
-                                            <label className="block text-[10px] text-gray-500 mb-1">Unit</label>
-                                            <select
-                                              value={currentUnit}
-                                              onChange={(e) => handleSubActivityUnitChange(actName, sub.name, e.target.value)}
-                                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
-                                            >
-                                              {UNIT_OPTIONS.map(option => (
-                                                <option key={option.value} value={option.value}>
-                                                  {option.label}
-                                                </option>
-                                              ))}
-                                            </select>
-                                          </div>
-                                          {currentUnit !== "status" && (
-                                            <div>
-                                              <label className="block text-[10px] text-gray-500 mb-1">Planned Quantity</label>
-                                              <input
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                value={subActivityPlannedQtys[key] || ''}
-                                                onChange={(e) => handleSubActivityPlannedQtyChange(actName, sub.name, e.target.value)}
-                                                className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
-                                                placeholder="Enter qty"
-                                              />
-                                            </div>
-                                          )}
-                                          <div>
-                                            <label className="block text-[10px] text-gray-500 mb-1">Submission Payment</label>
-                                            <input
-                                              type="number"
-                                              min="0"
-                                              step="0.01"
-                                              value={subActivityPlannedQtys[(key + "_subpayment")] || ''}
-                                              onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_subpayment"), e.target.value)}
-                                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
-                                              placeholder="Enter payment in %"
-                                            />
-                                          </div>
-                                          <div>
-                                            <label className="block text-[10px] text-gray-500 mb-1">Approval Payment</label>
-                                            <input
-                                              type="number"
-                                              min="0"
-                                              step="0.01"
-                                              value={subActivityPlannedQtys[(key + "_approvalpayment")] || ''}
-                                              onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_approvalpayment"), e.target.value)}
-                                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
-                                              placeholder="Enter payment in %"
-                                            />
-                                          </div>
-                                          <div>
-                                            <div className="grid grid-cols-1 gap-1 col-span-3">
-                                              {console.log(Object.keys(subActivityPlannedQtys), "ALL KEYS")}
-                                              <div>
-                                                <label className="block text-[10px] text-gray-500 mb-1">Chainage Start</label>
-                                                <input
-                                                  type="number"
-                                                  min="0"
-                                                  step="0.01"
-                                                  value={sub.chainageStart}
-                                                  onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_chainagestart"), e.target.value)}
-                                                  className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500"
-                                                  placeholder="001"
-                                                />
-                                              </div>
-                                           
-                                            </div>
-                                            {currentUnit === "status" && (
-                                              <div className="col-span-3">
-                                                <div className="text-[10px] text-blue-600 bg-blue-50 p-1 rounded flex items-center gap-1">
-                                                  <Info size={10} />
-                                                  Status-based - no quantity needed
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                          <div>
-                                            {(parseFloat(subActivityPlannedQtys[(key + "_subpayment")]) > 0 || parseFloat(subActivityPlannedQtys[(key + "_approvalpayment")]) > 0) && (
-                                              <div className="col-span-1 sm:col-span-2 lg:col-span-3 mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                              
-                                                  {subActivityPlannedQtys[(key + "_subpayment")] > 0 &&
-                                                    <div>
-                                                      <p className="text-[10px] text-gray-500">Submission ({subActivityPlannedQtys[(key + "_subpayment")]}%)</p>
-                                                      <p className="text-sm font-semibold text-blue-600">
-                                                        ₹ {((parseFloat(form.workorder_Amount) * parseFloat(subActivityPlannedQtys[key + "_subpayment"])) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })} Lakhs
-                                                      </p>
-                                                    </div>
-                                                  }
-                                                  {subActivityPlannedQtys[(key + "_approvalpayment")] &&
-                                                    <div>
-                                                      <p className="text-[10px] text-gray-500">Approval  ({subActivityPlannedQtys[(key + "_approvalpayment")]}%)</p>
-                                                      <p className="text-sm font-semibold text-blue-600">
-                                                        ₹ {((parseFloat(form.workorder_Amount) * parseFloat(subActivityPlannedQtys[key + "_approvalpayment"])) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })} Lakhs
-                                                      </p>
-                                                    </div>
-                                                  }
-                                                  <div>
-                                                    <p className="text-[10px] text-gray-500">Total with GST</p>
-                                                    <p className="text-sm font-bold text-green-600">
-                                                      ₹ {calculatedGST.totalWithGST.toLocaleString('en-IN', { minimumFractionDigits: 2 })} Lakhs
-                                                    </p>
-                                                  </div>
-                                                </div>
-                                                <div className="mt-2 pt-2 border-t border-blue-200">
-                                                  <div className="flex justify-between text-xs">
-                                                    <span className="text-gray-500">Total GST Amount:</span>
-                                                    <span className="font-semibold text-purple-600">
-                                                      ₹ {calculatedGST.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })} Lakhs
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <div className="ml-4 py-2">
-                                          <label className="block text-[10px] text-gray-500 mb-1">Description</label>
-                                          <textarea
-                                            value={subActivityPlannedQtys[key + "_description"] || ''}
-                                            onChange={(e) => handleSubActivityPlannedQtyChange(actName, (sub.name + "_description"), e.target.value)}
-                                            className="w-full px-3 py-2 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 mt-2"
-                                            placeholder="Enter any specific details or instructions for this sub-activity"
-                                            rows={2}
-                                          />
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })} */}
-
                               {(() => {
                                 // Pehle saare sub-activities ko group karo naam ke hisaab se
                                 const grouped = {};
@@ -2705,6 +2540,8 @@ const CreateProject = () => {
 
                                 Object.keys(grouped).forEach(name => {
                                   const items = grouped[name];
+                                  console.log(name, grouped, "child_data");
+
 
                                   items.forEach((sub, serialIndex) => {
                                     const displayName = items.length > 1 ? `${sub.name}` : sub.name;
