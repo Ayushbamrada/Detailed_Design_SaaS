@@ -18,6 +18,7 @@ const DevRoleSwitcher = () => {
     { name: 'SUPER_ADMIN', icon: Shield, color: 'purple' },
     { name: 'ADMIN', icon: UserCog, color: 'blue' },
     { name: 'USER', icon: User, color: 'green' },
+    { name: 'TL', icon: User, color: 'yellow' },
   ];
 
   const handleRoleChange = (role) => {
@@ -46,9 +47,8 @@ const DevRoleSwitcher = () => {
             <button
               key={role.name}
               onClick={() => handleRoleChange(role.name)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2 ${
-                user?.role === role.name ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600'
-              }`}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2 ${user?.role === role.name ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-600'
+                }`}
             >
               <role.icon size={16} className={`text-${role.color}-500`} />
               {role.name}
