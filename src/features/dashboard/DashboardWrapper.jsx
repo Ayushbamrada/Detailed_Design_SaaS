@@ -85,7 +85,7 @@ const DashboardWrapper = () => {
       return <UserDashboard />;
 
     case 'ADMIN':
-    case 'SUPER_ADMIN':
+    case 'ACCOUNT':
       return <Dashboard />;
 
 

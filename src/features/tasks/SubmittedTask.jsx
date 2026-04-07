@@ -20,7 +20,7 @@ import {
     AlertCircle,
     Eye
 } from 'lucide-react';
-import { fetchUserWorkSummary, calculateWorkLogStats } from './taskSlice';
+import { fetchUserSubmittedTask, calculateWorkLogStats } from './taskSlice';
 import { useNavigate } from 'react-router-dom';
 import LoadingModal from '../../components/modals/LoadingModal';
 
@@ -28,8 +28,11 @@ const SubmittedTasks = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { user } = useSelector((state) => state.auth);
-    const { userWorkSummary = null, loading = false } = useSelector((state) => state.tasks || {});
-
+    const { userWorkSummary = null,
+        userSubmittedTask
+        , loading = false } = useSelector((state) => state.tasks || {});
+    const tasksState = useSelector((state) => state.tasks);
+    console.log("tasksState:", tasksState);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterProject, setFilterProject] = useState('all');
     const [expandedProjects, setExpandedProjects] = useState({});
@@ -42,7 +45,7 @@ const SubmittedTasks = () => {
     }, [dispatch, user?.id]);
 
     const fetchWorkSummary = async () => {
-        await dispatch(fetchUserWorkSummary(user?.id));
+        await dispatch(fetchUserSubmittedTask(user?.id));
     };
 
     const toggleProjectExpand = (projectId) => {
@@ -101,7 +104,9 @@ const SubmittedTasks = () => {
         );
     }
 
-
+    console.log(
+        userSubmittedTask
+        , 'userworksummary')
     const uniqueProjects = [...new Set((userWorkSummary?.projects || []).map(p => p.project_name))];
 
 
@@ -136,7 +141,7 @@ const SubmittedTasks = () => {
             {/* Header */}
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">My Work Summary</h1>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">My Submitted Task</h1>
                     <p className="text-gray-500">Track your work hours across all projects</p>
                 </div>
                 <button

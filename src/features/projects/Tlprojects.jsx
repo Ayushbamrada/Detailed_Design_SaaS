@@ -210,8 +210,8 @@ const TlProjectList = () => {
     };
 
     // Role-based checks
-    const isSuperAdmin = user?.role === "SUPER_ADMIN";
-    const isAdmin = user?.role === "ADMIN" || isSuperAdmin;
+    const isACCOUNT = user?.role === "ACCOUNT";
+    const isAdmin = user?.role === "ADMIN" || isACCOUNT;
     const isUser = user?.role === "USER";
     const TL = user?.role === "TL";
 
@@ -245,13 +245,13 @@ const TlProjectList = () => {
     };
 
     const getRoleIcon = () => {
-        if (isSuperAdmin) return <Shield size={16} className="text-purple-600" />;
+        if (isACCOUNT) return <Shield size={16} className="text-purple-600" />;
         if (isAdmin) return <UserCog size={16} className="text-blue-600" />;
         return <User size={16} className="text-green-600" />;
     };
 
     const getRoleDisplay = () => {
-        if (isSuperAdmin) return "Super Admin";
+        if (isACCOUNT) return "Account";
         if (isAdmin) return "Admin";
         if (TL) return "TL"
         return "Employee";
@@ -409,7 +409,7 @@ const TlProjectList = () => {
                                 <motion.div
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
-                                    className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${isSuperAdmin ? "bg-purple-100 text-purple-600" :
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${isACCOUNT ? "bg-purple-100 text-purple-600" :
                                         isAdmin ? "bg-blue-100 text-blue-600" :
                                             "bg-green-100 text-green-600"
                                         }`}

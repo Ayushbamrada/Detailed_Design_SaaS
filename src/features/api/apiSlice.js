@@ -285,6 +285,19 @@ export const updateSubActivityStatus = createAsyncThunk(
   }
 );
 
+export const updateSubActivity = createAsyncThunk(
+  "api/updateSubActivity",
+  async ({ id, data }, { rejectWithValue }) => {
+    console.log(id, data, 'slash')
+
+    try {
+      const response = await subActivityService.updateSubActivity(id, data);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
 // ============ PROJECT THUNKS ============
 export const fetchProjects = createAsyncThunk(
   'api/fetchProjects',

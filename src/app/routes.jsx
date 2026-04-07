@@ -29,7 +29,7 @@ export default function AppRoutes() {
 
       <Route
         element={
-          <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "USER", "TL"]}>
+          <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN", "USER", "TL"]}>
             <Layout />
           </ProtectedRoute>
         }
@@ -91,7 +91,7 @@ export default function AppRoutes() {
         <Route path="/projects/:id/logs" element={<ProjectLogs />} />
 
         <Route path="/projects/create" element={
-          <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+          <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
             <CreateProject />
           </ProtectedRoute>
         } />
@@ -110,19 +110,19 @@ export default function AppRoutes() {
 
         {/* Common routes*/}
         <Route path="/daily-logs" element={
-          <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+          <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
             <DailyLogs />
           </ProtectedRoute>
         } />
 
         {/* Admin only routes */}
         <Route path="/contractors" element={
-          <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+          <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
             <ContractorList />
           </ProtectedRoute>
         } />
         <Route path="/extensions" element={
-          <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+          <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
             <ExtensionApproval />
           </ProtectedRoute>
         } />

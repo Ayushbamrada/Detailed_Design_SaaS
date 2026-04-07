@@ -39,7 +39,7 @@
 //             value={role}
 //             onChange={(e) => setRole(e.target.value)}
 //           >
-//             <option value="SUPER_ADMIN">Super Admin</option>
+//             <option value="ACCOUNT">Account</option>
 //             <option value="ADMIN">Admin</option>
 //             <option value="USER">User</option>
 //           </select>
@@ -101,7 +101,7 @@ const Login = () => {
       ...prev,
       [name]: value,
     }));
-    
+
     // Clear field error when user types
     if (errors[name]) {
       setErrors((prev) => ({
@@ -193,9 +193,8 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter your email"
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.email ? 'border-red-500' : 'border-gray-200'
-                  }`}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.email ? 'border-red-500' : 'border-gray-200'
+                    }`}
                   disabled={loading}
                 />
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -219,9 +218,8 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Enter your password"
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.password ? 'border-red-500' : 'border-gray-200'
-                  }`}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? 'border-red-500' : 'border-gray-200'
+                    }`}
                   disabled={loading}
                 />
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

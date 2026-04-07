@@ -15,10 +15,10 @@ const DevRoleSwitcher = () => {
   }
 
   const roles = [
-    { name: 'SUPER_ADMIN', icon: Shield, color: 'purple' },
-    { name: 'ADMIN', icon: UserCog, color: 'blue' },
+    { name: 'ACCOUNT', icon: Shield, color: 'purple' },
+    // { name: 'ADMIN', icon: UserCog, color: 'blue' },
     { name: 'USER', icon: User, color: 'green' },
-    { name: 'TL', icon: User, color: 'yellow' },
+    { name: 'TL', icon: UserCog, color: 'blue' },
   ];
 
   const handleRoleChange = (role) => {

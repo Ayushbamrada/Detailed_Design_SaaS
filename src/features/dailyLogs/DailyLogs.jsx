@@ -2,10 +2,10 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Calendar, 
-  Search, 
-  Filter, 
+import {
+  Calendar,
+  Search,
+  Filter,
   FileText,
   User,
   Building,
@@ -20,11 +20,11 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { 
-  fetchAllLogs, 
-  createLog, 
-  deleteLog, 
-  setLogFilters, 
+import {
+  fetchAllLogs,
+  createLog,
+  deleteLog,
+  setLogFilters,
   resetFilters,
   setPage,
   nextPage,
@@ -38,11 +38,11 @@ import LogCard from "../../components/LogCard";
 const DailyLogs = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+
   const { user } = useSelector((state) => state.auth);
   const { projects = [] } = useSelector((state) => state.projects || { projects: [] });
   const { filteredLogs, loading, pagination, filters, stats, error } = useSelector((state) => state.logs);
-  
+
   // Local state
   const [expandedLogs, setExpandedLogs] = useState({});
   const [showAddLogModal, setShowAddLogModal] = useState(false);
@@ -138,9 +138,9 @@ const DailyLogs = () => {
   };
 
   const handleDeleteLog = async (log) => {
-    if (user?.role !== "SUPER_ADMIN") {
+    if (user?.role !== "ACCOUNT") {
       dispatch(showSnackbar({
-        message: "Only Super Admin can delete logs",
+        message: "Only Account can delete logs",
         type: "error"
       }));
       return;
@@ -169,7 +169,7 @@ const DailyLogs = () => {
 
   const handleExport = () => {
     const dataStr = JSON.stringify(filteredLogs, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
     const exportFileDefaultName = `logs_${filters.date}.json`;
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -184,10 +184,11 @@ const DailyLogs = () => {
     }));
   };
 
-  const hasActiveFilters = filters.eventType !== 'all' || 
-                          filters.projectId !== 'all' || 
-                          filters.search || 
-                          filters.date !== new Date().toISOString().split('T')[0];
+  const hasActiveFilters = filters.eventType !== 'all' ||
+    filters.projectId !== 'all' ||
+    filters.search ||
+    filters.date !== new Date().toISOString().split('T')[0];
+
 
   if (loading && filteredLogs.length === 0) {
     return (
@@ -203,6 +204,7 @@ const DailyLogs = () => {
     );
   }
 
+  console.log(projects, 'projects')
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -267,16 +269,17 @@ const DailyLogs = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-xl font-bold mb-4">Add Manual Log</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Project *</label>
                   <select
                     value={newLog.projectId}
-                    onChange={(e) => setNewLog({...newLog, projectId: e.target.value})}
+                    onChange={(e) => setNewLog({ ...newLog, projectId: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Project</option>
+
                     {projects.map(p => (
                       <option key={p.id} value={p.id}>{p.name} ({p.project_code})</option>
                     ))}
@@ -287,7 +290,7 @@ const DailyLogs = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
                   <select
                     value={newLog.event_type}
-                    onChange={(e) => setNewLog({...newLog, event_type: e.target.value})}
+                    onChange={(e) => setNewLog({ ...newLog, event_type: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="MANUAL_LOG">Manual Log</option>
@@ -301,7 +304,7 @@ const DailyLogs = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                   <textarea
                     value={newLog.message}
-                    onChange={(e) => setNewLog({...newLog, message: e.target.value})}
+                    onChange={(e) => setNewLog({ ...newLog, message: e.target.value })}
                     placeholder="Log message"
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
@@ -341,7 +344,7 @@ const DailyLogs = () => {
             Total: {filteredLogs.length} logs
           </p>
         </div>
-        
+
         <div className="flex gap-2 w-full md:w-auto">
           <button
             onClick={handleRefresh}
@@ -374,7 +377,7 @@ const DailyLogs = () => {
           <p className="text-sm text-gray-500">Total Logs</p>
           <p className="text-2xl font-bold text-gray-800">{filteredLogs.length}</p>
         </div>
-        
+
         <div className="bg-blue-50 rounded-xl p-4 shadow-md border border-blue-100">
           <p className="text-sm text-blue-600">Projects</p>
           <p className="text-2xl font-bold text-blue-700">

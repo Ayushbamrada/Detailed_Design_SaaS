@@ -1,10 +1,10 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
   FileText,
   Calendar,
   User,
@@ -19,7 +19,7 @@ const ExtensionApproval = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { extensionRequests = [], projects } = useSelector((state) => state.projects);
-  
+
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [approvalComments, setApprovalComments] = useState("");
@@ -28,13 +28,13 @@ const ExtensionApproval = () => {
 
 
   const filteredRequests = extensionRequests.filter(req => {
-    if (user?.role === "SUPER_ADMIN") return true;
+    if (user?.role === "ACCOUNT") return true;
     if (user?.role === "ADMIN") return true;
     return false;
   });
 
   const handleApprove = (request) => {
-  
+
     dispatch(showSnackbar({
       message: `Extension for ${request.projectName} approved successfully`,
       type: "success"
@@ -64,7 +64,7 @@ const ExtensionApproval = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch(status) {
+    switch (status) {
       case "PENDING":
         return <span className="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-full text-xs font-semibold flex items-center gap-1">
           <Clock size={12} /> Pending
@@ -130,13 +130,12 @@ const ExtensionApproval = () => {
               key={request.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`bg-white rounded-2xl shadow-xl border-2 overflow-hidden transition-all ${
-                request.status === "PENDING" ? "border-yellow-200" :
-                request.status === "APPROVED" ? "border-green-200" :
-                "border-red-200"
-              }`}
+              className={`bg-white rounded-2xl shadow-xl border-2 overflow-hidden transition-all ${request.status === "PENDING" ? "border-yellow-200" :
+                  request.status === "APPROVED" ? "border-green-200" :
+                    "border-red-200"
+                }`}
             >
-              
+
               <div className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -152,15 +151,14 @@ const ExtensionApproval = () => {
                           {new Date(request.currentDeadline).toLocaleDateString()}
                         </p>
                         {daysLeft !== null && request.status === "PENDING" && (
-                          <p className={`text-xs mt-1 ${
-                            daysLeft < 0 ? "text-red-600" :
-                            daysLeft === 0 ? "text-orange-600" :
-                            daysLeft <= 2 ? "text-orange-500" :
-                            "text-gray-400"
-                          }`}>
+                          <p className={`text-xs mt-1 ${daysLeft < 0 ? "text-red-600" :
+                              daysLeft === 0 ? "text-orange-600" :
+                                daysLeft <= 2 ? "text-orange-500" :
+                                  "text-gray-400"
+                            }`}>
                             {daysLeft < 0 ? "Overdue" :
-                             daysLeft === 0 ? "Due today" :
-                             `${daysLeft} days left`}
+                              daysLeft === 0 ? "Due today" :
+                                `${daysLeft} days left`}
                           </p>
                         )}
                       </div>
@@ -204,7 +202,7 @@ const ExtensionApproval = () => {
                     )}
                   </div>
 
-                 
+
                   {request.status === "PENDING" && (
                     <div className="flex gap-2 ml-4">
                       <button
@@ -286,7 +284,7 @@ const ExtensionApproval = () => {
         })}
       </div>
 
-      
+
       <AnimatePresence>
         {showRejectModal && selectedRequest && (
           <motion.div
@@ -304,7 +302,7 @@ const ExtensionApproval = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-xl font-bold mb-4">Reject Extension Request</h3>
-              
+
               <p className="text-sm text-gray-600 mb-4">
                 Are you sure you want to reject the extension request for <span className="font-semibold">{selectedRequest.projectName}</span>?
               </p>
