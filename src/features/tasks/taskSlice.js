@@ -41,7 +41,7 @@
 //       });
 //     }
 
-    
+
 //     if (project.activities && Array.isArray(project.activities)) {
 //       project.activities.forEach(activityId => {
 //         if (!map.has(activityId)) {
@@ -55,10 +55,10 @@
 //     }
 //   });
 
-  
+
 //   activities.forEach(activity => {
 //     if (activity.id && !map.has(activity.id)) {
-      
+
 //       if (activity.project) {
 //         const project = projects.find(p => p.id === activity.project);
 //         if (project) {
@@ -87,11 +87,11 @@
 //       }
 
 
-      
-//       const response = await api.get(`/activity-timelog/?user=${userUUID}`);
+
+//       const response = await api.get(`/employee-timelog/?user=${userUUID}`);
 //       const logs = response.data.results || response.data;
 
-      
+
 //       const transformedLogs = logs.map(log => ({
 //         id: log.id,
 //         project_id: log.project,
@@ -208,7 +208,7 @@
 //         });
 //       }
 
-      
+
 //       const groupedByProject = userTasks.reduce((acc, task) => {
 //         const projectKey = task.project_id;
 //         if (!acc[projectKey]) {
@@ -359,7 +359,7 @@
 
 //         if (!subActivity) throw new Error('Sub-activity not found');
 
-        
+
 
 //         let hoursWorked = 0;
 //         let workLogEntry = {};
@@ -474,7 +474,7 @@
 //                 note: note || `Worked on ${subActivity.subactivity_name} for ${hoursWorked.toFixed(2)} hours`
 //               };
 
-//               await api.post('/activity-timelog/', timeLogData);
+//               await api.post('/employee-timelog/', timeLogData);
 //             } else {
 //               const startDateTime = `${date}T00:00:00`;
 //               const endDateTime = `${date}T23:59:59`;
@@ -491,7 +491,7 @@
 //                 note: note || 'No work done'
 //               };
 
-//               await api.post('/activity-timelog/', timeLogData);
+//               await api.post('/employee-timelog/', timeLogData);
 //             }
 //           } catch (logError) {
 //             console.error('Time log save failed:', logError.response?.data || logError.message);
@@ -664,7 +664,7 @@
 //   },
 //   extraReducers: (builder) => {
 //     builder
-      
+
 //       .addCase(fetchUserWorkLogs.pending, (state) => {
 //         state.loading = true;
 //         state.error = null;
@@ -687,7 +687,7 @@
 //         state.error = action.payload;
 //       })
 
-      
+
 //       .addCase(fetchUserTasks.pending, (state) => {
 //         state.loading = true;
 //         state.error = null;
@@ -708,7 +708,7 @@
 //         state.error = action.payload;
 //       })
 
-      
+
 //       .addCase(pickTask.pending, (state) => {
 //         state.loading = true;
 //       })
@@ -751,7 +751,7 @@
 //         state.error = action.payload;
 //       })
 
-      
+
 //       .addCase(saveDailyWorkLog.pending, (state) => {
 //         state.updating = true;
 //       })
@@ -774,7 +774,7 @@
 //         state.error = action.payload;
 //       })
 
-      
+
 //       .addCase(updateTaskProgress.pending, (state) => {
 //         state.updating = true;
 //       })
@@ -829,7 +829,7 @@ export const fetchUserWorkLogs = createAsyncThunk(
         return [];
       }
 
-      const response = await api.get(`/activity-timelog/?user=${userUUID}`);
+      const response = await api.get(`/employee-timelog/?user=${userUUID}`);
       const logs = response.data.results || response.data;
 
       const transformedLogs = logs.map(log => ({
@@ -920,10 +920,10 @@ export const saveDailyWorkLog = createAsyncThunk(
         note: note || (status === 'WORKED' ? `Worked on task` : `No work done`)
       };
 
-      const response = await api.post('/activity-timelog/', timeLogData);
-      
-      showSuccess(status === 'WORKED' ? 
-        `Work logged! ${(durationSeconds / 3600).toFixed(2)} hours recorded` : 
+      const response = await api.post('/employee-timelog/', timeLogData);
+
+      showSuccess(status === 'WORKED' ?
+        `Work logged! ${(durationSeconds / 3600).toFixed(2)} hours recorded` :
         'Leave record saved successfully'
       );
 
@@ -951,7 +951,7 @@ export const pickTask = createAsyncThunk(
     // This function is deprecated and will not actually pick tasks
     // It's only here to prevent import errors in existing components
     console.warn('pickTask is deprecated. Users can now log time directly without picking tasks.');
-    
+
     // Return a mock response for backward compatibility
     return {
       id: taskData.subActivityId,
