@@ -242,16 +242,9 @@ const Sidebar = () => {
           fixed top-0 left-0 h-full shadow-2xl z-50
           ${isMobile ? "" : "md:block"}
           overflow-hidden
+          bg-gradient-to-br from-white via-indigo-50/90 to-indigo-100/95
+          dark:from-gray-950 dark:via-slate-900 dark:to-slate-950
         `}
-        style={{
-          background: `linear-gradient(135deg, 
-            #ffffff 0%, 
-            #ffffff 30%,
-            #f8f9ff 50%,
-            #f0f2ff 70%,
-            #e6e9ff 85%,
-            #e0e4fe 100%)`
-        }}
       >
         {/* Decorative Elements */}
         <div className="absolute bottom-0 left-0 w-full h-full pointer-events-none overflow-hidden">
@@ -297,7 +290,7 @@ const Sidebar = () => {
 
         <div className="relative h-full flex flex-col z-10">
           {/* Header with Logo */}
-          <div className="relative flex items-center justify-between px-4 py-4 border-b border-gray-200/50 min-h-[70px]">
+          <div className="relative flex items-center justify-between px-4 py-4 border-b border-gray-200/50 dark:border-gray-700/50 min-h-[70px]">
             {!desktopCollapsed || isMobile ? (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -317,7 +310,7 @@ const Sidebar = () => {
                   />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent block leading-tight">
+                  <span className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent block leading-tight">
                     Detailed Design
                   </span>
                   {/* <span className="block text-[10px] text-gray-500">Enterprise Suite</span> */}
@@ -349,7 +342,7 @@ const Sidebar = () => {
               {mainMenu.length > 0 && (
                 <div className="space-y-0.5">
                   {(!desktopCollapsed || isMobile) && (
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-1">
+                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-1">
                       Main
                     </p>
                   )}
@@ -368,7 +361,7 @@ const Sidebar = () => {
               {managementMenu.length > 0 && (
                 <div className="space-y-0.5">
                   {(!desktopCollapsed || isMobile) && (
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-1">
+                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-1">
                       Management
                     </p>
                   )}
@@ -387,7 +380,7 @@ const Sidebar = () => {
               {adminMenu.length > 0 && (
                 <div className="space-y-0.5">
                   {(!desktopCollapsed || isMobile) && (
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-1">
+                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-1">
                       Administration
                     </p>
                   )}
@@ -428,20 +421,20 @@ const Sidebar = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="relative p-3 border-t border-gray-200/50 bg-white/30 backdrop-blur-sm"
+              className="relative p-3 border-t border-gray-200/50 dark:border-gray-700/50 bg-white/30 dark:bg-slate-900/40 backdrop-blur-sm"
             >
               <div className="flex items-center gap-2">
                 <div className="relative shrink-0">
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
                     {user?.name?.charAt(0)?.toUpperCase() || "U"}
                   </div>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-700 truncate">
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">
                     {user?.name || "User"}
                   </p>
-                  <p className="text-[10px] text-gray-500 flex items-center gap-0.5">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
                     <Shield size={8} />
                     {user?.role || "USER"}
                   </p>
@@ -452,13 +445,13 @@ const Sidebar = () => {
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="relative p-3 border-t border-gray-200/50 bg-white/30 backdrop-blur-sm flex justify-center"
+              className="relative p-3 border-t border-gray-200/50 dark:border-gray-700/50 bg-white/30 dark:bg-slate-900/40 backdrop-blur-sm flex justify-center"
             >
               <div className="relative">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border-2 border-white" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" />
               </div>
             </motion.div>
           )}
@@ -476,11 +469,11 @@ const Sidebar = () => {
             w-7
             h-7
             rounded-full
-            bg-white
-            hover:bg-gray-100
-            border border-gray-200
+            bg-white dark:bg-slate-800
+            hover:bg-gray-100 dark:hover:bg-slate-700
+            border border-gray-200 dark:border-gray-600
             flex items-center justify-center
-            text-gray-600
+            text-gray-600 dark:text-gray-300
             shadow-lg
             transition-all duration-200
             hover:scale-110
@@ -546,7 +539,7 @@ const MenuItem = ({
               transition-all duration-200 group
               ${routeActive || isActive
                 ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
-                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50/50"
+                : "text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-slate-800/80"
               }
             `}
           >

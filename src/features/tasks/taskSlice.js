@@ -88,7 +88,7 @@
 
 
       
-//       const response = await api.get(`/activity-timelog/?user=${userUUID}`);
+//       const response = await api.get(`/employee-timelog/?user=${userUUID}`);
 //       const logs = response.data.results || response.data;
 
       
@@ -474,7 +474,7 @@
 //                 note: note || `Worked on ${subActivity.subactivity_name} for ${hoursWorked.toFixed(2)} hours`
 //               };
 
-//               await api.post('/activity-timelog/', timeLogData);
+//               await api.post('/employee-timelog/', timeLogData);
 //             } else {
 //               const startDateTime = `${date}T00:00:00`;
 //               const endDateTime = `${date}T23:59:59`;
@@ -491,7 +491,7 @@
 //                 note: note || 'No work done'
 //               };
 
-//               await api.post('/activity-timelog/', timeLogData);
+//               await api.post('/employee-timelog/', timeLogData);
 //             }
 //           } catch (logError) {
 //             console.error('Time log save failed:', logError.response?.data || logError.message);
@@ -829,7 +829,7 @@ export const fetchUserWorkLogs = createAsyncThunk(
         return [];
       }
 
-      const response = await api.get(`/activity-timelog/?user=${userUUID}`);
+      const response = await api.get(`/employee-timelog/?user=${userUUID}`);
       const logs = response.data.results || response.data;
 
       const transformedLogs = logs.map(log => ({
@@ -920,7 +920,7 @@ export const saveDailyWorkLog = createAsyncThunk(
         note: note || (status === 'WORKED' ? `Worked on task` : `No work done`)
       };
 
-      const response = await api.post('/activity-timelog/', timeLogData);
+      const response = await api.post('/employee-timelog/', timeLogData);
       
       showSuccess(status === 'WORKED' ? 
         `Work logged! ${(durationSeconds / 3600).toFixed(2)} hours recorded` : 

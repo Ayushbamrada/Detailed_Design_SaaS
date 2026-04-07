@@ -826,7 +826,7 @@ const ProjectDetails = () => {
       { label: "Submission Payment", key: "submission_payment", value: sub.submission_payment || 0, unit: "%", icon: <Percent size={12} /> },
       { label: "Approval Payment", key: "approval_payment", value: sub.approval_payment || 0, unit: "%", icon: <Percent size={12} /> },
       { label: "Chainage Start", key: "chainage_start", value: sub.chainage_start || 0, unit: "km", icon: <Ruler size={12} /> },
-      { label: "Chainage End", key: "chainage_end", value: sub.chainage_end || 0, unit: "km", icon: <Ruler size={12} /> }
+      // { label: "Chainage End", key: "chainage_end", value: sub.chainage_end || 0, unit: "km", icon: <Ruler size={12} /> }
     ];
 
     return (
@@ -1059,11 +1059,11 @@ const ProjectDetails = () => {
     return date ? formatDate(date) : "Not set";
   };
   const getProjectDirectorProposalDate = () => {
-    const date = project?.director_proposal_date || project?.directorProposalDate;
+    const date = project?.loa_date || project?.directorProposalDate;
     return date ? formatDate(date) : "Not set";
   };
   const getProjectConfirmationDate = () => {
-    const date = project?.project_confirmation_date || project?.projectConfirmationDate;
+    const date = project?.completion_date || project?.projectConfirmationDate;
     return date ? formatDate(date) : "Not set";
   };
   const getProjectCompletionDate = () => project?.completion_date || project?.completionDate;
@@ -1085,6 +1085,8 @@ const ProjectDetails = () => {
           <UserDetailsModal userData={selectedUser} onClose={() => setShowUserDetailsModal(false)} />
         )}
       </AnimatePresence>
+
+      {console.log(getProjectActivities(), selectedActivityForExtension, "project_activities")}
 
       {/* Activity Extension Modal */}
       <ActivityExtensionModal
@@ -1236,7 +1238,7 @@ const ProjectDetails = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <input type="number" placeholder="Chainage Start (km)" value={newSubActivity.chainageStart} onChange={(e) => setNewSubActivity({ ...newSubActivity, chainageStart: parseFloat(e.target.value) || 0 })} className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" step="0.01" />
-                    <input type="number" placeholder="Chainage End (km)" value={newSubActivity.chainageEnd} onChange={(e) => setNewSubActivity({ ...newSubActivity, chainageEnd: parseFloat(e.target.value) || 0 })} className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" step="0.01" />
+                    {/* <input type="number" placeholder="Chainage End (km)" value={newSubActivity.chainageEnd} onChange={(e) => setNewSubActivity({ ...newSubActivity, chainageEnd: parseFloat(e.target.value) || 0 })} className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white" min="0" step="0.01" /> */}
                   </div>
                   <textarea placeholder="Description" value={newSubActivity.description} onChange={(e) => setNewSubActivity({ ...newSubActivity, description: e.target.value })} className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500" rows="2" />
                 </div>
@@ -1305,8 +1307,8 @@ const ProjectDetails = () => {
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <h4 className="font-semibold text-sm sm:text-base text-gray-800 mb-2">Key Milestones</h4>
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                    <DetailItem label="Director Proposal" value={getProjectDirectorProposalDate()} />
-                    <DetailItem label="Project Confirmation" value={getProjectConfirmationDate()} />
+                    <DetailItem label="LOA" value={getProjectDirectorProposalDate()} />
+                    <DetailItem label="Completion" value={getProjectConfirmationDate()} />
                   </div>
                 </div>
               </div>
@@ -1437,7 +1439,10 @@ const ProjectDetails = () => {
                             {activity.weightage && <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full">{activity.weightage}%</span>}
                             <div className="flex items-center gap-1 ml-auto">
                               {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
-                                <button onClick={() => { setSelectedActivityForExtension(activity.id); setShowActivityExtensionModal(true); }} className="p-1 text-gray-400 hover:text-blue-600 rounded-lg" title="Extend deadline">
+                                <button onClick={() => {
+                                  setSelectedActivityForExtension(activity);
+                                  setShowActivityExtensionModal(true);
+                                }} className="p-1 text-gray-400 hover:text-blue-600 rounded-lg" title="Extend deadline">
                                   <Calendar size={isMobile ? 14 : 16} />
                                 </button>
                               )}
@@ -1511,6 +1516,7 @@ const ProjectDetails = () => {
                                               <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded-full">Overdue</span>
                                             )}
                                             <div className="flex items-center gap-1 ml-auto">
+                                              {console.log(sub, "user_role")}
                                               {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
                                                 <button
                                                   onClick={() => {
