@@ -47,11 +47,11 @@
 // const ProjectList = () => {
 //   const navigate = useNavigate();
 //   const dispatch = useDispatch();
-  
+
 //   // Get projects and user from Redux store
 //   const { projects = [], loading: apiLoading = false, companies = [], subCompanies = [], sectors = [], clients = [] } = useSelector((state) => state.api || {});
 //   const { user } = useSelector((state) => state.auth);
-  
+
 //   const [searchTerm, setSearchTerm] = useState("");
 //   const [filterStatus, setFilterStatus] = useState("all");
 //   const [sortBy, setSortBy] = useState("deadline");
@@ -112,10 +112,10 @@
 //       setIsInitialLoading(true);
 //       setLoadingMessage("Loading Projects");
 //       setLoadingSubMessage("Fetching project data...");
-      
+
 //       try {
 //         console.log("Loading all data...");
-        
+
 //         // Load ALL data in parallel with Promise.all
 //         await Promise.all([
 //           dispatch(fetchCompanies()).unwrap(),
@@ -124,7 +124,7 @@
 //           dispatch(fetchClients()).unwrap(),
 //           dispatch(fetchProjects()).unwrap()
 //         ]);
-        
+
 //         console.log("All data loaded successfully");
 //       } catch (error) {
 //         console.error("Error loading data:", error);
@@ -145,10 +145,10 @@
 //     setRefreshing(true);
 //     setLoadingMessage("Refreshing Projects");
 //     setLoadingSubMessage("Fetching latest data...");
-    
+
 //     try {
 //       console.log("Refreshing data...");
-      
+
 //       // Load ALL data in parallel
 //       await Promise.all([
 //         dispatch(fetchCompanies()).unwrap(),
@@ -157,7 +157,7 @@
 //         dispatch(fetchClients()).unwrap(),
 //         dispatch(fetchProjects()).unwrap()
 //       ]);
-      
+
 //       console.log("Refresh completed");
 //       dispatch(showSnackbar({
 //         message: "Data refreshed successfully",
@@ -176,15 +176,15 @@
 
 //   const handleDeleteProject = async (projectId, projectName, e) => {
 //     e.stopPropagation();
-    
+
 //     if (!window.confirm(`Are you sure you want to delete project "${projectName}"? This action cannot be undone.`)) {
 //       return;
 //     }
-    
+
 //     setDeleteInProgress(true);
 //     setLoadingMessage("Deleting Project");
 //     setLoadingSubMessage(`Deleting ${projectName}...`);
-    
+
 //     try {
 //       await dispatch(deleteProject(projectId)).unwrap();
 //       dispatch(showSnackbar({
@@ -219,8 +219,8 @@
 //   };
 
 //   // Role-based checks
-//   const isSuperAdmin = user?.role === "SUPER_ADMIN";
-//   const isAdmin = user?.role === "ADMIN" || isSuperAdmin;
+//   const isACCOUNT = user?.role === "ACCOUNT";
+//   const isAdmin = user?.role === "ADMIN" || isACCOUNT;
 //   const isUser = user?.role === "USER";
 
 //   // Helper functions to get display names
@@ -253,13 +253,13 @@
 //   };
 
 //   const getRoleIcon = () => {
-//     if (isSuperAdmin) return <Shield size={16} className="text-purple-600" />;
+//     if (isACCOUNT) return <Shield size={16} className="text-purple-600" />;
 //     if (isAdmin) return <UserCog size={16} className="text-blue-600" />;
 //     return <User size={16} className="text-green-600" />;
 //   };
 
 //   const getRoleDisplay = () => {
-//     if (isSuperAdmin) return "Super Admin";
+//     if (isACCOUNT) return "Account";
 //     if (isAdmin) return "Admin";
 //     return "Employee";
 //   };
@@ -267,9 +267,9 @@
 //   // Filter and sort projects
 //   const filteredProjects = useMemo(() => {
 //     if (!projects || !Array.isArray(projects)) return [];
-    
+
 //     let filtered = [...projects];
-    
+
 //     // Apply search filter
 //     if (searchTerm) {
 //       filtered = filtered.filter(project => {
@@ -279,14 +279,14 @@
 //         return name.includes(term) || code.includes(term);
 //       });
 //     }
-    
+
 //     // Apply status filter
 //     if (filterStatus !== "all") {
 //       filtered = filtered.filter(project => {
 //         const projectStatus = project.status || "ONGOING";
 //         const progress = project.progress || 0;
 //         const daysLeft = getDaysUntilDeadline(project.completion_date || project.completionDate);
-        
+
 //         if (filterStatus === "delayed") return (projectStatus === "DELAYED" || daysLeft < 0) && progress < 100;
 //         if (filterStatus === "critical") return daysLeft <= 2 && daysLeft >= 0 && progress < 100;
 //         if (filterStatus === "ongoing") return projectStatus === "ONGOING" && progress < 100;
@@ -294,7 +294,7 @@
 //         return true;
 //       });
 //     }
-    
+
 //     // Apply sort
 //     filtered.sort((a, b) => {
 //       const aDays = getDaysUntilDeadline(a.completion_date || a.completionDate) || 999;
@@ -303,13 +303,13 @@
 //       const bProgress = b.progress || 0;
 //       const aName = a.project_name || a.name || "";
 //       const bName = b.project_name || b.name || "";
-      
+
 //       if (sortBy === "deadline") return aDays - bDays;
 //       if (sortBy === "progress") return bProgress - aProgress;
 //       if (sortBy === "name") return aName.localeCompare(bName);
 //       return 0;
 //     });
-    
+
 //     return filtered;
 //   }, [projects, searchTerm, filterStatus, sortBy]);
 
@@ -318,7 +318,7 @@
 //     if (!projects || !Array.isArray(projects)) {
 //       return { total: 0, delayed: 0, critical: 0, completed: 0, ongoing: 0 };
 //     }
-    
+
 //     return {
 //       total: projects.length,
 //       delayed: projects.filter(p => {
@@ -426,7 +426,7 @@
 //         isVisible={showLoading}
 //       />
 
-      
+
 //       {showTaskPicker && selectedTask && (
 //         <TaskPicker
 //           project={selectedTask.project}
@@ -457,7 +457,7 @@
 //                   initial={{ scale: 0 }}
 //                   animate={{ scale: 1 }}
 //                   className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-//                     isSuperAdmin ? "bg-purple-100 text-purple-600" :
+//                     isACCOUNT ? "bg-purple-100 text-purple-600" :
 //                     isAdmin ? "bg-blue-100 text-blue-600" :
 //                     "bg-green-100 text-green-600"
 //                   }`}
@@ -477,7 +477,7 @@
 //                   : "Browse projects and pick tasks to work on"}
 //               </motion.p>
 //             </div>
-            
+
 //             {/* Refresh Button */}
 //             <motion.button
 //               initial={{ opacity: 0, x: 20 }}
@@ -668,15 +668,15 @@
 //                   const daysLeft = getDaysUntilDeadline(completionDate);
 //                   const activities = getActivities(project);
 //                   const isCompleted = progress === 100;
-                  
+
 //                   const statusInfo = getProjectStatusInfo({
 //                     status: project.status || "ONGOING",
 //                     completionDate: completionDate,
 //                     progress: progress
 //                   });
-                  
+
 //                   const isExpanded = expandedCard === projectId;
-                  
+
 //                   return (
 //                     <motion.div
 //                       key={projectId}
@@ -721,11 +721,11 @@
 //                                 {projectCode}
 //                               </span>
 //                             </div>
-                            
+
 //                             <p className="text-gray-500 mb-4 line-clamp-2">
 //                               {location}
 //                             </p>
-                            
+
 //                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 //                               <div className="flex items-center gap-2">
 //                                 <div className="p-2 bg-blue-50 rounded-lg">
@@ -736,7 +736,7 @@
 //                                   <p className="text-sm font-semibold">{formatDate(getLoaDate(project))}</p>
 //                                 </div>
 //                               </div>
-                              
+
 //                               <div className="flex items-center gap-2">
 //                                 <div className={`p-2 rounded-lg ${
 //                                   isCompleted ? "bg-green-50" :
@@ -762,7 +762,7 @@
 //                                   </p>
 //                                 </div>
 //                               </div>
-                              
+
 //                               <div className="flex items-center gap-2">
 //                                 <div className={`p-2 rounded-lg ${isCompleted ? "bg-green-50" : "bg-purple-50"}`}>
 //                                   <TrendingUp size={16} className={isCompleted ? "text-green-600" : "text-purple-600"} />
@@ -774,7 +774,7 @@
 //                                   </p>
 //                                 </div>
 //                               </div>
-                              
+
 //                               <div className="flex items-center gap-2">
 //                                 <div className="p-2 bg-indigo-50 rounded-lg">
 //                                   <BarChart3 size={16} className="text-indigo-600" />
@@ -800,7 +800,7 @@
 //                               <Eye size={18} />
 //                               View Details
 //                             </motion.button>
-                            
+
 //                             <button
 //                               onClick={(e) => {
 //                                 e.stopPropagation();
@@ -856,7 +856,7 @@
 //                                     )}
 //                                   </div>
 //                                 </div>
-                                
+
 //                                 <div>
 //                                   <h4 className="font-semibold mb-3 text-gray-700">Key Milestones</h4>
 //                                   <div className="space-y-2">
@@ -875,7 +875,7 @@
 //                                     {activities.slice(0, 3).map((activity) => {
 //                                       const subs = activity.subactivities || [];
 //                                       const isActivityExpanded = expandedActivities[activity.id];
-                                      
+
 //                                       return (
 //                                         <div key={activity.id} className="bg-gray-50 p-3 rounded-xl">
 //                                           <div 
@@ -905,7 +905,7 @@
 //                                                   const isSubCompleted = sub.is_completed || sub.status === "Complete";
 //                                                   const pickedStatus = sub.picked_at?.length > 0;
 //                                                   const isPickedByMe = pickedStatus && sub.picked_at.some(p => p.emp_code === user?.id);
-                                                  
+
 //                                                   return (
 //                                                     <div key={sub.id} className="bg-white p-3 rounded-lg flex items-center justify-between">
 //                                                       <div className="flex-1">
@@ -982,11 +982,11 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
-import { 
-  Plus, 
-  Eye, 
-  Calendar, 
-  Clock, 
+import {
+  Plus,
+  Eye,
+  Calendar,
+  Clock,
   TrendingUp,
   Search,
   Filter,
@@ -1012,8 +1012,8 @@ import {
   CheckCircle
 } from "lucide-react";
 import { getProjectStatusInfo, getDaysUntilDeadline } from "../../utils/deadlineUtils";
-import { 
-  fetchProjects, 
+import {
+  fetchProjects,
   deleteProject,
   fetchCompanies,
   fetchSubCompanies,
@@ -1027,11 +1027,11 @@ import LoadingModal from "../../components/modals/LoadingModal";
 const ProjectList = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   // Get projects and user from Redux store
   const { projects = [], loading: apiLoading = false, companies = [], subCompanies = [], sectors = [], clients = [] } = useSelector((state) => state.api || {});
   const { user } = useSelector((state) => state.auth);
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("deadline");
@@ -1092,7 +1092,7 @@ const ProjectList = () => {
       setIsInitialLoading(true);
       setLoadingMessage("Loading Projects");
       setLoadingSubMessage("Fetching project data...");
-      
+
       try {
         console.log("Loading all data...");
         await Promise.all([
@@ -1122,7 +1122,7 @@ const ProjectList = () => {
     setRefreshing(true);
     setLoadingMessage("Refreshing Projects");
     setLoadingSubMessage("Fetching latest data...");
-    
+
     try {
       await Promise.all([
         dispatch(fetchCompanies()).unwrap(),
@@ -1185,8 +1185,8 @@ const ProjectList = () => {
   };
 
   // Role-based checks
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
-  const isAdmin = user?.role === "ADMIN" || isSuperAdmin;
+  const isACCOUNT = user?.role === "ACCOUNT";
+  const isAdmin = user?.role === "ADMIN" || isACCOUNT;
   const isUser = user?.role === "USER";
 
   // Helper functions
@@ -1219,13 +1219,13 @@ const ProjectList = () => {
   };
 
   const getRoleIcon = () => {
-    if (isSuperAdmin) return <Shield size={16} className="text-purple-600" />;
+    if (isACCOUNT) return <Shield size={16} className="text-purple-600" />;
     if (isAdmin) return <UserCog size={16} className="text-blue-600" />;
     return <User size={16} className="text-green-600" />;
   };
 
   const getRoleDisplay = () => {
-    if (isSuperAdmin) return "Super Admin";
+    if (isACCOUNT) return "Account";
     if (isAdmin) return "Admin";
     return "Employee";
   };
@@ -1353,7 +1353,7 @@ const ProjectList = () => {
       className="max-w-7xl mx-auto px-4 py-8"
     >
       <LoadingModal isVisible={showLoading} />
-      
+
       {showTaskPicker && selectedTask && (
         <TaskPicker
           project={selectedTask.project}
@@ -1371,7 +1371,7 @@ const ProjectList = () => {
           <div className="mb-10 flex justify-between items-start">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <motion.h1 
+                <motion.h1
                   initial={{ x: -20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
@@ -1381,28 +1381,27 @@ const ProjectList = () => {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                    isSuperAdmin ? "bg-purple-100 text-purple-600" :
+                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${isACCOUNT ? "bg-purple-100 text-purple-600" :
                     isAdmin ? "bg-blue-100 text-blue-600" :
-                    "bg-green-100 text-green-600"
-                  }`}
+                      "bg-green-100 text-green-600"
+                    }`}
                 >
                   {getRoleIcon()}
                   {getRoleDisplay()}
                 </motion.div>
               </div>
-              <motion.p 
+              <motion.p
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.1 }}
                 className="text-gray-500 text-lg"
               >
-                {isAdmin 
+                {isAdmin
                   ? "Track and manage all your construction projects in one place"
                   : "Browse projects and pick tasks to work on"}
               </motion.p>
             </div>
-            
+
             <motion.button
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1417,7 +1416,7 @@ const ProjectList = () => {
 
           {/* Stats Cards - Removed Critical/Delayed for user, only shown to Admin */}
           {isAdmin && projects.length > 0 && (
-            <motion.div 
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -1455,7 +1454,7 @@ const ProjectList = () => {
             </motion.div>
           )}
 
-          <motion.div 
+          <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -1518,7 +1517,7 @@ const ProjectList = () => {
               <div className="mt-4 flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-xl">
                 <UserCheck size={18} />
                 <span>
-                  You're browsing as <strong>{user?.name}</strong> (Employee). 
+                  You're browsing as <strong>{user?.name}</strong> (Employee).
                 </span>
               </div>
             )}
@@ -1548,15 +1547,15 @@ const ProjectList = () => {
                   const daysLeft = getDaysUntilDeadline(completionDate);
                   const activities = getActivities(project);
                   const isCompleted = progress === 100;
-                  
+
                   const statusInfo = getProjectStatusInfo({
                     status: project.status || "ONGOING",
                     completionDate: completionDate,
                     progress: progress
                   });
-                  
+
                   const isExpanded = expandedCard === projectId;
-                  
+
                   return (
                     <motion.div
                       key={projectId}
@@ -1565,9 +1564,9 @@ const ProjectList = () => {
                       className={`bg-white rounded-3xl shadow-xl border-2 transition-all duration-300 relative group
                         ${isCompleted ? "border-green-200 hover:border-green-300" :
                           statusInfo.status === "DELAYED" ? "border-red-200 hover:border-red-300" :
-                          statusInfo.status === "DUE_TODAY" ? "border-orange-200 hover:border-orange-300" :
-                          statusInfo.status === "CRITICAL" ? "border-yellow-200 hover:border-yellow-300" :
-                          "border-gray-100 hover:border-blue-200"}`}
+                            statusInfo.status === "DUE_TODAY" ? "border-orange-200 hover:border-orange-300" :
+                              statusInfo.status === "CRITICAL" ? "border-yellow-200 hover:border-yellow-300" :
+                                "border-gray-100 hover:border-blue-200"}`}
                     >
                       {isAdmin && (
                         <button
@@ -1584,10 +1583,10 @@ const ProjectList = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <h3 className="text-2xl font-bold text-gray-800">{projectName}</h3>
-                              <motion.span 
+                              <motion.span
                                 whileHover={{ scale: 1.05 }}
                                 className={`px-4 py-1.5 rounded-full text-sm font-semibold flex items-center gap-1
-                                  ${isCompleted ? "bg-green-100 text-green-700" : 
+                                  ${isCompleted ? "bg-green-100 text-green-700" :
                                     statusInfo.colors.bg} ${isCompleted ? "bg-green-100" : statusInfo.colors.text}`}
                               >
                                 <span>{isCompleted ? <CheckCircle size={14} /> : statusInfo.icon}</span>
@@ -1598,7 +1597,7 @@ const ProjectList = () => {
                               </span>
                             </div>
                             <p className="text-gray-500 mb-4 line-clamp-2">{location}</p>
-                            
+
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                               <div className="flex items-center gap-2">
                                 <div className="p-2 bg-blue-50 rounded-lg"><Calendar size={16} className="text-blue-600" /></div>

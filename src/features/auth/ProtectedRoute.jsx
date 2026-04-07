@@ -45,6 +45,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (allowedRoles && allowedRoles.length > 0) {
     const userRole = user?.role;
+    console.log(userRole, 'userrole')
     if (!userRole || !allowedRoles.includes(userRole)) {
       return <Navigate to="/unauthorized" state={{ from: location }} replace />;
     }

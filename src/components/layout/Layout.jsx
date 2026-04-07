@@ -113,7 +113,7 @@ const Layout = () => {
             </div>
 
             <div className="flex items-center gap-1 md:gap-2">
-             
+
 
               <UserDropdown />
             </div>
@@ -166,7 +166,7 @@ const UserDropdown = () => {
 
   const getRoleIcon = () => {
     switch (user?.role) {
-      case "SUPER_ADMIN":
+      case "ACCOUNT":
         return <Shield size={12} className="text-purple-500" />;
       case "ADMIN":
         return <UserCog size={12} className="text-blue-500" />;
@@ -177,7 +177,7 @@ const UserDropdown = () => {
 
   const getRoleBadgeColor = () => {
     switch (user?.role) {
-      case "SUPER_ADMIN":
+      case "ACCOUNT":
         return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
       case "ADMIN":
         return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
@@ -209,10 +209,10 @@ const UserDropdown = () => {
               {getRoleIcon()}
               {user?.role || "USER"}
             </p>
-            {/* Show role badge for SUPER_ADMIN and ADMIN */}
-            {(user?.role === "SUPER_ADMIN" || user?.role === "ADMIN") && (
+            {/* Show role badge for ACCOUNT and ADMIN */}
+            {(user?.role === "ACCOUNT" || user?.role === "ADMIN") && (
               <span className={`text-[8px] px-1 py-0.5 rounded-full ${getRoleBadgeColor()}`}>
-                {user?.role === "SUPER_ADMIN" ? "Super Admin" : "Admin"}
+                {user?.role === "ACCOUNT" ? "Account" : "Admin"}
               </span>
             )}
           </div>
@@ -259,7 +259,7 @@ const UserDropdown = () => {
                 Notifications
               </button> */}
 
-              {(user?.role === "SUPER_ADMIN" || user?.role === "ADMIN") && (
+              {(user?.role === "ACCOUNT" || user?.role === "ADMIN") && (
                 <button className="w-full flex items-center gap-2 px-2.5 md:px-3 py-1.5 md:py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                   <Settings size={14} className="text-gray-500" />
                   System Settings

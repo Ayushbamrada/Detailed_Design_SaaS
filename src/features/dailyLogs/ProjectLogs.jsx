@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Calendar, 
+import {
+  Calendar,
   ArrowLeft,
   Filter,
   RefreshCw,
@@ -21,11 +21,11 @@ import {
   ChevronRight,
   Info
 } from "lucide-react";
-import { 
-  fetchProjectLogs, 
-  createLog, 
-  deleteLog, 
-  setLogFilters, 
+import {
+  fetchProjectLogs,
+  createLog,
+  deleteLog,
+  setLogFilters,
   resetFilters,
   setPage,
   nextPage,
@@ -45,14 +45,14 @@ const ProjectLogs = () => {
   const { projects: apiProjects = [] } = useSelector((state) => state.api);
   const { projects: localProjects = [] } = useSelector((state) => state.projects);
   const { projectLogs, loading, pagination, filters, error, stats } = useSelector((state) => state.logs);
-  
-  
-  const project = useMemo(() => 
+
+
+  const project = useMemo(() =>
     [...apiProjects, ...localProjects].find(p => p.id === id || p.project_id === id),
     [apiProjects, localProjects, id]
   );
 
-  
+
   const [expandedLogs, setExpandedLogs] = useState({});
   const [showAddLogModal, setShowAddLogModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -63,17 +63,17 @@ const ProjectLogs = () => {
     message: ""
   });
 
-  
+
   const getDefaultDate = useCallback(() => {
-    
+
     if (project?.created_at) {
       return project.created_at.split('T')[0];
     }
-    
+
     return new Date().toISOString().split('T')[0];
   }, [project]);
 
-  
+
   useEffect(() => {
     if (!filters.date || filters.date === new Date().toISOString().split('T')[0]) {
       const defaultDate = getDefaultDate();
@@ -83,20 +83,20 @@ const ProjectLogs = () => {
     }
   }, [dispatch, filters.date, getDefaultDate]);
 
-  
+
   useEffect(() => {
     if (!project && apiProjects.length === 0) {
       dispatch(fetchProjects());
     }
   }, [dispatch, project, apiProjects.length]);
 
-  
+
   useEffect(() => {
     if (!id) return;
-    
+
     const fetchDate = filters.date || getDefaultDate();
-    
-    dispatch(fetchProjectLogs({ 
+
+    dispatch(fetchProjectLogs({
       projectId: id,
       date: fetchDate,
       eventType: filters.eventType,
@@ -104,7 +104,7 @@ const ProjectLogs = () => {
     }));
   }, [dispatch, id, filters.date, filters.eventType, filters.search, getDefaultDate]);
 
-  
+
   useEffect(() => {
     if (projectLogs.length > 0) {
       dispatch(calculateStats());
@@ -118,10 +118,10 @@ const ProjectLogs = () => {
     return projectLogs.slice(start, end);
   }, [projectLogs, pagination.currentPage, pagination.itemsPerPage]);
 
-  
+
   const handleFilterChange = (key, value) => {
     dispatch(setLogFilters({ [key]: value }));
-    dispatch(setPage(1)); 
+    dispatch(setPage(1));
   };
 
   const handleClearFilters = () => {
@@ -132,7 +132,7 @@ const ProjectLogs = () => {
   };
 
   const handleRefresh = () => {
-    dispatch(fetchProjectLogs({ 
+    dispatch(fetchProjectLogs({
       projectId: id,
       date: filters.date,
       eventType: filters.eventType,
@@ -180,9 +180,9 @@ const ProjectLogs = () => {
   };
 
   const handleDeleteLog = async (log) => {
-    if (user?.role !== "SUPER_ADMIN") {
+    if (user?.role !== "ACCOUNT") {
       dispatch(showSnackbar({
-        message: "Only Super Admin can delete logs",
+        message: "Only Account can delete logs",
         type: "error"
       }));
       return;
@@ -212,7 +212,7 @@ const ProjectLogs = () => {
 
   const handleExport = () => {
     const dataStr = JSON.stringify(projectLogs, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
     const exportFileDefaultName = `project-${project?.project_code || id}-logs.json`;
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -227,9 +227,9 @@ const ProjectLogs = () => {
     }));
   };
 
-  const hasActiveFilters = filters.eventType !== 'all' || 
-                          filters.search || 
-                          filters.date !== getDefaultDate();
+  const hasActiveFilters = filters.eventType !== 'all' ||
+    filters.search ||
+    filters.date !== getDefaultDate();
 
   if (loading && projectLogs.length === 0) {
     return (
@@ -327,13 +327,13 @@ const ProjectLogs = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-xl font-bold mb-4">Add Manual Log</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
                   <select
                     value={newLog.event_type}
-                    onChange={(e) => setNewLog({...newLog, event_type: e.target.value})}
+                    onChange={(e) => setNewLog({ ...newLog, event_type: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="MANUAL_LOG">Manual Log</option>
@@ -347,7 +347,7 @@ const ProjectLogs = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                   <textarea
                     value={newLog.message}
-                    onChange={(e) => setNewLog({...newLog, message: e.target.value})}
+                    onChange={(e) => setNewLog({ ...newLog, message: e.target.value })}
                     placeholder="Log message"
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
@@ -377,7 +377,7 @@ const ProjectLogs = () => {
         )}
       </AnimatePresence>
 
-      
+
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button
@@ -392,12 +392,12 @@ const ProjectLogs = () => {
             </h1>
             <p className="text-sm text-gray-500 flex items-center gap-2">
               <Building2 size={14} />
-              Code: {project?.code || project?.project_code || 'N/A'} | 
+              Code: {project?.code || project?.project_code || 'N/A'} |
               Total Logs: {projectLogs.length}
             </p>
           </div>
         </div>
-        
+
         <div className="flex gap-2 w-full lg:w-auto">
           <button
             onClick={handleRefresh}
@@ -424,7 +424,7 @@ const ProjectLogs = () => {
         </div>
       </div>
 
-      
+
       {project && (
         <motion.div
           initial={{ y: -20, opacity: 0 }}
@@ -462,7 +462,7 @@ const ProjectLogs = () => {
           <p className="text-sm text-gray-500">Total Logs</p>
           <p className="text-2xl font-bold text-gray-800">{projectLogs.length}</p>
         </div>
-        
+
         <div className="bg-blue-50 rounded-xl p-4 shadow-md border border-blue-100">
           <p className="text-sm text-blue-600">Log Types</p>
           <p className="text-2xl font-bold text-blue-700">
@@ -485,7 +485,7 @@ const ProjectLogs = () => {
         </div>
       </div>
 
-      
+
       {projectLogs.length === 0 && !loading && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
           <Info size={20} className="text-yellow-600 mt-0.5" />
@@ -498,7 +498,7 @@ const ProjectLogs = () => {
         </div>
       )}
 
-      
+
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="flex items-center gap-4 flex-wrap">
           <button
@@ -534,7 +534,7 @@ const ProjectLogs = () => {
               className="overflow-hidden"
             >
               <div className="grid md:grid-cols-3 gap-4 pt-4 mt-2 border-t border-gray-100">
-              
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                   <input
@@ -548,7 +548,7 @@ const ProjectLogs = () => {
                   </p>
                 </div>
 
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
                   <select
@@ -572,7 +572,7 @@ const ProjectLogs = () => {
                   </select>
                 </div>
 
-              
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
                   <div className="relative">
@@ -592,7 +592,7 @@ const ProjectLogs = () => {
         </AnimatePresence>
       </div>
 
-    
+
       {projectLogs.length > 0 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500">
@@ -620,7 +620,7 @@ const ProjectLogs = () => {
         </div>
       )}
 
-      
+
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
           <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
@@ -637,7 +637,7 @@ const ProjectLogs = () => {
         </div>
       )}
 
-      
+
       <div className="space-y-4">
         <AnimatePresence mode="popLayout">
           {currentLogs.length > 0 ? (
@@ -666,7 +666,7 @@ const ProjectLogs = () => {
               </p>
               <button
                 onClick={() => {
-                  
+
                   if (project?.created_at) {
                     handleFilterChange('date', project.created_at.split('T')[0]);
                   } else {

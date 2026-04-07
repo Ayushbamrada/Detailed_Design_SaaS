@@ -10,7 +10,8 @@ import {
   deleteActivity,
   deleteSubActivity,
   extendActivityDeadline,
-  extendSubActivityDeadline
+  extendSubActivityDeadline,
+  // updateSubActivity,
 } from "./projectSlice";
 import { showSnackbar } from "../notifications/notificationSlice";
 import ActivityExtensionModal from "./ActivityExtensionModal";
@@ -26,7 +27,8 @@ import {
   updateSubActivityProgress as updateSubActivityProgressApi,
   updateSubActivityStatus as updateSubActivityStatusApi,
   updateActivityProgress,
-  updateProjectProgress
+  updateProjectProgress,
+  updateSubActivity,
 } from "../api/apiSlice";
 import {
   Calendar,
@@ -54,6 +56,7 @@ import {
   Percent,
   TrendingUp,
   Briefcase,
+  PlusCircle,
   Timer,
   User
 } from "lucide-react";
@@ -205,6 +208,48 @@ const ProjectDetails = () => {
     chainageEnd: 0,
     description: ""
   });
+  const [showEditModal, setShowEditModal] = useState(false);
+
+
+  const [editData, setEditData] = useState({
+    subId: '',
+    projectId: '',
+    activityId: '',
+    description: "",
+    from_status: "pending",
+    to_status: "submitted",
+    client_remarks: "",
+    client_response_date: "",
+    payment_received_amount: "",
+    documents: [
+      { file: null, document_type: "ref_doc" }, // default one row
+    ],
+  });
+
+  // ✅ Handle Document Change
+  const handleDocumentChange = (index, field, value) => {
+    const updatedDocs = [...editData.documents];
+    updatedDocs[index][field] = value;
+    setEditData({ ...editData, documents: updatedDocs });
+  };
+
+  // ✅ Add New Document Row
+  const addDocumentRow = () => {
+    setEditData((prev) => ({
+      ...prev,
+      documents: [
+        ...(prev.documents || []),
+        { file: null, document_type: "ref_doc" },
+      ],
+    }));
+  };
+
+  // ✅ Remove Document Row
+  const removeDocumentRow = (index) => {
+    const updatedDocs = editData.documents.filter((_, i) => i !== index);
+    setEditData({ ...editData, documents: updatedDocs });
+  };
+
 
 
 
@@ -798,8 +843,8 @@ const ProjectDetails = () => {
 
   // Handle delete sub-activity
   const handleDeleteSubActivity = (activityId, subId, subName) => {
-    if (user?.role !== "SUPER_ADMIN") {
-      dispatch(showSnackbar({ message: "Only Super Admin can delete sub-activities", type: "error" }));
+    if (user?.role !== "ACCOUNT") {
+      dispatch(showSnackbar({ message: "Only Account can delete sub-activities", type: "error" }));
       return;
     }
     if (window.confirm(`Are you sure you want to delete sub-activity "${subName}"?`)) {
@@ -810,14 +855,63 @@ const ProjectDetails = () => {
 
   // Handle delete activity
   const handleDeleteActivity = (activityId, activityName) => {
-    if (user?.role !== "SUPER_ADMIN") {
-      dispatch(showSnackbar({ message: "Only Super Admin can delete activities", type: "error" }));
+    if (user?.role !== "ACCOUNT") {
+      dispatch(showSnackbar({ message: "Only Account can delete activities", type: "error" }));
       return;
     }
     if (window.confirm(`Are you sure you want to delete activity "${activityName}"?`)) {
       dispatch(deleteActivity({ projectId: project.id, activityId }));
       dispatch(showSnackbar({ message: "Activity deleted successfully", type: "success" }));
     }
+  };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+
+    // Relationships
+    formData.append("project", editData.activityId);
+    formData.append("activity", editData.activityId);
+    formData.append("subactivity", editData.subId);
+
+
+    formData.append("to_status", editData.to_status);
+
+    // Remarks
+    formData.append("remarks", editData.description);
+    formData.append("changed_by ", sessionStorage.getItem('emp_code'));
+    // Client fields
+    if (editData.client_remarks)
+      formData.append("client_remarks", editData.client_remarks);
+
+    if (editData.client_response_date)
+      formData.append(
+        "client_response_date",
+        editData.client_response_date
+      );
+
+    if (editData.payment_received_amount)
+      formData.append(
+        "payment_received_amount",
+        editData.payment_received_amount
+      );
+
+    // ✅ Documents (IMPORTANT 🔥)
+    editData.documents.forEach((doc, index) => {
+      if (doc.file) {
+        formData.append(`documents`, doc.file);
+        formData.append(`document_types`, doc.document_type);
+      }
+    });
+
+    dispatch(
+      updateSubActivity({
+        id: editData.subId,
+        data: formData,
+      })
+    );
+
+    setShowEditModal(false);
   };
 
   // Render sub-activity fields
@@ -1250,6 +1344,176 @@ const ProjectDetails = () => {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {showEditModal && (
+          <motion.div
+            className="fixed inset-0 bg-black/30 flex justify-center items-center z-50 p-4"
+            onClick={() => {
+
+              setShowEditModal(false);
+            }}
+          >
+            <motion.div
+              className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <form onSubmit={handleSubmit}>
+                {/* Header */}
+                <div className="flex justify-between mb-4">
+                  <h3 className="font-bold text-lg">Submit Sub-Activity</h3>
+                  <XCircle onClick={() => setShowEditModal(false)} />
+                </div>
+
+                <div className="space-y-4">
+                  {/* Description */}
+                  <textarea
+                    placeholder="Remarks"
+                    className="w-full border p-2 rounded"
+                    value={editData.description}
+                    onChange={(e) =>
+                      setEditData({ ...editData, description: e.target.value })
+                    }
+                  />
+
+                  {/* Status */}
+                  <select
+                    value={editData.to_status}
+                    onChange={(e) =>
+                      setEditData({ ...editData, to_status: e.target.value })
+                    }
+                    className="w-full border p-2 rounded"
+                  >
+                    <option value="">Select Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="Inprogress">NOTCOMPLETED</option>
+                    <option value="Submitted">Submitted</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+
+                  {/* 🔥 Documents Section */}
+                  <div className="border p-3 rounded-xl">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold">Documents</h4>
+                      <button
+                        type="button"
+                        onClick={addDocumentRow}
+                        className="flex items-center gap-1 text-blue-600"
+                      >
+                        <PlusCircle size={16} /> Add Document
+                      </button>
+                    </div>
+
+                    {editData?.documents?.map((doc, index) => (
+                      <div
+                        key={index}
+                        className="flex gap-2 items-center mb-2"
+                      >
+                        {/* File */}
+                        <input
+                          type="file"
+                          onChange={(e) =>
+                            handleDocumentChange(
+                              index,
+                              "file",
+                              e.target.files[0]
+                            )
+                          }
+                          className="border p-1 rounded w-full"
+                        />
+
+                        {/* Type */}
+                        <select
+                          value={doc.document_type}
+                          onChange={(e) =>
+                            handleDocumentChange(
+                              index,
+                              "document_type",
+                              e.target.value
+                            )
+                          }
+                          className="border p-1 rounded"
+                        >
+                          <option value="">SelectDoc Type</option>
+                          <option value="ref_doc">Ref</option>
+                          <option value="client_doc">Client</option>
+                          <option value="other">Other</option>
+                        </select>
+
+                        {/* Remove */}
+                        <button
+                          type="button"
+                          onClick={() => removeDocumentRow(index)}
+                          className="text-red-500"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Client Fields */}
+                  <input
+                    type="text"
+                    placeholder="Client Remarks"
+                    className="w-full border p-2 rounded"
+                    value={editData.client_remarks}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        client_remarks: e.target.value,
+                      })
+                    }
+                  />
+
+                  <input
+                    type="datetime-local"
+                    className="w-full border p-2 rounded"
+                    value={editData.client_response_date}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        client_response_date: e.target.value,
+                      })
+                    }
+                  />
+
+                  <input
+                    type="number"
+                    placeholder="Payment"
+                    className="w-full border p-2 rounded"
+                    value={editData.payment_received_amount}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        payment_received_amount: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end mt-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="border px-4 py-2 rounded"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {!isLoading && (
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 md:space-y-8">
           {/* Header */}
@@ -1436,12 +1700,12 @@ const ProjectDetails = () => {
                             </span>
                             {activity.weightage && <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full">{activity.weightage}%</span>}
                             <div className="flex items-center gap-1 ml-auto">
-                              {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
+                              {(user?.role === "ADMIN" || user?.role === "ACCOUNT") && (
                                 <button onClick={() => { setSelectedActivityForExtension(activity.id); setShowActivityExtensionModal(true); }} className="p-1 text-gray-400 hover:text-blue-600 rounded-lg" title="Extend deadline">
                                   <Calendar size={isMobile ? 14 : 16} />
                                 </button>
                               )}
-                              {user?.role === "SUPER_ADMIN" && (
+                              {user?.role === "ACCOUNT" && (
                                 <button onClick={() => handleDeleteActivity(activity.id, activity.activity_name || activity.name)} className="p-1 text-gray-400 hover:text-red-600 rounded-lg" title="Delete activity">
                                   <Trash2 size={isMobile ? 14 : 16} />
                                 </button>
@@ -1479,7 +1743,7 @@ const ProjectDetails = () => {
                       {isExpanded && (
                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-gray-200 bg-gray-50">
                           <div className="p-3 sm:p-4 md:p-6">
-                            {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
+                            {(user?.role === "ADMIN" || user?.role === "ACCOUNT") && (
                               <div className="mb-4 flex justify-end">
                                 <button onClick={() => { setSelectedActivityForSub(activity.id); setShowAddSubModal(true); }} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 text-xs sm:text-sm flex items-center gap-1">
                                   <Plus size={14} /> Add Sub-Activity
@@ -1506,12 +1770,27 @@ const ProjectDetails = () => {
                                         <div className="flex-1">
                                           <div className="flex flex-wrap items-center gap-2 mb-2">
                                             <p className="font-medium text-gray-800 dark:text-white">{sub.subactivity_name || sub.name}</p>
+                                            <button
+                                              onClick={() => {
+                                                setEditData((prev) => ({
+                                                  ...prev,
+                                                  project_id: id,   // make sure these exist
+                                                  activity_id: activity.id,
+                                                  subId: sub.id,
+                                                }));
+
+                                                setShowEditModal(true);
+                                              }}
+                                              className="p-0.5 text-gray-400 hover:text-blue-600 rounded"
+                                            >
+                                              <PenLine size={10} />
+                                            </button>
                                             {isCompleted && <span className="text-xs px-2 py-0.5 bg-green-100 text-green-600 rounded-full">✓ Completed</span>}
                                             {subDaysLeft !== null && subDaysLeft < 0 && !isCompleted && (
                                               <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded-full">Overdue</span>
                                             )}
                                             <div className="flex items-center gap-1 ml-auto">
-                                              {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
+                                              {(user?.role === "ADMIN" || user?.role === "ACCOUNT") && (
                                                 <button
                                                   onClick={() => {
                                                     setSelectedSubActivityForExtension({
@@ -1529,7 +1808,7 @@ const ProjectDetails = () => {
                                                   <Calendar size={14} />
                                                 </button>
                                               )}
-                                              {user?.role === "SUPER_ADMIN" && (
+                                              {user?.role === "ACCOUNT" && (
                                                 <button onClick={() => handleDeleteSubActivity(activity.id, sub.id, sub.subactivity_name || sub.name)} className="p-1 text-gray-400 hover:text-red-600 rounded-lg" title="Delete sub-activity">
                                                   <Trash2 size={14} />
                                                 </button>
@@ -1629,7 +1908,7 @@ const ProjectDetails = () => {
                             ) : (
                               <div className="text-center py-8 text-gray-500">
                                 <p>No sub-activities found</p>
-                                {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
+                                {(user?.role === "ADMIN" || user?.role === "ACCOUNT") && (
                                   <button onClick={() => { setSelectedActivityForSub(activity.id); setShowAddSubModal(true); }} className="mt-2 text-blue-600 hover:text-blue-800 text-sm">
                                     + Add Sub-Activity
                                   </button>
@@ -1650,6 +1929,7 @@ const ProjectDetails = () => {
               </div>
             )}
           </div>
+
         </div>
       )}
     </motion.div>

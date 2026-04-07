@@ -5,7 +5,7 @@ const UNIT_MAPPING = {
   'Km': 'Kilometer',
   'Nos.': 'Numbers',
   'Percentage': 'Percentage',
-  'status': 'Percentage' 
+  'status': 'Percentage'
 };
 
 
@@ -16,7 +16,7 @@ export const REVERSE_UNIT_MAPPING = {
 };
 
 export const subActivityService = {
-  
+
   getSubActivities: async () => {
     try {
       const response = await api.get('/subactivity/');
@@ -27,7 +27,7 @@ export const subActivityService = {
     }
   },
 
-  
+
   getSubActivity: async (subactivityId) => {
     try {
       const response = await api.get(`/subactivity/${subactivityId}/`);
@@ -38,20 +38,20 @@ export const subActivityService = {
     }
   },
 
-  
+
   createSubActivity: async (subActivityData) => {
     try {
-    
-      const mappedData = Array.isArray(subActivityData) 
+
+      const mappedData = Array.isArray(subActivityData)
         ? subActivityData.map(item => ({
-            ...item,
-            unit: UNIT_MAPPING[item.unit] || item.unit
-          }))
+          ...item,
+          unit: UNIT_MAPPING[item.unit] || item.unit
+        }))
         : {
-            ...subActivityData,
-            unit: UNIT_MAPPING[subActivityData.unit] || subActivityData.unit
-          };
-      
+          ...subActivityData,
+          unit: UNIT_MAPPING[subActivityData.unit] || subActivityData.unit
+        };
+
       const payload = Array.isArray(mappedData) ? mappedData : [mappedData];
       console.log('Creating sub-activity with mapped payload:', payload);
       const response = await api.post('/subactivity/', payload);
@@ -62,15 +62,15 @@ export const subActivityService = {
     }
   },
 
-  
+
   createSubActivitiesBulk: async (subActivitiesData) => {
     try {
-      
+
       const mappedData = subActivitiesData.map(item => ({
         ...item,
         unit: UNIT_MAPPING[item.unit] || item.unit
       }));
-      
+
       const payload = Array.isArray(mappedData) ? mappedData : [mappedData];
       console.log('Creating bulk sub-activities with mapped payload:', JSON.stringify(payload, null, 2));
       const response = await api.post('/subactivity/', payload);
@@ -85,7 +85,7 @@ export const subActivityService = {
     }
   },
 
-  
+
   updateSubActivityProgress: async (subActivityId, progressData) => {
     try {
       console.log('Updating sub-activity progress with PUT:', { subActivityId, progressData });
@@ -97,7 +97,7 @@ export const subActivityService = {
     }
   },
 
-  
+
   updateSubActivityStatus: async (subActivityId, statusData) => {
     try {
       console.log('Updating sub-activity status with PUT:', { subActivityId, statusData });
@@ -109,10 +109,11 @@ export const subActivityService = {
     }
   },
 
-  
+
   updateSubActivity: async (subActivityId, subActivityData) => {
     try {
-      const response = await api.put(`/subactivity/${subActivityId}/`, subActivityData);
+      // subactivity-submission/
+      const response = await api.post(`subactivity-submission/`, subActivityData);
       return response.data;
     } catch (error) {
       console.error('Error updating sub activity:', error);
@@ -120,7 +121,7 @@ export const subActivityService = {
     }
   },
 
-  
+
   deleteSubActivity: async (subactivityId) => {
     try {
       const response = await api.delete(`/subactivity/${subactivityId}/`);

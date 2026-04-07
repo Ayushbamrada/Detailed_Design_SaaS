@@ -1,11 +1,11 @@
 // src/components/LogCard.jsx
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { 
-  Calendar, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  AlertCircle,
+  CheckCircle,
   XCircle,
   FileText,
   User,
@@ -110,7 +110,7 @@ const LogCard = ({ log, onDelete, userRole, isExpanded, onToggle }) => {
 
   const formatValue = (value, path = '') => {
     if (value === null || value === undefined) return null;
-    
+
     if (typeof value === 'object') {
       return (
         <div className="ml-4 border-l-2 border-gray-200 pl-3">
@@ -118,7 +118,7 @@ const LogCard = ({ log, onDelete, userRole, isExpanded, onToggle }) => {
             const currentPath = path ? `${path}.${key}` : key;
             const formatted = formatValue(val, currentPath);
             if (formatted === null) return null;
-            
+
             return (
               <div key={currentPath} className="mb-2">
                 <span className="text-xs font-medium text-gray-500 capitalize">{key.replace(/_/g, ' ')}:</span>
@@ -129,40 +129,39 @@ const LogCard = ({ log, onDelete, userRole, isExpanded, onToggle }) => {
         </div>
       );
     }
-    
+
     if (typeof value === 'boolean') {
       return (
-        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-          value ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-        }`}>
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+          }`}>
           {value ? 'Yes' : 'No'}
         </span>
       );
     }
-    
+
     if (typeof value === 'number') {
       return <span className="font-mono text-sm text-blue-600">{value}</span>;
     }
-    
+
     if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
       return <span className="text-sm text-purple-600">{new Date(value).toLocaleDateString()}</span>;
     }
-    
+
     return <span className="text-sm text-gray-700">{String(value)}</span>;
   };
 
   const formatChanges = (oldVal, newVal) => {
     if (!oldVal && !newVal) return [];
-    
+
     const changes = [];
-    
+
     if (oldVal && newVal && typeof oldVal === 'object' && typeof newVal === 'object') {
       const allKeys = new Set([...Object.keys(oldVal), ...Object.keys(newVal)]);
-      
+
       allKeys.forEach(key => {
         const oldV = oldVal[key];
         const newV = newVal[key];
-        
+
         if (JSON.stringify(oldV) !== JSON.stringify(newV)) {
           changes.push({
             field: key,
@@ -178,7 +177,7 @@ const LogCard = ({ log, onDelete, userRole, isExpanded, onToggle }) => {
         new: newVal
       });
     }
-    
+
     return changes;
   };
 
@@ -320,8 +319,8 @@ const LogCard = ({ log, onDelete, userRole, isExpanded, onToggle }) => {
             >
               {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
-            
-            {userRole === "SUPER_ADMIN" && (
+
+            {userRole === "ACCOUNT" && (
               <button
                 onClick={() => onDelete(log)}
                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

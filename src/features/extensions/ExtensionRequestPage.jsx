@@ -2,18 +2,18 @@ import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { 
-  Calendar, 
-  ArrowLeft, 
-  Upload, 
-  X, 
+import {
+  Calendar,
+  ArrowLeft,
+  Upload,
+  X,
   FileText,
   Clock,
   AlertCircle,
   CheckCircle,
   Download
 } from "lucide-react";
-import { requestExtension } from "../projects/projectSlice"; 
+import { requestExtension } from "../projects/projectSlice";
 import { showSnackbar } from "../notifications/notificationSlice";
 
 
@@ -55,9 +55,9 @@ const ExtensionRequestPage = () => {
   }
 
   // Check if user has access to this project
-  const hasAccess = 
-    user?.role === "SUPER_ADMIN" || 
-    user?.role === "ADMIN" || 
+  const hasAccess =
+    user?.role === "ACCOUNT" ||
+    user?.role === "ADMIN" ||
     project.assignedUsers?.includes(user?.id);
 
   if (!hasAccess) {
@@ -87,7 +87,7 @@ const ExtensionRequestPage = () => {
       type: file.type,
       file: file
     }));
-    
+
     setUploadedFiles([...uploadedFiles, ...newFiles]);
     setFormData({
       ...formData,
@@ -105,7 +105,7 @@ const ExtensionRequestPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.newDeadline) {
       dispatch(showSnackbar({
         message: "Please select a new deadline date",
@@ -215,18 +215,17 @@ const ExtensionRequestPage = () => {
                 day: 'numeric'
               })}
             </p>
-            <p className={`text-sm mt-1 ${
-              daysLeft < 0 ? "text-red-600" :
-              daysLeft === 0 ? "text-orange-600" :
-              daysLeft <= 7 ? "text-yellow-600" :
-              "text-green-600"
-            }`}>
+            <p className={`text-sm mt-1 ${daysLeft < 0 ? "text-red-600" :
+                daysLeft === 0 ? "text-orange-600" :
+                  daysLeft <= 7 ? "text-yellow-600" :
+                    "text-green-600"
+              }`}>
               {daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` :
-               daysLeft === 0 ? "Due today" :
-               `${daysLeft} days remaining`}
+                daysLeft === 0 ? "Due today" :
+                  `${daysLeft} days remaining`}
             </p>
           </div>
-          
+
           <div>
             <p className="text-sm text-gray-600">Project Progress</p>
             <p className="text-xl font-bold text-gray-800">{project.progress || 0}%</p>
@@ -237,14 +236,13 @@ const ExtensionRequestPage = () => {
               />
             </div>
           </div>
-          
+
           <div>
             <p className="text-sm text-gray-600">Status</p>
-            <p className={`text-xl font-bold ${
-              project.status === "DELAYED" ? "text-red-600" :
-              project.status === "COMPLETED" ? "text-green-600" :
-              "text-blue-600"
-            }`}>
+            <p className={`text-xl font-bold ${project.status === "DELAYED" ? "text-red-600" :
+                project.status === "COMPLETED" ? "text-green-600" :
+                  "text-blue-600"
+              }`}>
               {project.status}
             </p>
           </div>
@@ -254,7 +252,7 @@ const ExtensionRequestPage = () => {
       {/* Extension Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Extension Request Details</h2>
-        
+
         <div className="space-y-6">
           {/* New Deadline */}
           <div>
@@ -266,7 +264,7 @@ const ExtensionRequestPage = () => {
               <input
                 type="date"
                 value={formData.newDeadline}
-                onChange={(e) => setFormData({...formData, newDeadline: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, newDeadline: e.target.value })}
                 min={new Date().toISOString().split('T')[0]}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                 required
@@ -284,7 +282,7 @@ const ExtensionRequestPage = () => {
             </label>
             <textarea
               value={formData.reason}
-              onChange={(e) => setFormData({...formData, reason: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
               placeholder="Please provide detailed reason for deadline extension..."
               rows={4}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
@@ -350,11 +348,10 @@ const ExtensionRequestPage = () => {
               <div className="space-y-2">
                 {project.extensionHistory.slice(-3).map((history) => (
                   <div key={history.id} className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                    <span className={`font-medium ${
-                      history.type === "APPROVED" ? "text-green-600" :
-                      history.type === "REJECTED" ? "text-red-600" :
-                      "text-yellow-600"
-                    }`}>
+                    <span className={`font-medium ${history.type === "APPROVED" ? "text-green-600" :
+                        history.type === "REJECTED" ? "text-red-600" :
+                          "text-yellow-600"
+                      }`}>
                       {history.type}
                     </span>
                     : From {new Date(history.oldDeadline).toLocaleDateString()} to {new Date(history.newDeadline).toLocaleDateString()}
