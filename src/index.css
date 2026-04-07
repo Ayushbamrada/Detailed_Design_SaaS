@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Manual dark mode: toggle `dark` on <html>. When unset, use "system" in app — see applyThemeToDocument. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 .input {
   @apply border rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 outline-none;
 }
