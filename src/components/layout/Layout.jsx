@@ -1,15 +1,14 @@
-
 import { Outlet, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { toggleSidebar } from "../../features/ui/uiSlice";
+import { toggleSidebar, setTheme } from "../../features/ui/uiSlice";
 import {
   Menu,
-  Bell,
   LogOut,
   User,
   Settings,
   Moon,
   Sun,
+  Monitor,
   Shield,
   UserCog
 } from "lucide-react";
@@ -19,15 +18,41 @@ import { logout } from "../../features/auth/authSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import DevRoleSwitcher from "../DevRoleSwitcher";
 
+const ThemeToggle = () => {
+  const dispatch = useDispatch();
+  const theme = useSelector((state) => state.ui.theme);
+  const cycle = () => {
+    const order = ["light", "dark", "system"];
+    const i = order.indexOf(theme);
+    dispatch(setTheme(order[(i + 1) % 3]));
+  };
+  const Icon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+  const label =
+    theme === "system"
+      ? "Theme: System (matches device)"
+      : theme === "light"
+        ? "Theme: Light"
+        : "Theme: Dark";
+
+  return (
+    <button
+      type="button"
+      onClick={cycle}
+      title={label}
+      aria-label={label}
+      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
+    >
+      <Icon size={20} />
+    </button>
+  );
+};
+
 const Layout = () => {
   const dispatch = useDispatch();
   const location = useLocation();
-  // const [darkMode, setDarkMode] = useState(false);
-  // const [notifications, setNotifications] = useState(3);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const { desktopCollapsed } = useSelector((state) => state.ui);
-  const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     const handleResize = () => {
@@ -56,14 +81,6 @@ const Layout = () => {
     if (path.includes("/my-picked-projects")) return "Project Details";
     return "Civil Infrastructure Dashboard";
   };
-
-  // useEffect(() => {
-  //   if (darkMode) {
-  //     document.documentElement.classList.add("dark");
-  //   } else {
-  //     document.documentElement.classList.remove("dark");
-  //   }
-  // }, [darkMode]);
 
   const getMarginLeft = () => {
     if (isMobile) return 0;
@@ -113,8 +130,7 @@ const Layout = () => {
             </div>
 
             <div className="flex items-center gap-1 md:gap-2">
-
-
+              <ThemeToggle />
               <UserDropdown />
             </div>
           </div>

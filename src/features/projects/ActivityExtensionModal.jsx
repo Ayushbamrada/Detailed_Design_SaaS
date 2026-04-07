@@ -28,6 +28,7 @@ const ActivityExtensionModal = ({ isOpen, onClose, onSubmit, item, itemType }) =
   };
 
   const getCurrentDate = () => {
+    console.log(item, "item");
     if (itemType === "activity") return item?.endDate;
     if (itemType === "subactivity") return item?.endDate;
     return "";

@@ -120,6 +120,7 @@ const ExtensionApproval = () => {
 
       <div className="space-y-6">
         {filteredRequests.map((request) => {
+          console.log(request, "request");
           const project = projects.find(p => p.id === request.projectId);
           const isExpanded = expandedRequest === request.id;
           const daysLeft = calculateDaysUntilDeadline(request.currentDeadline);

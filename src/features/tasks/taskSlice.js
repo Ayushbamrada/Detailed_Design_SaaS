@@ -27,7 +27,7 @@ export const fetchUserWorkLogs = createAsyncThunk(
         return [];
       }
 
-      const response = await api.get(`/activity-timelog/?user=${userUUID}`);
+      const response = await api.get(`/employee-timelog/?user=${userUUID}`);
       const logs = response.data.results || response.data;
 
       const transformedLogs = logs.map(log => ({
@@ -120,7 +120,7 @@ export const saveDailyWorkLog = createAsyncThunk(
         note: note || (status === 'WORKED' ? `Worked on task` : `No work done`)
       };
 
-      const response = await api.post('/activity-timelog/', timeLogData);
+      const response = await api.post('/employee-timelog/', timeLogData);
 
       showSuccess(status === 'WORKED' ?
         `Work logged! ${(durationSeconds / 3600).toFixed(2)} hours recorded` :

@@ -1634,7 +1634,7 @@ const ProjectList = () => {
                         </div>
 
                         {/* Progress Bar - Only visible for Admin */}
-                        {isAdmin && (
+                        {/* {isAdmin && (
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                               <span className="font-medium text-gray-600">Overall Progress</span>
@@ -1644,7 +1644,7 @@ const ProjectList = () => {
                               <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1 }} className={`h-3 rounded-full ${isCompleted ? "bg-green-500" : `bg-gradient-to-r ${statusInfo.colors.gradient}`}`} />
                             </div>
                           </div>
-                        )}
+                        )} */}
 
                         <AnimatePresence>
                           {isExpanded && (
