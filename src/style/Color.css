@@ -1,0 +1,500 @@
+/* ------------------------------------------------------------------------ */
+/* ? ************* Color Styling ***************** */
+/* ------------------------------------------------------------------------ */
+
+/* ? ************* Color Code ***************** */
+
+:root {
+  --color-green-op30: #64da6430;
+  --color-lightgreen-op30: #43ff1e30;
+  --color-blue-op30: #2576bc30;
+  --color-teal-op30: #3dcdcd30;
+  --color-yellow-op30: #f7ba1e30;
+  --color-red-op30: #ff747c30;
+  --color-white-op30: #ffffff30;
+
+  --color-red: #f72b50;
+  --color-red-dark: #d11a2a;
+  --color-red-bg-light: #ff747c30;
+  --color-red-bg-dark: #ffd6d6;
+
+  --color-orange: #ff9800;
+
+  --color-yellow: #f7ba1ecc;
+  --color-yellow-dark: #b38f00;
+  --color-yellow-bg-light: #f7ba1e30;
+  --color-yellow-bg-dark: #fff5cc;
+
+  --color-green: #06ad06;
+  --color-green-dark: #1d7a34;
+  --color-green-bg: #64da6430;
+  --color-green-bg-light: #d4f4dd;
+  --color-green-bg-dark: #06ad0630;
+  --color-green-emerald: #01998a;
+  --color-green-emerald-bg: #01998a30;
+
+  --color-blue: #2576bc;
+  --color-blue-bg: #2576bc30;
+  --color-blue-info: #17a2b8;
+
+  --color-teal: #3dcdcdcc;
+  --color-teal-bg: #3dcdcd30;
+
+  --color-grey: #6c757d;
+  --color-grey-bg: #f2f2f2;
+
+  --color-primary: #2576bc;
+  --color-secondary: #f2f2f2;
+  --color-secondary-dark: #707070;
+  --color-white: #ffffff;
+  --color-black: #000000;
+}
+
+/* ! ************* Color Code ***************** */
+
+/* ? ************* Text ***************** */
+
+.text-primary-color {
+  color: var(--color-primary);
+}
+
+.text-secondary-color {
+  color: var(--color-secondary-dark);
+}
+
+.text-danger-color {
+  color: var(--color-red) !important;
+}
+
+.text-warning-color {
+  color: var(--color-yellow) !important;
+}
+.text-warning-color-dark {
+  color: var(--color-yellow-dark);
+}
+
+.text-success-color {
+  color: var(--color-green) !important;
+}
+
+.text-info-color {
+  color: #3dcdcd !important;
+}
+
+/* ! ************* Text ***************** */
+
+/* ? ************* Color Background ***************** */
+
+.bg-primary-color {
+  background-color: #2576bc;
+}
+
+.bg-secondary-color {
+  background-color: #707070;
+}
+
+.bg-success-color {
+  background-color: var(--color-green-bg);
+}
+
+.bg-danger-color {
+  background-color: #f72b50;
+}
+
+.bg-warning-color {
+  background-color: #f7ba1e;
+}
+
+.bg-info-color {
+  background-color: #3dcdcd;
+}
+
+.color-bg-success-light {
+  background-color: var(--color-green-bg-light);
+}
+.color-bg-danger-light {
+  background-color: var(--color-red-bg-light);
+}
+.color-bg-warning-light {
+  background-color: var(--color-yellow-bg-light);
+}
+
+.color-bg-info-light {
+  background-color: var(--color-teal-bg);
+}
+
+/* ! ************* Color Background ***************** */
+
+/* ? ************* Color Border ***************** */
+
+.color-border-red {
+  border: 1px solid var(--color-red);
+}
+
+.color-border-yellow {
+  border: 1px solid var(--color-yellow);
+}
+
+.color-border-green {
+  border: 1px solid var(--color-green);
+}
+
+.color-border-blue {
+  border: 1px solid var(--color-blue);
+}
+
+.color-border-grey {
+  border: 1px solid var(--color-grey);
+}
+
+/* ! ************* Color Border ***************** */
+
+/* ? ************* Color Tabs ***************** */
+
+.color-tab-red {
+  background-color: var(--color-red-bg-light);
+  border: 1px solid var(--color-red);
+}
+
+.color-tab-yellow {
+  background-color: var(--color-yellow-bg-light);
+  border: 1px solid var(--color-yellow);
+}
+
+.color-tab-green {
+  background-color: var(--color-green-bg-dark);
+  border: 1px solid var(--color-green);
+}
+
+.color-tab-emerald {
+  background-color: var(--color-green-emerald-bg);
+  border: 1px solid var(--color-green-emerald);
+}
+
+.color-tab-blue {
+  background-color: var(--color-blue-bg);
+  border: 1px solid var(--color-blue);
+}
+
+.color-tab-teal {
+  background-color: var(--color-teal-bg);
+  border: 1px solid var(--color-teal);
+}
+
+.color-tab-grey {
+  background-color: var(--color-grey-bg);
+  border: 1px solid var(--color-grey);
+}
+
+/* ! ************* Color Tabs (border/bg) ***************** */
+
+/* ? ************* Color Buttons ***************** */
+
+.color-button-red {
+  background-color: var(--color-red-bg-light);
+  color: var(--color-red);
+  border: 3px solid var(--color-red);
+}
+
+.color-button-danger {
+  color: var(--color-red);
+  border: 3px solid var(--color-red);
+}
+
+.color-button-yellow {
+  background-color: var(--color-yellow-bg-light);
+  color: var(--color-yellow);
+  border: 3px solid var(--color-yellow);
+}
+
+.color-button-warning {
+  color: var(--color-yellow);
+  border: 3px solid var(--color-yellow);
+}
+
+.color-button-green {
+  background-color: var(--color-green-bg-light);
+  color: var(--color-green);
+  border: 3px solid var(--color-green);
+}
+
+.color-button-success {
+  color: var(--color-green);
+  border: 3px solid var(--color-green);
+}
+
+.color-button-blue {
+  background-color: var(--color-blue-bg);
+  color: var(--color-blue);
+  border: 3px solid var(--color-blue);
+}
+
+.color-button-submit {
+  color: var(--color-blue);
+  border: 3px solid var(--color-blue);
+}
+
+.color-button-info {
+  color: var(--color-blue-info);
+  border: 3px solid var(--color-blue-info);
+}
+
+.color-button-teal {
+  background-color: var(--color-teal-bg);
+  color: var(--color-teal);
+  border: 3px solid var(--color-teal);
+}
+
+.color-button-emerald {
+  background-color: var(--color-green-emerald-bg);
+  color: var(--color-green-emerald);
+  border: 3px solid var(--color-green-emerald);
+}
+
+.color-button-grey {
+  background-color: var(--color-grey-bg);
+  color: var(--color-grey);
+  border: 3px solid var(--color-grey);
+}
+
+.color-button-inactive {
+  color: var(--color-grey);
+  border: 3px solid var(--color-grey);
+}
+
+/* ! ************* Color Buttons ***************** */
+
+/* ? ************* Color Badge ***************** */
+
+.color-badge-red {
+  background: var(--color-red);
+  color: var(--color-secondary);
+}
+
+.color-badge-danger {
+  background: var(--color-red-bg-dark);
+  color: var(--color-red);
+}
+
+.color-badge-yellow {
+  background: var(--color-yellow);
+  color: var(--color-secondary);
+}
+
+.color-badge-warning {
+  background: var(--color-yellow-bg-dark);
+  color: var(--color-yellow);
+}
+
+.color-badge-green {
+  background: var(--color-green);
+  color: var(--color-secondary);
+}
+
+.color-badge-success {
+  background: var(--color-green-bg-light);
+  color: var(--color-green-dark);
+}
+
+.color-badge-blue {
+  background-color: var(--color-blue);
+  color: var(--color-secondary);
+}
+
+.color-badge-info {
+  background-color: var(--color-blue-info);
+  color: var(--color-secondary);
+}
+
+.color-badge-grey {
+  background-color: var(--color-grey);
+  color: var(--color-secondary);
+}
+
+.color-badge-inactive {
+  background-color: var(--color-grey);
+  color: var(--color-secondary);
+}
+
+.color-badge-white {
+  background-color: var(--color-white);
+  color: var(--color-black);
+}
+
+.color-badge-black {
+  background-color: var(--color-black);
+  color: var(--color-white);
+}
+
+.color-badge-emerald {
+  background-color: var(--color-green-emerald);
+  color: var(--color-secondary);
+}
+
+/* ! ************* Color Badge ***************** */
+
+/* ? ************* Color Cards ***************** */
+
+.color-card-success {
+  border-left: 4px solid var(--color-green);
+}
+
+.color-card-danger {
+  border-left: 4px solid var(--color-red-dark);
+}
+
+.color-card-warning {
+  border-left: 4px solid var(--color-yellow);
+}
+
+.color-card-info {
+  border-left: 4px solid var(--color-blue-info);
+}
+
+/* ! ************* Color Cards ***************** */
+
+/* ? ************* Message Text ***************** */
+
+.required {
+  color: var(--color-red);
+}
+
+.success {
+  border-color: var(--color-green-dark);
+}
+
+.success-message {
+  color: var(--color-green-dark);
+}
+
+.error {
+  border-color: var(--color-red-dark);
+}
+
+.error-message {
+  color: var(--color-red-dark);
+}
+
+.error-message-input {
+  color: var(--color-red-dark);
+}
+
+/* ! ************* Message Text ***************** */
+
+/* ? ************* input prop based ***************** */
+
+/* Status Color Code */
+.behavior[data-status="completed"],
+.behavior[data-status="present"],
+.behavior[data-status="ontime"],
+.behavior[data-status="wop"],
+.behavior[data-status="rlm"],
+.behavior[data-status="halfdayleave"],
+.behavior[data-status="shortleave"],
+.behavior[data-status="paidleave"] {
+  background-color: var(--lightgreen);
+}
+
+.behavior[data-status="acceptance"],
+.behavior[data-status="outduty"],
+.behavior[data-status="hdoutduty"],
+.behavior[data-status="shortoutduty"],
+.behavior[data-status="workfromhome"],
+.behavior[data-status="leave"] {
+  background-color: var(--teal);
+}
+
+.behavior[data-status="inprocess"],
+.behavior[data-status="late"],
+.behavior[data-status="halfday"],
+.behavior[data-status="unpaidleavehd"],
+.behavior[data-status="unpaidshortleave"] {
+  background-color: var(--yellow);
+}
+
+.behavior[data-status="pending"],
+.behavior[data-status="misspunch"],
+.behavior[data-status="unpaidleave"],
+.behavior[data-status="absent"] {
+  background-color: var(--red);
+}
+
+.behavior[data-status="close"],
+.behavior[data-status="weeklyoff"],
+.behavior[data-status="holiday"] {
+  background-color: var(--blue);
+}
+
+/* Attendance Status Color Code */
+.behavior[data-status="completed"],
+.behavior[data-status="green"],
+.attendance-status[data-status="present"],
+.attendance-status[data-status="ontime"],
+.attendance-status[data-status="paidleave"],
+.attendance-status[data-status="halfdayleave"],
+.attendance-status[data-status="shortleave"],
+.attendance-status[data-status="rlm"],
+.attendance-status[data-status="wop"] {
+  color: #06ad06;
+}
+
+.behavior[data-status="acceptance"],
+.behavior[data-status="teal"],
+.attendance-status[data-status="outduty"],
+.attendance-status[data-status="hdoutduty"],
+.attendance-status[data-status="shortoutduty"],
+.attendance-status[data-status="workfromhome"] {
+  color: #3dcdcd;
+}
+
+.behavior[data-status="pending"],
+.behavior[data-status="red"],
+/* .attendance-status[data-status="late"],
+.attendance-status[data-status="halfday"], */
+.attendance-status[data-status="unpaidleavehd"],
+.attendance-status[data-status="unpaidshortleave"],
+.attendance-status[data-status="absent"],
+.attendance-status[data-status="misspunch"],
+.attendance-status[data-status="unpaidleave"] {
+  color: #ff747c;
+}
+
+.behavior[data-status="inprocess"],
+.behavior[data-status="yellow"],
+.attendance-status[data-status="late"],
+.attendance-status[data-status="halfday"],
+.attendance-status[data-status="leave"] {
+  color: #f7ba1e;
+}
+
+.behavior[data-status="close"],
+.behavior[data-status="blue"],
+.request-status[request-status="submitted"],
+.attendance-status[data-status="weeklyoff"],
+.attendance-status[data-status="holiday"] {
+  color: #2576bc;
+}
+
+/* Reqyest Status Color Code */
+.request-status[request-status="weeklyoff"] {
+  color: #707070;
+}
+
+/* .request-status[request-status="submitted"], */
+.request-status[request-status="approved"] {
+  color: #06ad06;
+}
+
+.attendance-status[data-status="leave"],
+.request-status[request-status="draft"],
+/* .request-status[request-status="hold"], */
+.request-status[request-status="pending"] {
+  color: #f7ba1e;
+}
+
+/* .request-status[request-status="hold"], */
+.request-status[request-status="rejected"] {
+  color: #ff747c;
+}
+
+/* ! ************* input prop based ***************** */

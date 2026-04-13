@@ -17,8 +17,8 @@ const DevRoleSwitcher = () => {
   const roles = [
     { name: 'ACCOUNT', icon: Shield, color: 'purple' },
     // { name: 'ADMIN', icon: UserCog, color: 'blue' },
-    { name: 'USER', icon: User, color: 'green' },
     { name: 'TL', icon: UserCog, color: 'blue' },
+    { name: 'USER', icon: User, color: 'green' },
   ];
 
   const handleRoleChange = (role) => {

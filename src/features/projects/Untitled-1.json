@@ -1,0 +1,285 @@
+[
+    {
+        "company": null,
+        "sector": null,
+        "sorting_var": "2",
+        "activity_name": "Deliverable Item",
+        "subactivity_templates": [
+            {
+                "chainage_exist": false,
+                "sorting_var": "1",
+                "subactivity_name": "Field Team Mobilization Advance",
+                "unit": "Status",
+                "created_by": "CIPL10042"
+            }
+        ]
+    },
+    {
+        "company": null,
+        "sector": null,
+        "sorting_var": "1",
+        "activity_name": "Field Activities",
+        "subactivity_templates": [
+            {
+                "chainage_exist": false,
+                "sorting_var": "1",
+                "subactivity_name": "Topo Survey",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "2",
+                "subactivity_name": "Traffi Survey and Soil Sampling",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "3",
+                "subactivity_name": "Geotech Investigations",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "1",
+                "subactivity_name": "FWD",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            }
+        ]
+    },
+    {
+        "company": null,
+        "sector": null,
+        "sorting_var": "3",
+        "activity_name": "Design Scope",
+        "subactivity_templates": [
+            {
+                "chainage_exist": false,
+                "sorting_var": "2",
+                "subactivity_name": "TCS",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "3",
+                "subactivity_name": "MCW",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "4",
+                "subactivity_name": "Cross Road",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "5",
+                "subactivity_name": "Service Road",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "6",
+                "subactivity_name": "Slip Road",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "7",
+                "subactivity_name": "Interchange",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "8",
+                "subactivity_name": "PDR",
+                "unit": "Status",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "9",
+                "subactivity_name": "DBR",
+                "unit": "Status",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "10",
+                "subactivity_name": "Drain",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "11",
+                "subactivity_name": "Miscellaneous Highway",
+                "unit": "Percent",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "12",
+                "subactivity_name": "Signage",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "13",
+                "subactivity_name": "Junction Box",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "14",
+                "subactivity_name": "Box Culverts",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "15",
+                "subactivity_name": "Pipe Culverts",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "16",
+                "subactivity_name": "FO",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "17",
+                "subactivity_name": "MNB",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "18",
+                "subactivity_name": "MJB",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "19",
+                "subactivity_name": "ROB",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "20",
+                "subactivity_name": "FOB",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "21",
+                "subactivity_name": "VUP",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "22",
+                "subactivity_name": "VOP",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "23",
+                "subactivity_name": "SVUP",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "24",
+                "subactivity_name": "LVUP",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "25",
+                "subactivity_name": "RUB",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "26",
+                "subactivity_name": "PUP",
+                "unit": "Numbers",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "27",
+                "subactivity_name": "Tunnel Design",
+                "unit": "Status",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "28",
+                "subactivity_name": "Cut and Cover Design",
+                "unit": "Status",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "29",
+                "subactivity_name": "Slope Protection",
+                "unit": "Kilometer",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "30",
+                "subactivity_name": "Retaining Wall/Toe/RE wall/Breast Wall/RS wall",
+                "unit": "Status",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "31",
+                "subactivity_name": "Miscellaneous Structure",
+                "unit": "Percent",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "32",
+                "subactivity_name": "Approval from Proof and Safety",
+                "unit": "Percent",
+                "created_by": "CIPL10042"
+            },
+            {
+                "chainage_exist": false,
+                "sorting_var": "33",
+                "subactivity_name": "Approval from Authority",
+                "unit": "Percent",
+                "created_by": "CIPL10042"
+            }
+        ]
+    }
+]

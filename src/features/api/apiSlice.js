@@ -3,11 +3,12 @@ import { companyService } from '../../services/companyService';
 import { subCompanyService } from '../../services/subCompanyService';
 import { sectorService } from '../../services/sectorService';
 import { clientService } from '../../services/clientService';
-import { tlService } from '../../services/tlservices';
+import { reportingHeadService } from '../../services/reportingHeadService';
 import { activityService } from '../../services/activityService';
 import { subActivityService } from '../../services/subActivityService';
 import { projectService } from '../../services/projectService';
 import { projectWorkSummaryService } from '../../services/projectWorkSummaryService';
+import { activityTemplateService } from '../../services/activityTemplateService';
 
 
 const initialState = {
@@ -15,7 +16,8 @@ const initialState = {
   subCompanies: [],
   sectors: [],
   clients: [],
-  tls: [],
+  reportingHeads: [],
+  activityTemplates: [],
   activities: [],
   subActivities: [],
   projectWorkSummary: null,
@@ -161,6 +163,58 @@ export const createClient = createAsyncThunk(
   }
 );
 
+// ============ Reporting Head (From HRMS) THUNKS ============
+export const fetchReportingHeads = createAsyncThunk(
+  // 'wfm/ourcompanyuserlessdetail/null/null/',
+  'wfm/rhlistactive/null/active/',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await reportingHeadService.getReportingHeads();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+// ============ ACTIVITY THUNKS ============
+export const fetchActivityTemplate = createAsyncThunk(
+  'api/fetchActivityTemplate',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await activityTemplateService.getActivityTemplates();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const createActivityTemplate = createAsyncThunk(
+  'api/createActivityTemplate',
+  async (activityTemplateData, { rejectWithValue }) => {
+    try {
+      const response = await activityTemplateService.createActivityTemplate(activityTemplateData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const createActivityTemplateBulk = createAsyncThunk(
+  'api/createActivityTemplateBulk',
+  async (activityTemplateData, { rejectWithValue }) => {
+    try {
+      const response = await activityTemplateService.createActivityTemplateBulk(activityTemplateData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+
 // ============ ACTIVITY THUNKS ============
 export const fetchActivities = createAsyncThunk(
   'api/fetchActivities',
@@ -203,20 +257,6 @@ export const updateActivityProgress = createAsyncThunk(
   async ({ activityId, progressData }, { rejectWithValue }) => {
     try {
       const response = await activityService.updateActivityProgress(activityId, progressData);
-      return response;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message);
-    }
-  }
-);
-
-
-// Tls thunks 
-export const fetchTls = createAsyncThunk(
-  'wfm/ourcompanyuserlessdetail/null/null/',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await tlService.getTls();
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -298,6 +338,7 @@ export const updateSubActivity = createAsyncThunk(
     }
   }
 );
+
 // ============ PROJECT THUNKS ============
 export const fetchProjects = createAsyncThunk(
   'api/fetchProjects',
@@ -396,6 +437,9 @@ const apiSlice = createSlice({
     clearProjects: (state) => {
       state.projects = [];
     },
+    clearActivityTemplates: (state) => {
+      state.activityTemplates = [];
+    },
     clearActivities: (state) => {
       state.activities = [];
     },
@@ -492,21 +536,39 @@ const apiSlice = createSlice({
         addUniqueItems(state.clients, action.payload);
       })
 
-      // Tls
-
-      .addCase(fetchTls.pending, (state) => {
+      // ============ ReportingHeads (HRMS) ============
+      .addCase(fetchReportingHeads.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchTls.fulfilled, (state, action) => {
+      .addCase(fetchReportingHeads.fulfilled, (state, action) => {
         state.loading = false;
-        state.tls = Array.isArray(action.payload) ? action.payload : [];
+        state.reportingHeads = Array.isArray(action.payload) ? action.payload : [];
       })
-      .addCase(fetchTls.rejected, (state, action) => {
+      .addCase(fetchReportingHeads.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
 
+      // ============ ACTIVITY TEMPLATE ============
+      .addCase(fetchActivityTemplate.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchActivityTemplate.fulfilled, (state, action) => {
+        state.loading = false;
+        state.activityTemplates = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchActivityTemplate.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(createActivityTemplate.fulfilled, (state, action) => {
+        addUniqueItems(state.activityTemplates, action.payload);
+      })
+      .addCase(createActivityTemplateBulk.fulfilled, (state, action) => {
+        addUniqueItems(state.activityTemplates, action.payload);
+      })
 
       // ============ ACTIVITIES ============
       .addCase(fetchActivities.pending, (state) => {

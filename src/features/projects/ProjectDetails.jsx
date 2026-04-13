@@ -58,7 +58,10 @@ import {
   Briefcase,
   PlusCircle,
   Timer,
-  User
+  User,
+  Banknote,
+  Handshake,
+  Factory
 } from "lucide-react";
 import LoadingModal from "../../components/modals/LoadingModal";
 
@@ -209,6 +212,7 @@ const ProjectDetails = () => {
     description: ""
   });
   const [showEditModal, setShowEditModal] = useState(false);
+  const [activityType, setActivityType] = useState(null);
 
 
   const [editData, setEditData] = useState({
@@ -917,9 +921,10 @@ const ProjectDetails = () => {
   // Render sub-activity fields
   const renderSubActivityFields = (sub, activityId) => {
     const fields = [
-      { label: "Submission Payment", key: "submission_payment", value: sub.submission_payment || 0, unit: "%", icon: <Percent size={12} /> },
-      { label: "Approval Payment", key: "approval_payment", value: sub.approval_payment || 0, unit: "%", icon: <Percent size={12} /> },
+      { label: "Submission Payment", key: "submission_payment", value: sub.submission_payment || 0, unit: "%", icon: <Banknote size={12} /> },
+      { label: "Approval Payment", key: "approval_payment", value: sub.approval_payment || 0, unit: "%", icon: <Banknote size={12} /> },
       { label: "Chainage Start", key: "chainage_start", value: sub.chainage_start || 0, unit: "km", icon: <Ruler size={12} /> },
+      { label: "Length", key: "chainage_start", value: sub.covered_area || 0, unit: "m", icon: <Ruler size={12} /> },
       // { label: "Chainage End", key: "chainage_end", value: sub.chainage_end || 0, unit: "km", icon: <Ruler size={12} /> }
     ];
 
@@ -1560,21 +1565,22 @@ const ProjectDetails = () => {
                   <Building2 size={isMobile ? 18 : 20} className="text-blue-600" /> Project Details
                 </h3>
                 <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                  <DetailItem label="Company" value={getProjectCompany()} />
+                  <DetailItem label="Company" value={getProjectCompany()} icon={<Building2 size={12} />} />
                   <DetailItem label="Location" value={getProjectLocation()} icon={<MapPin size={12} />} />
-                  <DetailItem label="Sector" value={getProjectSector()} />
-                  <DetailItem label="Client" value={getProjectClient()} />
+                  <DetailItem label="Sector" value={getProjectSector()} icon={<Factory size={12} />} />
+                  <DetailItem label="Client" value={getProjectClient()} icon={<Handshake size={12} />} />
                   <DetailItem label="Total Length" value={getProjectTotalLength()} icon={<Ruler size={12} />} />
-                  <DetailItem label="Workorder Cost" value={getProjectCost()} icon={<IndianRupee size={12} />} />
+                  <DetailItem label="Work Order Cost" value={getProjectCost()} icon={<IndianRupee size={12} />} />
                   <DetailItem label="LOA Date" value={getProjectLoaDate()} icon={<Calendar size={12} />} />
+                  <DetailItem label="Completion" value={getProjectConfirmationDate()} icon={<Calendar size={12} />} />
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-200">
+                {/* <div className="mt-4 pt-4 border-t border-gray-200">
                   <h4 className="font-semibold text-sm sm:text-base text-gray-800 mb-2">Key Milestones</h4>
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <DetailItem label="LOA" value={getProjectDirectorProposalDate()} />
                     <DetailItem label="Completion" value={getProjectConfirmationDate()} />
                   </div>
-                </div>
+                </div> */}
               </div>
               <div className="lg:border-l border-gray-200 lg:pl-6">
                 <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Progress Overview</h4>
@@ -1838,8 +1844,8 @@ const ProjectDetails = () => {
                                       </div>
 
                                       {/* Progress/Status Controls */}
-                                      <div className="mt-3 pt-3 border-t border-gray-100">
-                                        {isStatusBased ? (
+                                      {isStatusBased && (
+                                        <div className="mt-3 pt-3 border-t border-gray-100">
                                           <div className="flex items-center gap-2">
                                             <span className="text-xs text-gray-500">Status:</span>
                                             <div className="flex gap-1">
@@ -1855,57 +1861,59 @@ const ProjectDetails = () => {
                                               ))}
                                             </div>
                                           </div>
-                                        ) : (
-                                          <div className="space-y-2">
-                                            <div className="flex justify-between text-xs mb-1">
-                                              <span className="text-gray-600">Progress</span>
-                                              <span className="font-semibold text-blue-600">{progress}%</span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                                              <div className={`h-2 rounded-full ${getProgressColor(progress)}`} style={{ width: `${progress}%` }} />
-                                            </div>
-                                            {isEditing ? (
-                                              <div className="flex items-center gap-2 mt-2">
-                                                <input
-                                                  type="number"
-                                                  value={editValue}
-                                                  onChange={(e) => setEditValue(parseFloat(e.target.value) || 0)}
-                                                  className="w-24 px-2 py-1 text-sm border rounded-lg"
-                                                  min="0"
-                                                  max={plannedQty}
-                                                  step="0.01"
-                                                  autoFocus
-                                                />
-                                                <button
-                                                  onClick={() => handleProgressUpdate(activity.id, sub.id, plannedQty)}
-                                                  disabled={isSubmitting}
-                                                  className="px-2 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
-                                                >
-                                                  Save
-                                                </button>
-                                                <button
-                                                  onClick={() => { setEditingSubActivity(null); setEditValue(0); }}
-                                                  className="px-2 py-1 bg-gray-400 text-white text-xs rounded-lg hover:bg-gray-500"
-                                                >
-                                                  Cancel
-                                                </button>
-                                              </div>
-                                            ) : (
-                                              <div className="flex justify-between items-center mt-2">
-                                                <div className="text-xs text-gray-500">
-                                                  {completedQty} / {plannedQty} {unit}
-                                                </div>
-                                                <button
-                                                  onClick={() => { setEditingSubActivity(sub.id); setEditValue(completedQty); }}
-                                                  className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                                >
-                                                  <PenLine size={12} /> Update
-                                                </button>
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
+                                        </div>
+                                      )
+                                        // : (
+                                        //   <div className="space-y-2">
+                                        //     <div className="flex justify-between text-xs mb-1">
+                                        //       <span className="text-gray-600">Progress</span>
+                                        //       <span className="font-semibold text-blue-600">{progress}%</span>
+                                        //     </div>
+                                        //     <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                        //       <div className={`h-2 rounded-full ${getProgressColor(progress)}`} style={{ width: `${progress}%` }} />
+                                        //     </div>
+                                        //     {isEditing ? (
+                                        //       <div className="flex items-center gap-2 mt-2">
+                                        //         <input
+                                        //           type="number"
+                                        //           value={editValue}
+                                        //           onChange={(e) => setEditValue(parseFloat(e.target.value) || 0)}
+                                        //           className="w-24 px-2 py-1 text-sm border rounded-lg"
+                                        //           min="0"
+                                        //           max={plannedQty}
+                                        //           step="0.01"
+                                        //           autoFocus
+                                        //         />
+                                        //         <button
+                                        //           onClick={() => handleProgressUpdate(activity.id, sub.id, plannedQty)}
+                                        //           disabled={isSubmitting}
+                                        //           className="px-2 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                                        //         >
+                                        //           Save
+                                        //         </button>
+                                        //         <button
+                                        //           onClick={() => { setEditingSubActivity(null); setEditValue(0); }}
+                                        //           className="px-2 py-1 bg-gray-400 text-white text-xs rounded-lg hover:bg-gray-500"
+                                        //         >
+                                        //           Cancel
+                                        //         </button>
+                                        //       </div>
+                                        //     ) : (
+                                        //       <div className="flex justify-between items-center mt-2">
+                                        //         <div className="text-xs text-gray-500">
+                                        //           {completedQty} / {plannedQty} {unit}
+                                        //         </div>
+                                        //         <button
+                                        //           onClick={() => { setEditingSubActivity(sub.id); setEditValue(completedQty); }}
+                                        //           className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                        //         >
+                                        //           <PenLine size={12} /> Update
+                                        //         </button>
+                                        //       </div>
+                                        //     )}
+                                        //   </div>
+                                        // )
+                                      }
                                     </div>
                                   );
                                 })}
