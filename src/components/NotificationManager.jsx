@@ -34,9 +34,6 @@ const NotificationManager = () => {
       return;
     }
 
-    console.log("Showing initial notifications for this session");
-
-    
     const showNotification = (message, type, duration, key) => {
       if (!shownNotifications.current.has(key)) {
         dispatch(showSnackbar({ message, type, duration }));

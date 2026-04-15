@@ -136,14 +136,10 @@ const UserPickedProjectDetails = () => {
       return;
     }
     
-    console.log("Filtering tasks for project ID:", id);
-    console.log("All user tasks:", userTasks.map(t => ({ id: t.id, name: t.subactivity_name, project_id: t.project_id, project_name: t.project_name })));
-    
     // Find the project in projects list
     let foundProject = projects.find(p => p.id === id || p.project_id === id);
     
     if (foundProject) {
-      console.log("Project found:", foundProject);
       setProject(foundProject);
       
       // Filter tasks that belong to this project - CRITICAL: Match by project_id
@@ -151,19 +147,16 @@ const UserPickedProjectDetails = () => {
         // Check if task's project_id matches the current project ID
         const matches = task.project_id === id;
         if (matches) {
-          console.log(`Task ${task.subactivity_name} belongs to project ${id}`);
+          // console.log(`Task ${task.subactivity_name} belongs to project ${id}`);
         }
         return matches;
       });
       
-      console.log(`Found ${projectTasks.length} tasks for project ${foundProject.project_name}`);
       setUserProjectTasks(projectTasks);
     } else {
-      console.log("Project not found with ID:", id);
       // Try to find from tasks directly
       const tasksInProject = userTasks.filter(task => task.project_id === id);
       if (tasksInProject.length > 0) {
-        console.log(`Found ${tasksInProject.length} tasks, creating project from task data`);
         // Create project object from task data
         const firstTask = tasksInProject[0];
         setProject({

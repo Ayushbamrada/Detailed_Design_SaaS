@@ -8,12 +8,7 @@ class AuthService {
       const formData = new FormData();
       formData.append('email', email);
       formData.append('password', password);
-      
-      console.log('Attempting login with:', { email });
-      
       const response = await authApi.post('/user/login/', formData);
-      console.log('Login response:', response.data);
-      
       return response.data;
     } catch (error) {
       console.error('Login service error:', error);
@@ -38,7 +33,6 @@ class AuthService {
   logout() {
     localStorage.clear();
     sessionStorage.clear();
-    console.log('User logged out, storage cleared');
   }
 
 

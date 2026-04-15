@@ -407,7 +407,6 @@ const ProjectDetails = () => {
       foundProject = localProjects.find(p => p.id === id || p.project_id === id);
     }
     if (foundProject) {
-      console.log("Project found:", foundProject);
       setProject(foundProject);
     }
   }, [id, apiProjects, localProjects]);
@@ -1185,8 +1184,6 @@ const ProjectDetails = () => {
         )}
       </AnimatePresence>
 
-      {console.log(getProjectActivities(), selectedActivityForExtension, "project_activities")}
-
       {/* Activity Extension Modal */}
       <ActivityExtensionModal
         isOpen={showActivityExtensionModal}
@@ -1407,7 +1404,7 @@ const ProjectDetails = () => {
                         onClick={addDocumentRow}
                         className="flex items-center gap-1 text-blue-600"
                       >
-                        <PlusCircle size={16} /> Add Document
+                        <PlusCircle size={16} /> Add Document 
                       </button>
                     </div>
 

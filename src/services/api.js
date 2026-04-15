@@ -30,7 +30,6 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    console.log('API Response:', response.status, response.config.url);
     return response;
   },
   async (error) => {
@@ -47,8 +46,6 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         
         if (!refreshToken) {
-          
-          console.log('No refresh token found, redirecting to login');
           window.location.href = '/';
           return Promise.reject(error);
         }

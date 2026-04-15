@@ -15,7 +15,6 @@ const authApi = axios.create({
 
 authApi.interceptors.request.use(
   (config) => {
-    console.log('Auth API Request:', config.method.toUpperCase(), config.url);
     return config;
   },
   (error) => Promise.reject(error)

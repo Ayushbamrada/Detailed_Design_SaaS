@@ -23,11 +23,40 @@ export const projectService = {
       if (user?.role === 'TL') {
         url = `user-assigned-projects/${emp_code}/`;
       } else {
+        // url = '/get-project/';
         url = '/project/';
       }
 
       const response = await api.get(url);
-      console.log(response.data, 'response data')
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      throw error;
+    }
+  },
+
+  getProjectsWithDetails: async (user) => {
+    try {
+      let url;
+      let emp_code = sessionStorage.getItem('emp_code')
+      // 🔥 Role-based API logic
+      if (user?.role === 'TL') {
+        url = `user-assigned-projects/${emp_code}/`;
+      } else {
+        url = '/project/';
+      }
+
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      throw error;
+    }
+  },
+
+  getProjectDetails: async (user) => {
+    try {
+      const response = await api.get(`/get-projectdetails-byid/${projectId}/`);
       return response.data;
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -49,7 +78,6 @@ export const projectService = {
 
   createProject: async (projectData) => {
     try {
-      console.log('Creating project with data:', projectData);
       const response = await api.post('/project/', projectData);
       return response.data;
     } catch (error) {
@@ -79,8 +107,6 @@ export const projectService = {
 
   updateProjectProgress: async (projectId, progressData) => {
     try {
-      console.log('Updating project progress with PUT:', { projectId, progressData });
-
       const response = await api.put(`/project/${projectId}/`, progressData);
       return response.data;
     } catch (error) {
@@ -110,4 +136,27 @@ export const projectService = {
       throw error;
     }
   },
+
+  tlSubactivitySubmitwithProof: async (proofData) => {
+    try {
+      const formData = new FormData();
+      proofData.documents.forEach((file) => {
+        formData.append("files", file);
+      });
+      // formData.append("message", proofData.message);
+      for (const key in proofData) {
+        key !== "documents" &&
+          formData.append(key, proofData[key]);
+      }
+      const response = await api.post(`/subactivity-submission/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting subactivity with proof:', error);
+      throw error;
+    }
+  }
 };

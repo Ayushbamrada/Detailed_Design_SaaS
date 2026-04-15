@@ -22,7 +22,6 @@ export const logService = {
   getAllLogs: async () => {
     try {
       const url = `/alllogs/`;
-      console.log('Fetching all logs with URL:', url);
       const response = await api.get(url);
       
       
@@ -59,8 +58,6 @@ export const logService = {
       if (search) {
         url += `?search=${encodeURIComponent(search)}`;
       }
-      
-      console.log('Fetching project logs with URL:', url);
       const response = await api.get(url);
       
       
@@ -86,7 +83,6 @@ export const logService = {
   
   createLog: async (logData) => {
     try {
-      console.log('Creating log with data:', logData);
       const response = await api.post('/alllogs/', logData);
       return response.data;
     } catch (error) {
@@ -98,7 +94,6 @@ export const logService = {
 
   deleteLog: async (logId) => {
     try {
-      console.log('Deleting log with ID:', logId);
       const response = await api.delete(`/alllogs/${logId}/`);
       return response.data;
     } catch (error) {

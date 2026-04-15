@@ -55,29 +55,13 @@ const RoleError = ({ role }) => (
 const DashboardWrapper = () => {
   const { user, loading, isAuthenticated } = useSelector((state) => state.auth);
 
-  useEffect(() => {
-    console.log('DashboardWrapper - Auth State:', {
-      isAuthenticated,
-      loading,
-      user: user ? {
-        name: user.name,
-        role: user.role,
-        originalRole: user.originalRole,
-        email: user.email
-      } : null
-    });
-  }, [user, loading, isAuthenticated]);
-
   if (loading) {
     return <DashboardLoading />;
   }
 
   if (!isAuthenticated || !user) {
-    console.log('DashboardWrapper - Not authenticated, redirecting to login');
     return <Navigate to="/" replace />;
   }
-
-  console.log('DashboardWrapper - Rendering dashboard for role:', user.role);
 
   // Handle different roles
   switch (user.role) {

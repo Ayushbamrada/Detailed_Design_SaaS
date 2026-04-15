@@ -32,12 +32,26 @@ export const fetchProjectWorkSummary = createAsyncThunk(
   async (projectId, { rejectWithValue }) => {
     try {
       const response = await projectWorkSummaryService.getProjectWorkSummary(projectId);
+
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
+
+
+// export const fetchuserbyactivityWorkSummary = createAsyncThunk(
+//   'api/employee-work-summary',
+//   async (projectId, { rejectWithValue }) => {
+//     try {
+//       const response = await projectWorkSummaryService.getProjectWorkSummary(projectId);
+//       return response;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || error.message);
+//     }
+//   }
+// );
 
 // ============ COMPANY THUNKS ============
 export const fetchCompanies = createAsyncThunk(
@@ -328,8 +342,6 @@ export const updateSubActivityStatus = createAsyncThunk(
 export const updateSubActivity = createAsyncThunk(
   "api/updateSubActivity",
   async ({ id, data }, { rejectWithValue }) => {
-    console.log(id, data, 'slash')
-
     try {
       const response = await subActivityService.updateSubActivity(id, data);
       return response;
@@ -354,6 +366,38 @@ export const fetchProjects = createAsyncThunk(
     }
   }
 );
+
+export const fetchProjectsWithDetails = createAsyncThunk(
+  'api/fetchProjectWithDetails',
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      const { auth } = getState();
+      const user = auth.user;
+
+      const response = await projectService.getProjects(user);
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const fetchProjectDetails = createAsyncThunk(
+  'api/fetchProjectDetails',
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      const { auth } = getState();
+      const user = auth.user;
+
+      const response = await getProjectDetails.getProjects(user);
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+
 export const createProject = createAsyncThunk(
   'api/createProject',
   async (projectData, { rejectWithValue }) => {
@@ -401,6 +445,19 @@ export const deleteProject = createAsyncThunk(
     }
   }
 );
+
+export const tlSubactivitySubmitwithProof = createAsyncThunk(
+  'api/subactivity-submission',
+  async (proofData, { rejectWithValue }) => {
+    try {
+      await projectService.tlSubactivitySubmitwithProof(proofData);
+      return proofData; // Return the submitted data for potential state updates
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 
 // Helper function to add unique items to array
 const addUniqueItems = (state, newItems, key = 'id') => {
@@ -632,6 +689,33 @@ const apiSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+
+      .addCase(fetchProjectsWithDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchProjectsWithDetails.fulfilled, (state, action) => {
+        state.loading = false;
+        state.projects = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchProjectsWithDetails.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(fetchProjectDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchProjectDetails.fulfilled, (state, action) => {
+        state.loading = false;
+        state.projects = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchProjectDetails.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
       .addCase(createProject.fulfilled, (state, action) => {
         addUniqueItems(state.projects, action.payload);
       })

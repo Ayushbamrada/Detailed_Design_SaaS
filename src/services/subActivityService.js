@@ -53,7 +53,6 @@ export const subActivityService = {
         };
 
       const payload = Array.isArray(mappedData) ? mappedData : [mappedData];
-      console.log('Creating sub-activity with mapped payload:', payload);
       const response = await api.post('/subactivity/', payload);
       return Array.isArray(response.data) ? response.data[0] : response.data;
     } catch (error) {
@@ -72,7 +71,6 @@ export const subActivityService = {
       }));
 
       const payload = Array.isArray(mappedData) ? mappedData : [mappedData];
-      console.log('Creating bulk sub-activities with mapped payload:', JSON.stringify(payload, null, 2));
       const response = await api.post('/subactivity/', payload);
       return response.data;
     } catch (error) {
@@ -88,7 +86,6 @@ export const subActivityService = {
 
   updateSubActivityProgress: async (subActivityId, progressData) => {
     try {
-      console.log('Updating sub-activity progress with PUT:', { subActivityId, progressData });
       const response = await api.put(`/subactivity/${subActivityId}/`, progressData);
       return response.data;
     } catch (error) {
@@ -100,7 +97,6 @@ export const subActivityService = {
 
   updateSubActivityStatus: async (subActivityId, statusData) => {
     try {
-      console.log('Updating sub-activity status with PUT:', { subActivityId, statusData });
       const response = await api.put(`/subactivity/${subActivityId}/`, statusData);
       return response.data;
     } catch (error) {

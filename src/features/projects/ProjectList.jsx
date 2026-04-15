@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Plus,
@@ -31,6 +31,9 @@ import {
   Ruler,
   CheckCircle,
   Hash,
+  X,
+  Save,
+  PlusCircle,
 } from "lucide-react";
 import {
   getProjectStatusInfo,
@@ -47,10 +50,14 @@ import { showSnackbar } from "../notifications/notificationSlice";
 import TaskPicker from "../tasks/TaskPicker";
 import LoadingModal from "../../components/modals/LoadingModal";
 import { SECTOR_UNIT_MAPPING } from "../../utils/enumMapping";
+import { saveDailyWorkLog } from "../tasks/taskSlice";
 
 const ProjectList = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const location = useLocation();
+
+  // const showProjectDetailsID = location.state?.showProjectDetailsID;
 
   // Get projects and user from Redux store
   const {
@@ -70,12 +77,24 @@ const ProjectList = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedTaskfortimelog, setSelectedTaskfortimelog] = useState(null);
   const [showTaskPicker, setShowTaskPicker] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Loading Projects");
   const [loadingSubMessage, setLoadingSubMessage] = useState(
     "Fetching your projects...",
   );
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [showTimeLogModal, setShowTimeLogModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [timeLogData, setTimeLogData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    startTime: '',
+    endTime: '',
+    description: ''
+  });
+
+  const [worklogreturned, setWorkLogReturned] = useState([]);
 
   // Create lookup maps for IDs to names
   const companyMap = useMemo(() => {
@@ -145,14 +164,12 @@ const ProjectList = () => {
       setLoadingSubMessage("Fetching project data...");
 
       try {
-        console.log("Loading all data...");
         await Promise.all([
           dispatch(fetchCompanies()).unwrap(),
           dispatch(fetchSectors()).unwrap(),
           dispatch(fetchClients()).unwrap(),
           dispatch(fetchProjects()).unwrap(),
         ]);
-        console.log("All data loaded successfully");
       } catch (error) {
         console.error("Error loading data:", error);
         dispatch(
@@ -469,6 +486,211 @@ const ProjectList = () => {
       return null;
     }
   }, []);
+
+
+
+  const handleSaveTimeLog = async () => {
+    if (!selectedTaskfortimelog) return;
+
+    // Validate
+    if (!timeLogData.startTime || !timeLogData.endTime) {
+      dispatch(showSnackbar({
+        message: 'Please enter both start and end time',
+        type: 'error'
+      }));
+      return;
+    }
+
+    if (timeLogData.startTime >= timeLogData.endTime) {
+      dispatch(showSnackbar({
+        message: 'End time must be after start time',
+        type: 'error'
+      }));
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await dispatch(saveDailyWorkLog({
+        projectId: selectedTaskfortimelog.project_id,
+        subActivityId: selectedTaskfortimelog.id,
+        date: timeLogData.date,
+        startTime: timeLogData.startTime,
+        endTime: timeLogData.endTime,
+        note: timeLogData.description,
+        status: 'WORKED'
+      })).unwrap();
+
+      dispatch(showSnackbar({
+        message: 'Work hours saved successfully!',
+        type: 'success'
+      }));
+
+      const mixedData = {
+        ...selectedTaskfortimelog,
+        date: timeLogData.date,
+        startTime: timeLogData.startTime,
+        endTime: timeLogData.endTime,
+        description: timeLogData.description
+      };
+      setWorkLogReturned((prev) => [...prev, mixedData]);
+
+      setShowTimeLogModal(false);
+      setSelectedTaskfortimelog(null);
+      setTimeLogData({
+        date: new Date().toISOString().split('T')[0],
+        startTime: '',
+        endTime: '',
+        description: ''
+      });
+
+    } catch (error) {
+      dispatch(showSnackbar({
+        message: error.message || 'Failed to save record',
+        type: 'error'
+      }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const calculateHours = (start, end) => {
+    if (!start || !end) return 0;
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+    let hours = endH - startH;
+    let minutes = endM - startM;
+    if (minutes < 0) {
+      hours--;
+      minutes += 60;
+    }
+    return hours + minutes / 60;
+  };
+
+
+  // Add this state
+  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const [targetSubActivityId, setTargetSubActivityId] = useState(null);
+  const [targetActivityId, setTargetActivityId] = useState(null);
+
+  // Replace your existing useEffect with this:
+  useEffect(() => {
+    const projectId = location.state?.showProjectDetailsID;
+    const activityId = location.state?.showActivityDetailsID;
+    const subActivityId = location.state?.showSubAcivityDetailsID;
+
+    if (projectId && !hasAutoExpanded && !isInitialLoading && filteredProjects.length > 0) {
+      // Check if the project exists in filteredProjects
+      const projectExists = filteredProjects.some(p => {
+        const pid = p.id || p.project_id;
+        return pid === projectId;
+      });
+
+      if (projectExists) {
+
+        // Store target IDs for subactivity expansion
+        if (activityId) setTargetActivityId(activityId);
+        if (subActivityId) setTargetSubActivityId(subActivityId);
+
+        // Expand the card
+        setExpandedCard(projectId);
+
+        // Small delay to ensure DOM is updated with expanded content
+        setTimeout(() => {
+          const element = document.getElementById(`project-card-${projectId}`);
+          if (element) {
+            // Scroll to the element
+            element.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+
+            // // Add highlight effect
+            // element.classList.add('ring-4', 'ring-blue-400', 'ring-offset-2', 'transition-all', 'duration-300');
+            // setTimeout(() => {
+            //   element.classList.remove('ring-4', 'ring-blue-400', 'ring-offset-2');
+            // }, 2000);
+          }
+        }, 200); // Increased delay for smoother expansion
+
+
+        // Small delay to ensure DOM is updated with expanded content
+        setTimeout(() => {
+          const element = document.getElementById(`project-card-${projectId}`);
+          if (element) {
+            // Scroll to the element
+            element.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+
+          // If subactivity ID is provided, expand the specific activity and scroll to subactivity
+          if (subActivityId) {
+            // Find which activity contains this subactivity
+            const project = filteredProjects.find(p => (p.id || p.project_id) === projectId);
+            if (project && project.activities_detail) {
+              const activity = project.activities_detail.find(act =>
+                act.subactivities && act.subactivities.some(sub => sub.id === subActivityId)
+              );
+
+              if (activity) {
+                // Expand the activity
+                setExpandedActivities(prev => ({
+                  ...prev,
+                  [activity.id]: true
+                }));
+
+                // Scroll to the subactivity after a delay
+                setTimeout(() => {
+                  const subActivityElement = document.getElementById(`subactivity-row-${subActivityId}`);
+                  if (subActivityElement) {
+                    subActivityElement.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'center'
+                    });
+                    // // Add highlight effect
+                    // subActivityElement.classList.add('bg-yellow-50', 'transition-all', 'duration-300');
+                    // setTimeout(() => {
+                    //   subActivityElement.classList.remove('bg-yellow-50');
+                    // }, 2000);
+                  }
+                }, 300);
+              }
+            }
+          } else if (activityId) {
+            // If only activity ID is provided, expand that activity
+            setExpandedActivities(prev => ({
+              ...prev,
+              [activityId]: true
+            }));
+
+            // Scroll to the activity after a delay
+            setTimeout(() => {
+              const activityElement = document.getElementById(`activity-${activityId}`);
+              if (activityElement) {
+                activityElement.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'center'
+                });
+                // activityElement.classList.add('ring-2', 'ring-blue-400', 'transition-all', 'duration-300');
+                // setTimeout(() => {
+                //   activityElement.classList.remove('ring-2', 'ring-blue-400');
+                // }, 2000);
+              }
+            }, 300);
+          }
+        }, 200);
+
+        setHasAutoExpanded(true);
+
+        // Clear the location state
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, isInitialLoading, filteredProjects, hasAutoExpanded]);
+
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -488,6 +710,207 @@ const ProjectList = () => {
           }}
         />
       )}
+      {/* Time Log Modal */}
+      <AnimatePresence>
+        {showTimeLogModal && selectedTaskfortimelog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowTimeLogModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 30 }}
+              className="bg-white rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-gray-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                  <Clock size={20} className="text-blue-500" />
+                  Log Work Hours
+                </h3>
+                <button
+                  onClick={() => setShowTimeLogModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Task Info */}
+              <div className="mb-5 p-3 bg-gray-50 rounded-xl border">
+                <p className="font-medium text-gray-800">{selectedTaskfortimelog.subactivity_name}</p>
+                <p className="text-sm text-gray-500">{selectedTaskfortimelog.project_name}</p>
+              </div>
+
+              {/* Date */}
+              <div className="mb-4">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Date</label>
+                <input
+                  type="date"
+                  value={timeLogData.date}
+                  onChange={(e) =>
+                    setTimeLogData({ ...timeLogData, date: e.target.value })
+                  }
+                  max={new Date().toISOString().split("T")[0]}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Time Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                {/* Start Time */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    Start Time
+                  </label>
+                  <select
+                    value={timeLogData.startTime}
+                    onChange={(e) =>
+                      setTimeLogData({ ...timeLogData, startTime: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select</option>
+                    {Array.from({ length: 24 }).map((_, hour) =>
+                      ["00", "30"].map((min) => {
+                        const time = `${String(hour).padStart(2, "0")}:${min}`;
+                        return (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        );
+                      })
+                    )}
+                  </select>
+                </div>
+
+                {/* End Time */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">
+                    End Time
+                  </label>
+                  <select
+                    value={timeLogData.endTime}
+                    onChange={(e) =>
+                      setTimeLogData({ ...timeLogData, endTime: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select</option>
+                    {Array.from({ length: 24 }).map((_, hour) =>
+                      ["00", "30"].map((min) => {
+                        const time = `${String(hour).padStart(2, "0")}:${min}`;
+                        return (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        );
+                      })
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {[
+                  { label: "Full Day", start: "09:00", end: "18:00" },
+                  { label: "Half Day", start: "09:00", end: "13:00" },
+                  { label: "Evening", start: "14:00", end: "18:00" },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() =>
+                      setTimeLogData({
+                        ...timeLogData,
+                        startTime: preset.start,
+                        endTime: preset.end,
+                      })
+                    }
+                    className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Validation + Total */}
+              {timeLogData.startTime && timeLogData.endTime && (
+                <div className="mb-4 p-3 rounded-lg border bg-blue-50">
+                  {timeLogData.endTime <= timeLogData.startTime ? (
+                    <p className="text-red-500 text-sm font-medium">
+                      End time must be after start time
+                    </p>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-blue-700">Total Hours:</span>
+                      <span className="text-lg font-semibold text-blue-700">
+                        {calculateHours(
+                          timeLogData.startTime,
+                          timeLogData.endTime
+                        ).toFixed(2)}{" "}
+                        hrs
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Description */}
+              <div className="mb-5">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Description
+                </label>
+                <textarea
+                  value={timeLogData.description}
+                  onChange={(e) =>
+                    setTimeLogData({
+                      ...timeLogData,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Describe what you worked on..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowTimeLogModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleSaveTimeLog}
+                  disabled={
+                    isSaving ||
+                    !timeLogData.startTime ||
+                    !timeLogData.endTime ||
+                    timeLogData.endTime <= timeLogData.startTime
+                  }
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition"
+                >
+                  {isSaving ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Save size={16} />
+                  )}
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!showLoading && (
         <>
@@ -505,10 +928,10 @@ const ProjectList = () => {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${isACCOUNT
-                      ? "bg-purple-100 text-purple-600"
-                      : isAdmin
-                        ? "bg-blue-100 text-blue-600"
-                        : "bg-green-100 text-green-600"
+                    ? "bg-purple-100 text-purple-600"
+                    : isAdmin
+                      ? "bg-blue-100 text-blue-600"
+                      : "bg-green-100 text-green-600"
                     }`}
                 >
                   {getRoleIcon()}
@@ -709,9 +1132,6 @@ const ProjectList = () => {
                 className="grid gap-6"
               >
                 {filteredProjects.map((project) => {
-                  {
-                    console.log(project, "project");
-                  }
                   const projectId = getProjectId(project);
                   const projectName = getProjectName(project);
                   const projectCode = getProjectCode(project);
@@ -733,6 +1153,7 @@ const ProjectList = () => {
                   const isExpanded = expandedCard === projectId;
                   return (
                     <motion.div
+                      id={`project-card-${projectId}`}
                       key={projectId}
                       variants={itemVariants}
                       layout
@@ -831,12 +1252,12 @@ const ProjectList = () => {
                               <div className="flex items-center gap-2">
                                 <div
                                   className={`p-2 rounded-lg ${isCompleted
-                                      ? "bg-green-50"
-                                      : daysLeft < 0
-                                        ? "bg-red-50"
-                                        : daysLeft <= 2
-                                          ? "bg-orange-50"
-                                          : "bg-green-50"
+                                    ? "bg-green-50"
+                                    : daysLeft < 0
+                                      ? "bg-red-50"
+                                      : daysLeft <= 2
+                                        ? "bg-orange-50"
+                                        : "bg-green-50"
                                     }`}
                                 >
                                   <Clock
@@ -883,7 +1304,7 @@ const ProjectList = () => {
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2">
+                              {/* <div className="flex items-center gap-2">
                                 <div className="p-2 bg-indigo-50 rounded-lg">
                                   <BarChart3
                                     size={16}
@@ -898,7 +1319,7 @@ const ProjectList = () => {
                                     {activities.length}
                                   </p>
                                 </div>
-                              </div>
+                              </div> */}
                               <div className="flex items-center gap-2">
                                 <div className="p-2 bg-indigo-50 rounded-lg">
                                   <UserCheck
@@ -994,12 +1415,12 @@ const ProjectList = () => {
                               animate={{ width: `${weightedProgress}%` }}
                               transition={{ duration: 0.8 }}
                               className={`h-2 rounded-full ${weightedProgress === 100
-                                  ? "bg-green-500"
-                                  : weightedProgress > 70
-                                    ? "bg-blue-500"
-                                    : weightedProgress > 40
-                                      ? "bg-yellow-500"
-                                      : "bg-red-500"
+                                ? "bg-green-500"
+                                : weightedProgress > 70
+                                  ? "bg-blue-500"
+                                  : weightedProgress > 40
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
                                 }`}
                             />
                           </div>
@@ -1064,14 +1485,7 @@ const ProjectList = () => {
                                       </span>
                                     </p>
                                   </div>
-                                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3">
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Total Activities
-                                    </p>
-                                    <p className="text-xl font-bold text-purple-700">
-                                      {activities.length}
-                                    </p>
-                                  </div>
+
                                   <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-3">
                                     <p className="text-xs text-gray-500 mb-1">
                                       GST Amount
@@ -1092,6 +1506,14 @@ const ProjectList = () => {
                                       <span className="text-sm font-normal">
                                         Lakhs
                                       </span>
+                                    </p>
+                                  </div>
+                                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3">
+                                    <p className="text-xs text-gray-500 mb-1">
+                                      Total Activities
+                                    </p>
+                                    <p className="text-xl font-bold text-purple-700">
+                                      {activities.length}
                                     </p>
                                   </div>
                                 </div>
@@ -1391,6 +1813,7 @@ const ProjectList = () => {
                                   </h4>
                                   <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                                     {activities.map((activity, actIndex) => {
+                                      // if (activity.activity_name == "Deliverable Item" && isUser) return null; // Skip rendering this activity
                                       const subs = activity.subactivities || [];
                                       const isActivityExpanded =
                                         expandedActivities[activity.id];
@@ -1409,6 +1832,7 @@ const ProjectList = () => {
                                       );
                                       return (
                                         <div
+                                          id={`activity-${activity.id}`}
                                           key={activity.id || actIndex}
                                           className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200"
                                         >
@@ -1499,341 +1923,356 @@ const ProjectList = () => {
                                                 exit={{ height: 0, opacity: 0 }}
                                                 className="border-t border-gray-200"
                                               >
-                                                <div className="p-4 space-y-2 bg-white">
-                                                  {subs.length === 0 ? (
-                                                    <p className="text-sm text-gray-400 text-center py-4">
-                                                      No sub-activities
-                                                      available
-                                                    </p>
-                                                  ) : (
-                                                    subs.map(
-                                                      (sub, subIndex) => {
-                                                        const isSubCompleted =
-                                                          sub.is_completed ||
-                                                          sub.status ===
-                                                          "Complete";
-                                                        const pickedStatus =
-                                                          sub.picked_at
-                                                            ?.length > 0;
-                                                        const isPickedByMe =
-                                                          pickedStatus &&
-                                                          sub.picked_at.some(
-                                                            (p) =>
-                                                              p.emp_code ===
-                                                              user?.id,
-                                                          );
+
+
+                                                <div className="overflow-x-auto bg-white rounded-xl border shadow-sm">
+                                                  <table className="w-full text-sm">
+
+                                                    {/* HEADER */}
+                                                    <thead className="bg-gray-100 text-[10px] uppercase text-gray-600">
+                                                      <tr>
+                                                        <th className="px-2 py-3"></th>
+                                                        <th className="px-2 py-3 text-left">Sub Activity</th>
+                                                        <th className="px-2 py-3 text-center">Chainage</th>
+                                                        <th className="px-2 py-3 text-center">Qty</th>
+                                                        <th className="px-2 py-3 text-center">Area</th>
+                                                        <th className="px-2 py-3 text-center">Status</th>
+                                                        {
+                                                          !isUser &&
+                                                          <>
+                                                            <th className="px-2 py-3 text-center">Stage</th>
+                                                            <th className="px-2 py-3 text-center">%</th>
+                                                            <th className="px-2 py-3 text-center">Amount ₹</th>
+                                                            <th className="px-2 py-3 text-center">Raised</th>
+                                                            <th className="px-2 py-3 text-center">Received</th>
+                                                            <th className="px-2 py-3 text-center">Remaining</th>
+                                                            <th className="px-2 py-3 text-center">Status</th>
+                                                          </>
+                                                        }
+                                                        {
+                                                          isUser &&
+                                                          <th className="px-2 py-3 text-right">Action</th>
+                                                        }
+                                                      </tr>
+                                                    </thead>
+
+                                                    {/* BODY */}
+                                                    <tbody>
+                                                      {subs.map((sub, i) => {
+                                                        const submissionAmount =
+                                                          (((project?.workorder_cost || 0) *
+                                                            (sub?.submission_payment || 0)) /
+                                                            100) * 1.18;
+
+                                                        const approvalAmount =
+                                                          (((project?.workorder_cost || 0) *
+                                                            (sub?.approval_payment || 0)) /
+                                                            100) * 1.18;
+
+                                                        const subRaised = sub.submission_raised || 0;
+                                                        const subReceived = sub.submission_received || 0;
+                                                        const subRemaining = submissionAmount - subReceived;
+
+                                                        const apprRaised = sub.approval_raised || 0;
+                                                        const apprReceived = sub.approval_received || 0;
+                                                        const apprRemaining = approvalAmount - apprReceived;
+                                                        const changeStatus = (sub.status || "Pending");
+
+                                                        const submissionStatus =
+                                                          subReceived >= submissionAmount
+                                                            ? "Completed"
+                                                            : subRaised > 0
+                                                              ? "Submitted"
+                                                              : "Pending";
+
+                                                        const approvalStatus =
+                                                          apprReceived >= approvalAmount
+                                                            ? "Completed"
+                                                            : apprRaised > 0
+                                                              ? "Submitted"
+                                                              : "Pending";
 
                                                         return (
-                                                          <div
-                                                            key={
-                                                              sub.id || subIndex
-                                                            }
-                                                            className="bg-gray-50 rounded-lg p-3 flex items-center justify-between hover:shadow-sm transition-shadow"
-                                                          >
-                                                            <div className="flex-1 rounded-xl p-3  bg-white shadow-sm hover:shadow-md transition">
-                                                              {/* HEADER */}
-                                                              <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-                                                                <p className="text-sm font-semibold text-gray-800">
-                                                                  {
-                                                                    sub.subactivity_name
-                                                                  }
-                                                                </p>
-
-                                                                <div className="flex items-center gap-2 flex-wrap text-sm">
-                                                                  {sub.unit && (
-                                                                    <span className="badge-gray">
-                                                                      Unit:{" "}
-                                                                      {sub.unit}
-                                                                    </span>
-                                                                  )}
-                                                                  {sub.total_quantity !==
-                                                                    "0" && (
-                                                                      <span className="badge-purple">
-                                                                        Qty:{" "}
-                                                                        {
-                                                                          sub.total_quantity
-                                                                        }
-                                                                      </span>
-                                                                    )}
-                                                                  {isSubCompleted && (
-                                                                    <span className="badge-green">
-                                                                      <CheckCircle
-                                                                        size={
-                                                                          12
-                                                                        }
-                                                                      />{" "}
-                                                                      Completed
-                                                                    </span>
-                                                                  )}
-                                                                  {pickedStatus &&
-                                                                    !isSubCompleted && (
-                                                                      <span className="badge-yellow">
-                                                                        <User
-                                                                          size={
-                                                                            12
-                                                                          }
-                                                                        />{" "}
-                                                                        In
-                                                                        Progress
-                                                                      </span>
-                                                                    )}
-                                                                </div>
-                                                              </div>
-
-                                                              {/* DESCRIPTION */}
-                                                              {sub.description && (
-                                                                <p className="text-xs text-gray-500">
-                                                                  {
-                                                                    sub.description
-                                                                  }
-                                                                </p>
-                                                              )}
-
-                                                              {/* META INFO */}
-                                                              <div className="flex flex-wrap gap-3 text-xs text-gray-400 mt-2">
-                                                                {sub.chainage_start &&
-                                                                  sub.chainage_end && (
-                                                                    <p>
-                                                                      📍{" "}
-                                                                      {
-                                                                        sub.chainage_start
-                                                                      }{" "}
-                                                                      m
-                                                                      {/* →{" "}
-                                                                      {
-                                                                        sub.chainage_end
-                                                                      }{" "}
-                                                                      km */}
-                                                                    </p>
-                                                                  )}
-
-                                                                {!isUser && (
-                                                                  <>
-                                                                    {sub.submission_payment && (
-                                                                      <p>
-                                                                        💰
-                                                                        Submission:{" "}
-                                                                        {
-                                                                          sub.submission_payment
-                                                                        }
-                                                                        %
-                                                                      </p>
-                                                                    )}
-
-                                                                    {sub.approval_payment && (
-                                                                      <p>
-                                                                        ✅
-                                                                        Approval:{" "}
-                                                                        {
-                                                                          sub.approval_payment
-                                                                        }
-                                                                        %
-                                                                      </p>
-                                                                    )}
-                                                                  </>
-                                                                )}
-
-                                                                {sub.covered_area && (
-                                                                  <p>
-                                                                    📐 Area:{" "}
-                                                                    {
-                                                                      sub.covered_area
-                                                                    }{" "}
-                                                                    m²
-                                                                  </p>
-                                                                )}
-                                                                {!isUser && (
-                                                                  <>
-                                                                    {sub.submission_payment !=
-                                                                      0 && (
-                                                                        <p>
-                                                                          💰
-                                                                          Submission
-                                                                          Payment:{" "}
-                                                                          <b>
-                                                                            {(
-                                                                              (((project?.workorder_cost ||
-                                                                                0) *
-                                                                                (sub?.submission_payment ||
-                                                                                  0)) /
-                                                                                100) *
-                                                                              1.18
-                                                                            ).toFixed(
-                                                                              2,
-                                                                            )}{" "}
-                                                                            Lakh{" "}
-                                                                          </b>
-                                                                          (GST
-                                                                          Included)
-                                                                        </p>
-                                                                      )}
-
-                                                                    {sub.approval_payment !=
-                                                                      0 && (
-                                                                        <p>
-                                                                          💰
-                                                                          Approval
-                                                                          Payment:{" "}
-                                                                          <b>
-                                                                            {(
-                                                                              (((project?.workorder_cost ||
-                                                                                0) *
-                                                                                (sub?.approval_payment ||
-                                                                                  0)) /
-                                                                                100) *
-                                                                              1.18
-                                                                            ).toFixed(
-                                                                              2,
-                                                                            )}{" "}
-                                                                            Lakh{" "}
-                                                                          </b>
-                                                                          (GST
-                                                                          Included)
-                                                                        </p>
-                                                                      )}
-                                                                  </>
-                                                                )}
-                                                              </div>
-
-                                                              {/* USER INFO */}
-                                                              {sub.assigned_user && (
-                                                                <div className="flex items-center gap-2 mt-3 text-xs text-gray-600">
-                                                                  <User
-                                                                    size={14}
-                                                                  />
-                                                                  <span>
-                                                                    Assigned to:{" "}
-                                                                    <b>
-                                                                      {
-                                                                        sub
-                                                                          .assigned_user
-                                                                          .name
-                                                                      }
-                                                                    </b>
-                                                                  </span>
-                                                                </div>
-                                                              )}
-                                                              {/* TOTAL WORK SUMMARY */}
-                                                              <div className="mt-3 flex justify-between items-center text-xs font-medium text-gray-600 border-t pt-2">
-                                                                <span>
-                                                                  Total Work
-                                                                  Done
-                                                                </span>
-                                                                <span className="text-green-600 font-semibold">
-                                                                  {sub.work_done ||
-                                                                    0}{" "}
-                                                                  {/* {sub.unit ||
-                                                                    ""} */}
-                                                                  %
-                                                                </span>
-                                                              </div>
-                                                              {/* TIME LOGS */}
-                                                              {!isUser && (
-                                                                <>
-                                                                  {sub
-                                                                    .work_summary
-                                                                    ?.users
-                                                                    ?.length >
-                                                                    0 && (
-                                                                      <div className="mt-3 bg-gray-50 rounded-lg p-2">
-                                                                        <div className="flex items-center justify-between mb-1">
-                                                                          <p className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                                                                            <Clock
-                                                                              size={
-                                                                                12
-                                                                              }
-                                                                            />{" "}
-                                                                            Time
-                                                                            Logs
-                                                                          </p>
-                                                                          <p className="text-xs font-semibold text-blue-600">
-                                                                            Total:{" "}
-                                                                            {
-                                                                              sub
-                                                                                .work_summary
-                                                                                .total_hours
-                                                                            }{" "}
-                                                                            hrs
-                                                                          </p>
-                                                                          <br />
-                                                                        </div>
-
-                                                                        <div className="space-y-1 max-h-24 overflow-y-auto">
-                                                                          {sub.work_summary?.users?.map(
-                                                                            (
-                                                                              log,
-                                                                              i,
-                                                                            ) => (
-                                                                              <div
-                                                                                key={
-                                                                                  i
-                                                                                }
-                                                                                className="flex justify-between text-xs text-gray-500 border-b last:border-none border-gray-300 pb-1"
-                                                                              >
-                                                                                <span>
-                                                                                  {
-                                                                                    log.emp_code
-                                                                                  }{" "}
-                                                                                  →{" "}
-                                                                                  {
-                                                                                    log.name
-                                                                                  }
-
-                                                                                  →{" "}
-                                                                                  {log?.days_worked +
-                                                                                    " " +
-                                                                                    (log?.days_worked >
-                                                                                      1
-                                                                                      ? "days"
-                                                                                      : "day") ||
-                                                                                    "0 day"}
-                                                                                </span>
-                                                                                <span>
-                                                                                  {
-                                                                                    log.total_time_spent
-                                                                                  }
-
-                                                                                  h
-                                                                                </span>
-                                                                              </div>
-                                                                            ),
-                                                                          )}
-                                                                        </div>
-                                                                      </div>
-                                                                    )}
-                                                                </>
-                                                              )}
-                                                            </div>
-
-                                                            {/* {!isSubCompleted && !pickedStatus && isUser && (
-                                                            <motion.button
-                                                              whileHover={{ scale: 1.05 }}
-                                                              whileTap={{ scale: 0.95 }}
-                                                              onClick={(e) => handlePickTask(project, activity, sub, e)}
-                                                              className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-1"
+                                                          <>
+                                                            {/* 🔵 SUBMISSION ROW */}
+                                                            <tr
+                                                              id={`subactivity-row-${sub.id}`}
+                                                              className="border-t  text-[12px]"
                                                             >
-                                                              <Briefcase size={14} />
-                                                              <span className="text-xs font-medium hidden sm:inline">Pick Task</span>
-                                                            </motion.button>
-                                                          )} */}
 
-                                                            {!isSubCompleted &&
-                                                              isPickedByMe && (
-                                                                <div className="flex items-center gap-2">
-                                                                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full flex items-center gap-1">
-                                                                    <User
-                                                                      size={12}
-                                                                    />{" "}
-                                                                    Assigned to
-                                                                    you
+                                                              <td rowSpan="2" className="px-2 text-center align-center">
+                                                                {
+                                                                  sub.work_summary?.users.length > 0 || worklogreturned
+                                                                    ?.filter((d) => d.id == sub.id).length > 0 ? (
+                                                                    <button
+                                                                      onClick={() =>
+                                                                        setExpandedRow(
+                                                                          expandedRow === sub.id ? null : sub.id
+                                                                        )
+                                                                      }
+                                                                    >
+                                                                      {expandedRow === sub.id ? "−" : "+"}
+                                                                    </button>
+                                                                  ) : ""}
+                                                              </td>
+
+
+                                                              <td rowSpan="2" className="px-2 font-medium align-center">
+                                                                {sub.subactivity_name}
+                                                              </td>
+
+
+                                                              <td rowSpan="2" className="text-center">{sub.chainage_start}</td>
+                                                              <td rowSpan="2" className="text-center">{sub.total_quantity}</td>
+                                                              <td rowSpan="2" className="text-center">{sub.covered_area}</td>
+                                                              <td rowSpan="2" className="text-center">
+                                                                <div className="relative inline-block p-2">
+                                                                  <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
+                                                                                                                                                ${changeStatus === "Inprogress" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
+                                                                      changeStatus === "Submitted" ? "bg-green-100 text-green-600 border-green-200" :
+                                                                        changeStatus === "Rejected" ? "bg-red-100 text-red-600 border-red-200" :
+                                                                          changeStatus === "Approved" ? "bg-blue-100 text-blue-600 border-blue-200" :
+                                                                            changeStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
+                                                                              "bg-gray-100 text-gray-600 border-gray-200"
+                                                                    }`}>
+                                                                    {changeStatus}
                                                                   </span>
                                                                 </div>
-                                                              )}
-                                                          </div>
+                                                              </td>
+                                                              {
+                                                                !isUser &&
+                                                                <>
+                                                                  <td className="text-center font-semibold text-green-600 border-b border-gray-300 border-l">
+                                                                    Submission
+                                                                  </td>
+
+                                                                  <td className="text-center text-green-600 border-b border-gray-300">
+                                                                    {sub.submission_payment}%
+                                                                  </td>
+
+                                                                  <td className="text-center border-b border-gray-300">
+                                                                    ₹ {submissionAmount.toFixed(2)} L
+                                                                  </td>
+
+                                                                  <td className="text-center border-b border-gray-300">{subRaised}</td>
+                                                                  <td className="text-center border-b border-gray-300">{subReceived}</td>
+                                                                  <td className="text-center text-red-500 border-b border-gray-300">
+                                                                    {subRemaining.toFixed(2)} L
+                                                                  </td>
+
+                                                                  <td className="text-center border-b border-gray-300 p-2">
+                                                                    <select
+                                                                      value={submissionStatus}
+                                                                      onChange={(e) =>
+                                                                        handleSubmissionStatus(sub, e.target.value)
+                                                                      }
+                                                                      className="text-xs border m-1 rounded bg-white"
+                                                                    >
+                                                                      <option>Pending</option>
+                                                                      <option>Submitted</option>
+                                                                      <option>Completed</option>
+                                                                    </select>
+                                                                  </td>
+                                                                </>
+                                                              }
+                                                              {
+                                                                isUser &&
+                                                                <td rowSpan="2" className="text-right px-2 py-2">
+                                                                  <button className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full "
+                                                                    onClick={() => {
+                                                                      setSelectedTaskfortimelog({
+                                                                        id: sub.id,
+                                                                        project_id: project.id || project.project_id,
+                                                                        subactivity_name: sub.subactivity_name,
+                                                                        project_name:
+                                                                          project.shortName || project.short_name,
+                                                                      });
+
+                                                                      setTimeLogData({
+                                                                        date: new Date()
+                                                                          .toISOString()
+                                                                          .split("T")[0],
+                                                                        startTime: "",
+                                                                        endTime: "",
+                                                                        description: "",
+                                                                      });
+
+                                                                      setShowTimeLogModal(true);
+                                                                    }}>
+                                                                    <span className='flex flex-row '>
+                                                                      <PlusCircle size={16} />
+                                                                      Work Log
+                                                                    </span>
+                                                                  </button>
+                                                                </td>
+                                                              }
+                                                            </tr>
+
+                                                            {/* 🟢 APPROVAL ROW */}
+                                                            {
+                                                              !isUser &&
+                                                                sub.approval_payment > 0 ? (
+                                                                <tr className=" text-[12px] border-b">
+                                                                  <td className="text-center font-semibold text-blue-600 border-l border-gray-300">
+                                                                    Approval
+                                                                  </td>
+
+                                                                  <td className="text-center text-blue-600">
+                                                                    {sub.approval_payment}%
+                                                                  </td>
+
+                                                                  <td className="text-center">
+                                                                    ₹ {approvalAmount.toFixed(2)} L
+                                                                  </td>
+
+                                                                  <td className="text-center">{apprRaised}</td>
+                                                                  <td className="text-center">{apprReceived}</td>
+                                                                  <td className="text-center text-red-500">
+                                                                    {apprRemaining.toFixed(2)} L
+                                                                  </td>
+
+                                                                  <td className="text-center p-2">
+                                                                    <select
+                                                                      value={approvalStatus}
+                                                                      // onChange={(e) =>
+                                                                      //   handleApprovalStatus(sub, e.target.value)
+                                                                      // }
+                                                                      className="text-xs m-1 border rounded bg-white"
+                                                                    >
+                                                                      <option>Pending</option>
+                                                                      <option>Submitted</option>
+                                                                      <option>Completed</option>
+                                                                    </select>
+                                                                  </td>
+
+                                                                  <td></td>
+                                                                </tr>
+                                                              ) : <tr>
+                                                              </tr>}
+
+                                                            {/* {
+                                                              isUser &&
+                                                              <tr>
+                                                                <td></td>
+                                                              </tr>
+                                                            } */}
+
+
+                                                            {/* 🔽 EXPAND ROW */}
+                                                            {expandedRow === sub.id && (
+                                                              <tr className="bg-gray-50">
+                                                                <td colSpan="13" className="px-4 py-4">
+
+                                                                  <div className="bg-white border rounded-xl shadow-sm p-4">
+
+                                                                    {/* HEADER */}
+                                                                    {/* <div className="flex items-center justify-between mb-3">
+                                                                      <h4 className="text-sm font-semibold text-gray-700">
+                                                                        Work Summary
+                                                                      </h4>
+
+                                                                      <span className="text-xs font-medium px-3 py-1 rounded-full bg-green-100 text-green-600">
+                                                                        {sub.work_done || 0}% Completed
+                                                                      </span>
+                                                                    </div>
+
+                                                                    <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                                                                      <div
+                                                                        className="bg-green-500 h-2 rounded-full"
+                                                                        style={{ width: `${sub.work_done || 0}%` }}
+                                                                      ></div>
+                                                                    </div> */}
+
+                                                                    {/* TIME LOG HEADER */}
+                                                                    <div className="flex justify-between text-xs font-medium text-gray-500 border-b pb-2 mb-2">
+                                                                      <span>User</span>
+                                                                      <span>Time Spent</span>
+                                                                    </div>
+
+                                                                    {/* TIME LOG LIST */}
+                                                                    <div className="max-h-40 overflow-y-auto space-y-1">
+                                                                      {worklogreturned
+                                                                        ?.filter((d) => d.id == sub.id)
+                                                                        ?.map((log, i) => (
+
+                                                                          <div
+                                                                            key={i}
+                                                                            className="flex justify-between items-center text-xs px-2 py-2 rounded-md hover:bg-gray-50 transition"
+                                                                          >
+                                                                            <div className="flex items-center gap-2">
+                                                                              {/* Avatar */}
+                                                                              <div className="w-6 h-6 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-[10px] font-semibold">
+                                                                                {log.name?.charAt(0) || "U"}
+                                                                              </div>
+
+                                                                              <span className="text-gray-700">
+                                                                                {log.name || "You"}
+                                                                              </span>
+                                                                            </div>
+
+                                                                            <span className="font-medium text-blue-600">
+                                                                              {calculateHours(
+                                                                                log.startTime,
+                                                                                log.endTime
+                                                                              ).toFixed(2)}{" "}
+                                                                              h
+                                                                            </span>
+                                                                          </div>
+                                                                          // <div
+                                                                          //   key={i}
+                                                                          //   className="flex justify-between text-xs border-b pb-1"
+                                                                          // >
+                                                                          //   <span>Today</span>
+                                                                          //   <span>
+                                                                          //     {calculateHours(
+                                                                          //       log.startTime,
+                                                                          //       log.endTime
+                                                                          //     ).toFixed(2)}{" "}
+                                                                          //     h
+                                                                          //   </span>
+                                                                          // </div>
+                                                                        ))}
+                                                                      {sub.work_summary?.users?.length > 0 ? (
+                                                                        sub.work_summary.users.map((log, i) => (
+                                                                          <div
+                                                                            key={i}
+                                                                            className="flex justify-between items-center text-xs px-2 py-2 rounded-md hover:bg-gray-50 transition"
+                                                                          >
+                                                                            <div className="flex items-center gap-2">
+                                                                              {/* Avatar */}
+                                                                              <div className="w-6 h-6 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-[10px] font-semibold">
+                                                                                {log.name?.charAt(0)}
+                                                                              </div>
+
+                                                                              <span className="text-gray-700">
+                                                                                {log.name}
+                                                                              </span>
+                                                                            </div>
+
+                                                                            <span className="font-medium text-blue-600">
+                                                                              {log.total_time_spent} h
+                                                                            </span>
+                                                                          </div>
+                                                                        ))
+                                                                      ) : (
+                                                                        worklogreturned
+                                                                          ?.filter((d) => d.id == sub.id).length > 0 ? null :
+                                                                          <p className="text-xs text-gray-400 text-center py-3">
+                                                                            No work logs available
+                                                                          </p>
+                                                                      )}
+                                                                    </div>
+
+                                                                  </div>
+
+                                                                </td>
+                                                              </tr>
+                                                            )}
+                                                          </>
                                                         );
-                                                      },
-                                                    )
-                                                  )}
+                                                      })}
+                                                    </tbody>
+                                                  </table>
                                                 </div>
                                               </motion.div>
                                             )}

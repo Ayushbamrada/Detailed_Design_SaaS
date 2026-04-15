@@ -11,17 +11,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   // Debug logging
   useEffect(() => {
-    console.log('ProtectedRoute - Auth State:', {
-      isAuthenticated,
-      loading,
-      user: user ? {
-        role: user.role,
-        email: user.email,
-        name: user.name
-      } : null,
-      allowedRoles,
-      currentPath: location.pathname
-    });
   }, [isAuthenticated, loading, user, allowedRoles, location]);
 
   if (loading) {
@@ -45,7 +34,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (allowedRoles && allowedRoles.length > 0) {
     const userRole = user?.role;
-    console.log(userRole, 'userrole')
     if (!userRole || !allowedRoles.includes(userRole)) {
       return <Navigate to="/unauthorized" state={{ from: location }} replace />;
     }

@@ -385,8 +385,6 @@ const CreateProject = () => {
   const handleSubActivitySelection = (activityId, subId, checked) => {
     setSelectedSubActivities((prev) => {
       const activitySubs = new Set(prev[activityId] || []);
-      console.log("activitySubs-", activitySubs);
-
       if (checked) {
         activitySubs.add(subId);
       } else {
@@ -4032,7 +4030,6 @@ const CreateProject = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-              {console.log(selectedSubActivities, "selectedSubActivities")}
               {getAllActivities().map((activity, index) => {
                 const isSelected = selectedActivities.includes(activity.id);
                 const isCustom = activity.isCustom;

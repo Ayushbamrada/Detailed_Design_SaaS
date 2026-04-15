@@ -32,7 +32,6 @@ const SubmittedTasks = () => {
         userSubmittedTask
         , loading = false } = useSelector((state) => state.tasks || {});
     const tasksState = useSelector((state) => state.tasks);
-    console.log("tasksState:", tasksState);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterProject, setFilterProject] = useState('all');
     const [expandedProjects, setExpandedProjects] = useState({});
@@ -104,9 +103,6 @@ const SubmittedTasks = () => {
         );
     }
 
-    console.log(
-        userSubmittedTask
-        , 'userworksummary')
     const uniqueProjects = [...new Set((userWorkSummary?.projects || []).map(p => p.project_name))];
 
 

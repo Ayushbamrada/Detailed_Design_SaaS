@@ -659,29 +659,24 @@ import { showSuccess, showError, showLoading, dismissToast } from "../../utils/t
 
 // Role mapping function - converts HRMS roles to app roles
 const mapHRMSRoleToAppRole = (hrmsRole, additionalData = {}) => {
-  console.log('mapHRMSRoleToAppRole called with:', { hrmsRole, additionalData });
 
   if (!hrmsRole) {
-    console.log('No HRMS role provided, defaulting to USER');
     return 'USER';
   }
 
   const roleLower = hrmsRole.toLowerCase().trim();
-  console.log('Role (lowercase):', roleLower);
 
   if (roleLower === 'ACCOUNT' ||
     roleLower === 'superadmin' ||
     roleLower === 'Account' ||
     roleLower.includes('ACCOUNT') ||
     roleLower.includes('Account')) {
-    console.log('Matched ACCOUNT');
     return 'ACCOUNT';
   }
 
   if (roleLower === 'admin' ||
     roleLower === 'administrator' ||
     roleLower.includes('admin')) {
-    console.log('Matched ADMIN');
     return 'ADMIN';
   }
 
@@ -689,18 +684,15 @@ const mapHRMSRoleToAppRole = (hrmsRole, additionalData = {}) => {
     roleLower.includes('employee') ||
     roleLower.includes('staff') ||
     roleLower === 'employee') {
-    console.log('Matched USER');
     return 'USER';
   }
 
   if (additionalData.sitemanagement_role) {
     const siteRole = additionalData.sitemanagement_role.toLowerCase();
-    console.log('Site role:', siteRole);
     if (siteRole.includes('ACCOUNT')) return 'ACCOUNT';
     if (siteRole.includes('admin')) return 'ADMIN';
   }
 
-  console.log('No match found, defaulting to USER');
   return 'USER';
 };
 
@@ -711,11 +703,9 @@ export const loginUser = createAsyncThunk(
     const loadingToast = showLoading('Logging in...');
 
     try {
-      console.log('1. Attempting login with email:', email);
       const response = await authService.login(email, password);
 
       dismissToast(loadingToast);
-      console.log('2. Login response received:', response);
 
       if (!response || !response.access) {
         throw new Error('Invalid response from server');
@@ -723,21 +713,8 @@ export const loginUser = createAsyncThunk(
 
       const { access, refresh, payload, employeecode, payload_a } = response;
 
-      console.log('3. Extracted data:', {
-        payload,
-        employeecode,
-        payload_a
-      });
-
       // Map the role from HRMS to app role
       const appRole = mapHRMSRoleToAppRole(payload?.role, payload_a);
-
-      console.log('4. Role mapping result:', {
-        hrmsRole: payload?.role,
-        appRole: appRole,
-        siteRole: payload_a?.sitemanagement_role
-      });
-
       // Get user UUID - This is critical for time logs
       // Try to get UUID from response - if not available, use employeecode or generate
       let userUUID = null;
@@ -753,7 +730,6 @@ export const loginUser = createAsyncThunk(
         userUUID = payload_a.id;
       }
 
-      console.log('5. User UUID:', userUUID);
 
       // Store in localStorage (persistent)
       localStorage.setItem('authToken', access);
@@ -802,14 +778,6 @@ export const loginUser = createAsyncThunk(
           }
         });
       }
-
-      console.log('6. Storage after setting:', {
-        userRole: localStorage.getItem('userRole'),
-        userEmail: localStorage.getItem('userEmail'),
-        userName: localStorage.getItem('userName'),
-        emp_code: localStorage.getItem('emp_code'),
-        user_uuid: localStorage.getItem('user_uuid')
-      });
 
       showSuccess(`Login successful! Welcome ${appRole}!`);
 
@@ -868,17 +836,6 @@ const loadUserFromStorage = () => {
     const empCode = localStorage.getItem('emp_code') || sessionStorage.getItem('emp_code');
     const userUUID = localStorage.getItem('user_uuid') || sessionStorage.getItem('user_uuid');
 
-    console.log('loadUserFromStorage - retrieved:', {
-      token: !!token,
-      refreshToken: !!refreshToken,
-      email,
-      name,
-      role,
-      originalRole,
-      empCode,
-      userUUID
-    });
-
     // Get session data if available
     const department = sessionStorage.getItem('department');
     const company = sessionStorage.getItem('company');
@@ -925,7 +882,6 @@ const initialState = loadUserFromStorage() || {
   error: null,
 };
 
-console.log('authSlice initialState:', initialState);
 
 const authSlice = createSlice({
   name: "auth",
@@ -940,8 +896,6 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.error = null;
-
-      console.log('User logged out, storage cleared');
     },
 
     clearError: (state) => {
@@ -974,7 +928,6 @@ const authSlice = createSlice({
         const newRole = action.payload.role;
         state.user.role = newRole;
         localStorage.setItem('userRole', newRole);
-        console.log(`Role manually changed to: ${newRole}`);
       }
     }
   },
@@ -991,8 +944,6 @@ const authSlice = createSlice({
         state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
-
-        console.log('Login successful, user state updated:', state.user);
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

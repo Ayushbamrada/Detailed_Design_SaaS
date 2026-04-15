@@ -204,7 +204,6 @@ const DailyLogs = () => {
     );
   }
 
-  console.log(projects, 'projects')
   return (
     <motion.div
       initial={{ opacity: 0 }}
