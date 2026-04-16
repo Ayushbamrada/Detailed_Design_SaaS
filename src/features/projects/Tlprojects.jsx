@@ -37,7 +37,9 @@ import {
     Layers,
     Activity,
     Timer,
-    EllipsisVertical
+    EllipsisVertical,
+    Handshake,
+    FileText
 } from "lucide-react";
 import { getProjectStatusInfo, getDaysUntilDeadline } from "../../utils/deadlineUtils";
 import {
@@ -89,6 +91,10 @@ const TlProjectList = () => {
         remarks: "",
         document_type: "ref_doc",
         client_remarks: ""
+    });
+    const [viewdocumentmodel, setViewDocumentModel] = useState({
+        model: false,
+        data: []
     });
 
     // const [selectedTaskfortimelog, setSelectedTaskfortimelog] = useState(null);
@@ -831,6 +837,208 @@ const TlProjectList = () => {
                     )}
                 </AnimatePresence>
 
+
+                {/* Show Document */}
+                <AnimatePresence>
+                    {viewdocumentmodel.model && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            onClick={() => setViewDocumentModel({ model: false, data: [] })}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, y: 30 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.95, y: 30 }}
+                                className="bg-white rounded-2xl p-6 max-w-xl w-full shadow-2xl border scroll"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+
+                                {/* HEADER */}
+                                <div className="flex justify-between items-center mb-5">
+                                    <h3 className="text-lg font-semibold text-gray-800">
+                                        📄 {viewdocumentmodel?.title || "Proof Details"}
+                                    </h3>
+                                    <button
+                                        onClick={() => setViewDocumentModel({ model: false, data: [] })}
+                                        className="p-2 hover:bg-gray-100 rounded-lg"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div className="max-h-[75vh] overflow-y-auto pr-2 py-4 space-y-5">
+
+                                    {viewdocumentmodel?.data?.map((item, index) => {
+                                        const isReceived = item?.to_status === "Received";
+
+                                        return (
+                                            <div
+                                                key={index}
+                                                className={`overflow-hidden relative rounded-xl p-5 bg-white border transition-all duration-300 
+        hover:shadow-lg hover:-translate-y-[2px]
+        ${isReceived ? "border-green-200" : "border-blue-200"}`}
+                                            >
+
+                                                {/* LEFT STATUS STRIP */}
+                                                <div
+                                                    className={`absolute left-[0px] top-0 h-full w-1 rounded-l-2xl 
+          ${isReceived ? "bg-green-500" : "bg-blue-500"}`}
+                                                />
+
+                                                {/* HEADER */}
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-800">
+                                                            Document #{index + 1}
+                                                        </h3>
+                                                        <p className="text-xs text-gray-400 mt-1">
+                                                            {new Date(
+                                                                item?.created_at
+                                                            ).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+
+                                                    <span
+                                                        className={`px-3 py-1 text-xs rounded-full font-medium shadow-sm
+            ${isReceived
+                                                                ? "bg-green-100 text-green-700"
+                                                                : "bg-blue-100 text-blue-700"}`}
+                                                    >
+                                                        {item?.to_status}
+                                                    </span>
+                                                </div>
+
+                                                {/* STATUS FLOW */}
+                                                <div className="flex items-center gap-2 text-xs mb-4">
+                                                    <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-600">
+                                                        {item?.from_status}
+                                                    </span>
+                                                    <span className="text-gray-300">→</span>
+                                                    <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-600">
+                                                        {item?.to_status}
+                                                    </span>
+                                                </div>
+
+                                                {/* GRID CONTENT */}
+                                                <div className="grid grid-cols-2 gap-4">
+
+                                                    {/* LEFT SIDE */}
+                                                    <div className="space-y-3">
+
+                                                        {/* USER */}
+                                                        {item?.changed_by && (
+                                                            <div>
+                                                                <p className="text-xs text-gray-400">Action By</p>
+                                                                <p className="text-sm font-medium text-gray-700">
+                                                                    {item.changed_by}
+                                                                </p>
+                                                            </div>
+                                                        )}
+
+                                                        {/* MESSAGE */}
+                                                        <div>
+                                                            <p className="text-xs text-gray-400">Message</p>
+                                                            <p className="text-sm text-gray-700 leading-relaxed">
+                                                                {item?.remarks || "—"}
+                                                            </p>
+                                                        </div>
+
+                                                        {/* AMOUNT */}
+                                                        {(item?.raised_amount != null ||
+                                                            item?.received_amount != null) && (
+                                                                <div>
+                                                                    <p className="text-xs text-gray-400">
+                                                                        {isReceived ? "Received Amount" : "Raised Amount"}
+                                                                    </p>
+
+                                                                    <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg mt-1">
+                                                                        <span className="text-lg font-semibold text-gray-800">
+                                                                            ₹{" "}
+                                                                            {isReceived
+                                                                                ? item?.received_amount || 0
+                                                                                : item?.raised_amount || 0}
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-400">LAKH</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                    </div>
+
+                                                    {/* RIGHT SIDE - DOCUMENTS */}
+                                                    <div>
+                                                        <p className="text-xs text-gray-400 mb-2">Documents</p>
+
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {item?.documents?.map((doc) => {
+                                                                const isImage = doc.document.match(/\.(jpg|jpeg|png)$/i);
+
+                                                                return (
+                                                                    <a
+                                                                        key={doc.id}
+                                                                        href={doc.document}
+                                                                        target="_blank"
+                                                                        rel="noreferrer"
+                                                                        className="group border rounded-lg overflow-hidden bg-gray-50 hover:shadow transition"
+                                                                    >
+                                                                        {isImage ? (
+                                                                            <img
+                                                                                src={doc.document}
+                                                                                alt=""
+                                                                                className="w-full h-20 object-cover group-hover:scale-105 transition"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="flex items-center justify-center h-20 text-gray-500 text-lg">
+                                                                                📄
+                                                                            </div>
+                                                                        )}
+
+                                                                        <div className="text-[10px] text-gray-400 px-1 py-1 truncate">
+                                                                            {doc.document.split("/").pop()}
+                                                                        </div>
+                                                                    </a>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                                {/* FOOTER DATE */}
+                                                <div className="mt-4 pt-3 border-t text-xs text-gray-400 flex justify-between">
+                                                    <span>
+                                                        {new Date(
+                                                            item?.received_at ||
+                                                            item?.raised_at ||
+                                                            item?.created_at
+                                                        ).toLocaleString()}
+                                                    </span>
+                                                </div>
+
+                                            </div>
+                                        );
+                                    })}
+
+                                </div>
+
+
+                                {/* ACTION */}
+                                <div className="flex mt-6">
+                                    <button
+                                        onClick={() => setViewDocumentModel({ model: false, data: [] })}
+                                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {!showLoading && (
                     <>
                         {/* Welcome Header */}
@@ -1294,19 +1502,29 @@ const TlProjectList = () => {
                                                                                                             </thead>
                                                                                                             <tbody>
                                                                                                                 {subs.map((sub, i) => {
+                                                                                                                    const stages = sub?.payment_stages || [];
 
+                                                                                                                    // helper function
+                                                                                                                    const getAmount = (type, status, key) =>
+                                                                                                                        stages.find(
+                                                                                                                            (s) => s.stage_type === type && s.to_status === status
+                                                                                                                        )?.[key] || 0;
                                                                                                                     const submissionAmount = (((project?.workorder_cost || 0) * (sub?.submission_payment || 0)) / 100) * 1.18;
                                                                                                                     const approvalAmount = (((project?.workorder_cost || 0) * (sub?.approval_payment || 0)) / 100) * 1.18;
-                                                                                                                    const subRaised = sub.submission_raised || 0;
-                                                                                                                    const subReceived = sub.submission_received || 0;
+                                                                                                                    // submission
+                                                                                                                    const subRaised = getAmount("submission", "Raised", "raised_amount");
+                                                                                                                    const subReceived = getAmount("submission", "Received", "received_amount");
                                                                                                                     const subRemaining = submissionAmount - subReceived;
-                                                                                                                    const apprRaised = sub.approval_raised || 0;
-                                                                                                                    const apprReceived = sub.approval_received || 0;
+
+                                                                                                                    // approval
+                                                                                                                    const apprRaised = getAmount("approval", "Raised", "raised_amount");
+                                                                                                                    const apprReceived = getAmount("approval", "Received", "received_amount");
+
                                                                                                                     const apprRemaining = approvalAmount - apprReceived;
                                                                                                                     const submissionStatus = sub?.submission_status;
                                                                                                                     const approvalStatus = sub?.approval_status;
-                                                                                                                    const blurstatus = sub?.submission_status === "Waiting" ? "opacity-50" : "";
                                                                                                                     const changeStatus = (sub.status || "Pending");
+                                                                                                                    const blurstatus = sub?.submission_status === "Waiting" && sub.status != "Submitted" ? "opacity-50" : "";
                                                                                                                     return (
                                                                                                                         <Fragment key={sub.id}>
                                                                                                                             <tr className="border-t text-[13px] ">
@@ -1322,7 +1540,7 @@ const TlProjectList = () => {
                                                                                                                                 <td rowSpan="2" className="text-center">{sub.total_quantity}</td>
                                                                                                                                 <td rowSpan="2" className="text-center">{sub.covered_area}</td>
                                                                                                                                 <td rowSpan="2" className="text-center">
-                                                                                                                                    <div className="relative inline-block p-2">
+                                                                                                                                    <div className="relative inline-block p-2 !flex items-center">
                                                                                                                                         <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
                                                                                                                                                 ${changeStatus === "Inprogress" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
                                                                                                                                                 changeStatus === "Submitted" ? "bg-green-100 text-green-600 border-green-200" :
@@ -1333,19 +1551,35 @@ const TlProjectList = () => {
                                                                                                                                             }`}>
                                                                                                                                             {changeStatus}
                                                                                                                                         </span>
+                                                                                                                                        {
+                                                                                                                                            sub?.submission_stages[0] &&
+                                                                                                                                            <FileText className="inline-block ml-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                model: true,
+                                                                                                                                                data: sub?.submission_stages?.filter((stage) => stage.to_status == changeStatus) || [],
+                                                                                                                                                title: (changeStatus == "Submitted" ? "Submission" : "Approval") + " Stage Documents"
+                                                                                                                                            })} />
+                                                                                                                                        }
                                                                                                                                     </div>
                                                                                                                                 </td>
-                                                                                                                                <td rowSpan="2" className="text-center">
-                                                                                                                                    <button
-                                                                                                                                        onClick={() => {
-                                                                                                                                            setShowProofModal(true)
-                                                                                                                                            setProofData({ ...proofData, subactivity: sub.id })
-                                                                                                                                        }}
-                                                                                                                                        disabled={changeStatus !== "Inprogress"}
-                                                                                                                                        className={`text-xs px-1.5 pt-1.5 text-green-600 ` + (changeStatus != "Inprogress" ? "!cursor-no-drop" : "")} title="Submit Your Sub-Activity">
-                                                                                                                                        <CheckCircle size={20} />
-                                                                                                                                        {/* <EllipsisVertical size={18} /> */}
-                                                                                                                                    </button>
+                                                                                                                                <td rowSpan="2" className="text-center">.
+                                                                                                                                    {
+
+                                                                                                                                        <button
+                                                                                                                                            onClick={() => {
+                                                                                                                                                setShowProofModal(true)
+                                                                                                                                                setProofData({ ...proofData, subactivity: sub.id, to_status: changeStatus != "Submitted" ? "Submitted" : "Approved" })
+                                                                                                                                            }}
+                                                                                                                                            disabled={changeStatus == "Pending" || changeStatus == "Approved"}
+                                                                                                                                            className={`text-xs px-1.5 pt-1.5 text-green-600 ` +
+                                                                                                                                                (changeStatus == "Pending" || changeStatus == "Approved" ? "!cursor-no-drop opacity-30" : "")}
+                                                                                                                                            title={changeStatus == "Pending" ? "Submit" : "Approval"}>
+                                                                                                                                            {
+                                                                                                                                                changeStatus != "Submitted" ?
+                                                                                                                                                    <CheckCircle size={20} /> :
+                                                                                                                                                    <Handshake size={20} className="text-blue-600" />}
+                                                                                                                                            {/* <EllipsisVertical size={18} /> */}
+                                                                                                                                        </button>
+                                                                                                                                    }
                                                                                                                                 </td>
                                                                                                                                 {
                                                                                                                                     sub.submission_payment > 0 ? (
@@ -1353,8 +1587,26 @@ const TlProjectList = () => {
                                                                                                                                             <td className={`text-center font-semibold text-green-600 border-b border-gray-300 border-l ${blurstatus}`}>Submission</td>
                                                                                                                                             <td className={`text-center text-green-600 border-b border-gray-300 ${blurstatus}`}>{sub.submission_payment}%</td>
                                                                                                                                             <td className={`text-center border-b border-gray-300 ${blurstatus}`}>₹ {submissionAmount.toFixed(2)} L</td>
-                                                                                                                                            <td className={`text-center border-b border-gray-300 ${blurstatus}`}>{subRaised}</td>
-                                                                                                                                            <td className={`text-center border-b border-gray-300 ${blurstatus}`}>{subReceived}</td>
+                                                                                                                                            <td className={`text-center border-b border-gray-300 ${blurstatus}`}>{subRaised.toFixed(2)} L
+                                                                                                                                                {
+                                                                                                                                                    subRaised > 0 &&
+                                                                                                                                                    <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                        model: true,
+                                                                                                                                                        data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "submission") || [],
+                                                                                                                                                        title: "Raised Stage Documents"
+                                                                                                                                                    })} />
+                                                                                                                                                }
+                                                                                                                                            </td>
+                                                                                                                                            <td className={`text-center border-b border-gray-300 ${blurstatus}`}>{subReceived.toFixed(2)} L
+                                                                                                                                                {
+                                                                                                                                                    subReceived > 0 &&
+                                                                                                                                                    <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                        model: true,
+                                                                                                                                                        data: sub?.payment_stages?.filter((stage) => stage.to_status == "Received" && stage.stage_type == "submission") || [],
+                                                                                                                                                        title: "Received Stage Documents"
+                                                                                                                                                    })} />
+                                                                                                                                                }
+                                                                                                                                            </td>
                                                                                                                                             <td className={`text-center text-red-500 border-b border-gray-300 ${blurstatus}`}>{subRemaining.toFixed(2)} L</td>
                                                                                                                                             <td className={`text-center border-b border-gray-300 ${blurstatus}`}>
                                                                                                                                                 <div className="relative inline-block p-2 ${blurstatus}">
@@ -1423,12 +1675,30 @@ const TlProjectList = () => {
                                                                                                                             </tr>
                                                                                                                             {
                                                                                                                                 sub.approval_payment > 0 ? (
-                                                                                                                                    <tr className={`text-[13px] border-b bg-blue-50 opacity-50 ` + (approvalStatus === "Waiting" ? "opacity-50" : "")}>
+                                                                                                                                    <tr className={`text-[13px] border-b bg-blue-50 ` + (approvalStatus === "Waiting" ? "opacity-50" : "")}>
                                                                                                                                         <td className="text-center font-semibold text-blue-600 border-l border-gray-300">Approval</td>
                                                                                                                                         <td className="text-center text-blue-600">{sub.approval_payment}%</td>
                                                                                                                                         <td className="text-center">₹ {approvalAmount.toFixed(2)} L</td>
-                                                                                                                                        <td className="text-center">{apprRaised}</td>
-                                                                                                                                        <td className="text-center">{apprReceived}</td>
+                                                                                                                                        <td className="text-center">{apprRaised.toFixed(2)} L
+                                                                                                                                            {
+                                                                                                                                                apprRaised > 0 &&
+                                                                                                                                                <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                    model: true,
+                                                                                                                                                    data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "approval") || [],
+                                                                                                                                                    title: "Raised Stage Documents"
+                                                                                                                                                })} />
+                                                                                                                                            }
+                                                                                                                                        </td>
+                                                                                                                                        <td className="text-center">{apprReceived.toFixed(2)} L
+                                                                                                                                            {
+                                                                                                                                                apprReceived > 0 &&
+                                                                                                                                                <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                    model: true,
+                                                                                                                                                    data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "approval") || [],
+                                                                                                                                                    title: "Raised Stage Documents"
+                                                                                                                                                })} />
+                                                                                                                                            }
+                                                                                                                                        </td>
                                                                                                                                         <td className="text-center text-red-500">{apprRemaining.toFixed(2)} L</td>
                                                                                                                                         <td className="text-center">
                                                                                                                                             <div className="relative inline-block p-2">
@@ -1568,7 +1838,7 @@ const TlProjectList = () => {
                                                                             </div>
                                                                             <div>
                                                                                 <p className="text-sm font-medium text-gray-800">{project.assigned_to_detail?.name || project.assigned_to}</p>
-                                                                                <p className="text-xs text-gray-500">Project Supervisor</p>
+                                                                                <p className="text-xs text-gray-500">Project Owner</p>
                                                                             </div>
                                                                         </div>
                                                                     </div>

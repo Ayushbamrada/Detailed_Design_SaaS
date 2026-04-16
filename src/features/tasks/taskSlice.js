@@ -206,6 +206,40 @@ export const fetchUserSubmittedTask = createAsyncThunk(
   }
 );
 
+// Add these to your taskSlice.js
+
+export const updateSubmissionStatus = createAsyncThunk(
+  'tasks/updateSubmissionStatus',
+  async (formData, { rejectWithValue }) => {
+    try {
+      const response = await axios.post('/api/submissions/update-status/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+// Add to extraReducers
+extraReducers: (builder) => {
+  builder
+    .addCase(updateSubmissionStatus.pending, (state) => {
+      state.loading = true;
+    })
+    .addCase(updateSubmissionStatus.fulfilled, (state, action) => {
+      state.loading = false;
+      // Update the submission in your state if needed
+    })
+    .addCase(updateSubmissionStatus.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    });
+}
+
 const taskSlice = createSlice({
   name: 'tasks',
   initialState: {

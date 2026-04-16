@@ -36,9 +36,12 @@ export default function AppRoutes() {
       >
 
         <Route path="/dashboard" element={<DashboardWrapper />} />
-
-
         <Route path="/all-projects" element={<ProjectList />} />
+        {/*Common*/}
+        <Route path="/projects" element={<ProjectList />} />
+        <Route path="/projects/:id" element={<ProjectDetails />} />
+        <Route path="/projects/:id/extend" element={<ExtensionRequestPage />} />
+        <Route path="/projects/:id/logs" element={<ProjectLogs />} />
 
         {/*For Users */}
         <Route
@@ -70,7 +73,7 @@ export default function AppRoutes() {
           }
         />
 
-        <Route
+        {/* <Route
           path="/my-work-logs"
           element={
             <ProtectedRoute allowedRoles={["USER"]}>
@@ -82,20 +85,7 @@ export default function AppRoutes() {
               </ErrorBoundary>
             </ProtectedRoute>
           }
-        />
-
-        {/*Common*/}
-        <Route path="/projects" element={<ProjectList />} />
-        <Route path="/projects/:id" element={<ProjectDetails />} />
-        <Route path="/projects/:id/extend" element={<ExtensionRequestPage />} />
-        <Route path="/projects/:id/logs" element={<ProjectLogs />} />
-
-        <Route path="/projects/create" element={
-          <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
-            <CreateProject />
-          </ProtectedRoute>
-        } />
-
+        /> */}
         {/* User-specific routes */}
         <Route path="/my-projects" element={
           <ProtectedRoute allowedRoles={["USER"]}>
@@ -107,16 +97,27 @@ export default function AppRoutes() {
             <UserProjectDetails />
           </ProtectedRoute>
         } />
+        {/* <Route path="/my-picked-projects/:id" element={
+            <ProtectedRoute allowedRoles={["USER"]}>
+              <UserPickedProjectDetails />
+            </ProtectedRoute>
+          } /> */}
 
+        {/* "ACCOUNT", "ADMIN" */}
+
+        <Route path="/projects/create" element={
+          <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
+            <CreateProject />
+          </ProtectedRoute>
+        } />
         {/* Common routes*/}
         <Route path="/daily-logs" element={
           <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
             <DailyLogs />
           </ProtectedRoute>
         } />
-
         {/* Admin only routes */}
-        <Route path="/contractors" element={
+        {/* <Route path="/contractors" element={
           <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
             <ContractorList />
           </ProtectedRoute>
@@ -125,13 +126,8 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRoles={["ACCOUNT", "ADMIN"]}>
             <ExtensionApproval />
           </ProtectedRoute>
-        } />
+        } /> */}
 
-        <Route path="/my-picked-projects/:id" element={
-          <ProtectedRoute allowedRoles={["USER"]}>
-            <UserPickedProjectDetails />
-          </ProtectedRoute>
-        } />
 
 
         {/* {tl routes} */}

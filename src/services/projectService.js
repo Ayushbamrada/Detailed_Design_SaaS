@@ -137,18 +137,17 @@ export const projectService = {
     }
   },
 
-  tlSubactivitySubmitwithProof: async (proofData) => {
+  tlSubactivitySubmitwithProof: async (proofData, url) => {
     try {
       const formData = new FormData();
       proofData.documents.forEach((file) => {
-        formData.append("files", file);
+        formData.append("documents", file);
       });
-      // formData.append("message", proofData.message);
       for (const key in proofData) {
-        key !== "documents" &&
+        key !== "documents" && proofData[key] !== "" &&
           formData.append(key, proofData[key]);
       }
-      const response = await api.post(`/subactivity-submission/`, formData, {
+      const response = await api.post(url, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

@@ -450,7 +450,8 @@ export const tlSubactivitySubmitwithProof = createAsyncThunk(
   'api/subactivity-submission',
   async (proofData, { rejectWithValue }) => {
     try {
-      await projectService.tlSubactivitySubmitwithProof(proofData);
+      const url = (proofData.to_status == "Submitted" || proofData.to_status == "Approved") ? '/subactivity-submission/' : "/subactivity-paymentstage/";
+      await projectService.tlSubactivitySubmitwithProof(proofData, url);
       return proofData; // Return the submitted data for potential state updates
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);

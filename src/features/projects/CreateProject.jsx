@@ -3610,7 +3610,7 @@ const CreateProject = () => {
 
             <div className="flex flex-col gap-1">
               <label className="text-xs text-gray-500">
-                Assign Project Supervisor *
+                Assign Project Owner *
               </label>
               <div
                 className="relative"
@@ -3680,7 +3680,7 @@ const CreateProject = () => {
                       ))
                     ) : (
                       <div className="px-3 py-2 text-gray-400 text-sm">
-                        No Matching Project Supervisor
+                        No Matching Project Owner
                       </div>
                     )}
                   </div>

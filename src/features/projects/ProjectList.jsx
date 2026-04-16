@@ -34,6 +34,9 @@ import {
   X,
   Save,
   PlusCircle,
+  FileStack,
+  File,
+  FileText,
 } from "lucide-react";
 import {
   getProjectStatusInfo,
@@ -45,6 +48,7 @@ import {
   fetchCompanies,
   fetchSectors,
   fetchClients,
+  tlSubactivitySubmitwithProof,
 } from "../api/apiSlice";
 import { showSnackbar } from "../notifications/notificationSlice";
 import TaskPicker from "../tasks/TaskPicker";
@@ -572,6 +576,26 @@ const ProjectList = () => {
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
   const [targetSubActivityId, setTargetSubActivityId] = useState(null);
   const [targetActivityId, setTargetActivityId] = useState(null);
+  const [proofData, setProofData] = useState({
+    stage_type: "",
+    documents: [],
+    subactivity: "",
+    to_status: "",
+    changed_by: user?.emp_code || "",
+    remarks: "",
+    document_type: "ref_doc",
+    client_remarks: "",
+    raised_amount: "",
+    received_amount: "",
+  });
+
+  const [viewdocumentmodel, setViewDocumentModel] = useState({
+    model: false,
+    data: []
+  });
+  const [loder, setLoder] = useState(false);
+  const [showProofModal, setShowProofModal] = useState(false);
+
 
   // Replace your existing useEffect with this:
   useEffect(() => {
@@ -690,7 +714,40 @@ const ProjectList = () => {
     }
   }, [location.state, isInitialLoading, filteredProjects, hasAutoExpanded]);
 
+  const handleSubmissionapproveStatus = (status, sub, value, amount) => {
+    setShowProofModal(true);
+    setProofData({
+      ...proofData,
+      stage_type: status,
+      to_status: value,
+      raised_amount: amount,
+      received_amount: amount,
+      subactivity: sub.id
+    })
+  };
 
+  const handleSubmitProof = async () => {
+    setLoder(true);
+    const response = await dispatch(tlSubactivitySubmitwithProof(proofData)).unwrap();
+    setLoder(false);
+    setProofData({
+      stage_type: "",
+      documents: [],
+      subactivity: "",
+      to_status: "",
+      changed_by: user?.emp_code || "",
+      remarks: "",
+      document_type: "ref_doc",
+      client_remarks: "",
+      raised_amount: "",
+      received_amount: "",
+    });
+    setShowProofModal(false);
+  };
+
+  {
+    console.log("🚀 ~ file: ProjectList.jsx:436 ~ handleSubmitProof ~ response:", viewdocumentmodel)
+  }
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -907,6 +964,404 @@ const ProjectList = () => {
                   Save
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+
+      {/* Submit Document */}
+      <AnimatePresence>
+        {showProofModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setShowProofModal(false);
+              setProofData({
+                stage_type: "",
+                documents: [],
+                subactivity: "",
+                to_status: "",
+                changed_by: user?.emp_code || "",
+                remarks: "",
+                document_type: "ref_doc",
+                client_remarks: "",
+                raised_amount: "",
+                received_amount: "",
+              })
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 30 }}
+              className="bg-white rounded-2xl p-6 max-w-xl w-full shadow-2xl border"
+              onClick={(e) => e.stopPropagation()}
+            >
+
+              {/* HEADER */}
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  📎 Submit Work Proof
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowProofModal(false)
+                    setProofData({
+                      stage_type: "",
+                      documents: [],
+                      subactivity: "",
+                      to_status: "",
+                      changed_by: user?.emp_code || "",
+                      remarks: "",
+                      document_type: "ref_doc",
+                      client_remarks: "",
+                      received_amount: "",
+                      raised_amount: ""
+                    })
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* UPLOAD AREA */}
+              <label className="block border-2 border-dashed border-gray-300 rounded-xl p-5 text-center cursor-pointer hover:border-blue-400 transition">
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) =>
+                    setProofData({
+                      ...proofData,
+                      documents: [...proofData.documents, ...Array.from(e.target.files)],
+                    })
+                  }
+                />
+                <p className="text-sm text-gray-500">
+                  <span className="text-blue-600 font-medium">browse</span>
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  JPG, PNG, PDF, DOC
+                </p>
+              </label>
+
+              {/* FILE PREVIEW GRID */}
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                {proofData?.documents?.map((file, i) => {
+                  const isImage = file.type.startsWith("image/");
+                  const url = URL.createObjectURL(file);
+
+                  return (
+                    <div
+                      key={i}
+                      className="relative border rounded-lg overflow-hidden group"
+                    >
+                      {isImage ? (
+                        <img
+                          src={url}
+                          alt="preview"
+                          className="w-full h-24 object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center p-2 text-center bg-gray-100 text-xs text-gray-600 h-full">
+                          📄 {file.name}
+                        </div>
+                      )}
+
+                      {/* REMOVE BUTTON */}
+                      <button
+                        onClick={() =>
+                          setProofData({
+                            ...proofData,
+                            documents: proofData.documents.filter((_, index) => index !== i),
+                          })
+                        }
+                        className="absolute top-1 right-1 bg-black/60 text-white text-xs px-1 rounded opacity-0 group-hover:opacity-100"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* MESSAGE */}
+              <div className="mt-5">
+                <label className="text-sm font-medium text-gray-700 block mb-1">
+                  Message
+                </label>
+                <textarea
+                  defaultValue={proofData.remarks}
+                  onBlur={(e) =>
+                    setProofData({ ...proofData, remarks: e.target.value })
+                  }
+                  placeholder="Describe your proof..."
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="mt-5 relative">
+                <label className="text-sm font-medium text-gray-700 block mb-1">
+                  {proofData?.to_status === "Raised" ? "Raised Amount" : "Received Amount"}
+                </label>
+
+                <input
+                  type="number"
+                  value={proofData?.to_status === "Raised" ? proofData.raised_amount : proofData.received_amount}
+                  onChange={(e) =>
+                    setProofData({
+                      ...proofData,
+                      [proofData?.to_status === "Raised" ? "raised_amount" : "received_amount"]: e.target.value,
+                    })
+                  }
+                  placeholder={`Enter the ${proofData?.to_status === "Raised" ? "raised" : "received"} amount...`}
+                  className="w-full px-3 py-2 pr-14 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+
+                <span className="absolute right-3 top-9 text-xs text-gray-400">
+                  LAKH
+                </span>
+              </div>
+
+              {/* ACTIONS */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowProofModal(false);
+                    setProofData({
+                      stage_type: "",
+                      documents: [],
+                      subactivity: "",
+                      to_status: "",
+                      changed_by: user?.emp_code || "",
+                      remarks: "",
+                      document_type: "ref_doc",
+                      client_remarks: "",
+                      raised_amount: "",
+                      received_amount: ""
+                    })
+                  }}
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleSubmitProof}
+                  disabled={!proofData?.documents?.length || loder}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loder ? "Submitting..." : "Submit Proof"}
+                </button>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Show Document */}
+      <AnimatePresence>
+        {viewdocumentmodel.model && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setViewDocumentModel({ model: false, data: [] })}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 30 }}
+              className="bg-white rounded-2xl p-6 max-w-xl w-full shadow-2xl border scroll"
+              onClick={(e) => e.stopPropagation()}
+            >
+
+              {/* HEADER */}
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  📄 {viewdocumentmodel?.title || "Proof Details"}
+                </h3>
+                <button
+                  onClick={() => setViewDocumentModel({ model: false, data: [] })}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="max-h-[75vh] overflow-y-auto pr-2 py-4 space-y-5">
+
+                {viewdocumentmodel?.data?.map((item, index) => {
+                  const isReceived = item?.to_status === "Received";
+
+                  return (
+                    <div
+                      key={index}
+                      className={`overflow-hidden relative rounded-xl p-5 bg-white border transition-all duration-300 
+        hover:shadow-lg hover:-translate-y-[2px]
+        ${isReceived ? "border-green-200" : "border-blue-200"}`}
+                    >
+
+                      {/* LEFT STATUS STRIP */}
+                      <div
+                        className={`absolute left-[0px] top-0 h-full w-1 rounded-l-2xl 
+          ${isReceived ? "bg-green-500" : "bg-blue-500"}`}
+                      />
+
+                      {/* HEADER */}
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-800">
+                            Document #{index + 1}
+                          </h3>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(
+                              item?.created_at
+                            ).toLocaleDateString()}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`px-3 py-1 text-xs rounded-full font-medium shadow-sm
+            ${isReceived
+                              ? "bg-green-100 text-green-700"
+                              : "bg-blue-100 text-blue-700"}`}
+                        >
+                          {item?.to_status}
+                        </span>
+                      </div>
+
+                      {/* STATUS FLOW */}
+                      <div className="flex items-center gap-2 text-xs mb-4">
+                        <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-600">
+                          {item?.from_status}
+                        </span>
+                        <span className="text-gray-300">→</span>
+                        <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-600">
+                          {item?.to_status}
+                        </span>
+                      </div>
+
+                      {/* GRID CONTENT */}
+                      <div className="grid grid-cols-2 gap-4">
+
+                        {/* LEFT SIDE */}
+                        <div className="space-y-3">
+
+                          {/* USER */}
+                          {item?.changed_by && (
+                            <div>
+                              <p className="text-xs text-gray-400">Action By</p>
+                              <p className="text-sm font-medium text-gray-700">
+                                {item.changed_by}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* MESSAGE */}
+                          <div>
+                            <p className="text-xs text-gray-400">Message</p>
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {item?.remarks || "—"}
+                            </p>
+                          </div>
+
+                          {/* AMOUNT */}
+                          {(item?.raised_amount != null ||
+                            item?.received_amount != null) && (
+                              <div>
+                                <p className="text-xs text-gray-400">
+                                  {isReceived ? "Received Amount" : "Raised Amount"}
+                                </p>
+
+                                <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg mt-1">
+                                  <span className="text-lg font-semibold text-gray-800">
+                                    ₹{" "}
+                                    {isReceived
+                                      ? item?.received_amount || 0
+                                      : item?.raised_amount || 0}
+                                  </span>
+                                  <span className="text-xs text-gray-400">LAKH</span>
+                                </div>
+                              </div>
+                            )}
+                        </div>
+
+                        {/* RIGHT SIDE - DOCUMENTS */}
+                        <div>
+                          <p className="text-xs text-gray-400 mb-2">Documents</p>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            {item?.documents?.map((doc) => {
+                              const isImage = doc.document.match(/\.(jpg|jpeg|png)$/i);
+
+                              return (
+                                <a
+                                  key={doc.id}
+                                  href={doc.document}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="group border rounded-lg overflow-hidden bg-gray-50 hover:shadow transition"
+                                >
+                                  {isImage ? (
+                                    <img
+                                      src={doc.document}
+                                      alt=""
+                                      className="w-full h-20 object-cover group-hover:scale-105 transition"
+                                    />
+                                  ) : (
+                                    <div className="flex items-center justify-center h-20 text-gray-500 text-lg">
+                                      📄
+                                    </div>
+                                  )}
+
+                                  <div className="text-[10px] text-gray-400 px-1 py-1 truncate">
+                                    {doc.document.split("/").pop()}
+                                  </div>
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* FOOTER DATE */}
+                      <div className="mt-4 pt-3 border-t text-xs text-gray-400 flex justify-between">
+                        <span>
+                          {new Date(
+                            item?.received_at ||
+                            item?.raised_at ||
+                            item?.created_at
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+
+                    </div>
+                  );
+                })}
+
+              </div>
+
+
+              {/* ACTION */}
+              <div className="flex mt-6">
+                <button
+                  onClick={() => setViewDocumentModel({ model: false, data: [] })}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Close
+                </button>
+              </div>
+
             </motion.div>
           </motion.div>
         )}
@@ -1190,13 +1645,10 @@ const ProjectList = () => {
                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                           {/* LEFT SECTION */}
                           <div className="flex-1">
-                            {/* 🔹 Header Row */}
                             <div className="flex flex-wrap items-center gap-3 mb-3">
-                              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                                {projectName}
+                              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2" title={projectName}>
+                                {projectName.length > 200 ? `${projectName.substring(0, 200)}...` : projectName}
                               </h3>
-
-                              {/* Status */}
                               <motion.span
                                 whileHover={{ scale: 1.05 }}
                                 className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1
@@ -1969,28 +2421,29 @@ const ProjectList = () => {
                                                             (sub?.approval_payment || 0)) /
                                                             100) * 1.18;
 
-                                                        const subRaised = sub.submission_raised || 0;
-                                                        const subReceived = sub.submission_received || 0;
+                                                        const stages = sub?.payment_stages || [];
+
+                                                        // helper function
+                                                        const getAmount = (type, status, key) =>
+                                                          stages.find(
+                                                            (s) => s.stage_type === type && s.to_status === status
+                                                          )?.[key] || 0;
+
+                                                        // submission
+                                                        const subRaised = getAmount("submission", "Raised", "raised_amount");
+                                                        const subReceived = getAmount("submission", "Received", "received_amount");
                                                         const subRemaining = submissionAmount - subReceived;
 
-                                                        const apprRaised = sub.approval_raised || 0;
-                                                        const apprReceived = sub.approval_received || 0;
+                                                        // approval
+                                                        const apprRaised = getAmount("approval", "Raised", "raised_amount");
+                                                        const apprReceived = getAmount("approval", "Received", "received_amount");
+
                                                         const apprRemaining = approvalAmount - apprReceived;
                                                         const changeStatus = (sub.status || "Pending");
 
-                                                        const submissionStatus =
-                                                          subReceived >= submissionAmount
-                                                            ? "Completed"
-                                                            : subRaised > 0
-                                                              ? "Submitted"
-                                                              : "Pending";
-
-                                                        const approvalStatus =
-                                                          apprReceived >= approvalAmount
-                                                            ? "Completed"
-                                                            : apprRaised > 0
-                                                              ? "Submitted"
-                                                              : "Pending";
+                                                        let submissionStatus = sub?.submission_status || "Waiting";
+                                                        let approvalStatus = sub?.approval_status || "Waiting";
+                                                        const blurstatus = sub?.submission_status === "Waiting" && sub.status != "Submitted" ? "opacity-50" : "";
 
                                                         return (
                                                           <>
@@ -1998,6 +2451,7 @@ const ProjectList = () => {
                                                             <tr
                                                               id={`subactivity-row-${sub.id}`}
                                                               className="border-t  text-[12px]"
+                                                              key={sub?.id}
                                                             >
 
                                                               <td rowSpan="2" className="px-2 text-center align-center">
@@ -2026,9 +2480,9 @@ const ProjectList = () => {
                                                               <td rowSpan="2" className="text-center">{sub.total_quantity}</td>
                                                               <td rowSpan="2" className="text-center">{sub.covered_area}</td>
                                                               <td rowSpan="2" className="text-center">
-                                                                <div className="relative inline-block p-2">
+                                                                <div className="relative inline-block p-2 !flex items-center" >
                                                                   <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
-                                                                                                                                                ${changeStatus === "Inprogress" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
+                                                                    ${changeStatus === "Inprogress" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
                                                                       changeStatus === "Submitted" ? "bg-green-100 text-green-600 border-green-200" :
                                                                         changeStatus === "Rejected" ? "bg-red-100 text-red-600 border-red-200" :
                                                                           changeStatus === "Approved" ? "bg-blue-100 text-blue-600 border-blue-200" :
@@ -2037,48 +2491,84 @@ const ProjectList = () => {
                                                                     }`}>
                                                                     {changeStatus}
                                                                   </span>
+                                                                  {
+                                                                    sub?.submission_stages[0] && changeStatus !== "Inprogress" && changeStatus !== "Pending" &&
+                                                                    <FileText className="inline-block ml-1 text-red-500" size={13} title="Raised Files"
+                                                                      onClick={(e) => setViewDocumentModel({
+                                                                        model: true,
+                                                                        data: sub?.submission_stages?.filter((stage) => stage.to_status == changeStatus) || [],
+                                                                        title: "Submission Stage Documents"
+                                                                      })} />
+                                                                  }
                                                                 </div>
                                                               </td>
                                                               {
                                                                 !isUser &&
                                                                 <>
-                                                                  <td className="text-center font-semibold text-green-600 border-b border-gray-300 border-l">
+                                                                  <td className={"text-center font-semibold text-green-600 border-b border-gray-300 border-l " + blurstatus}>
                                                                     Submission
                                                                   </td>
 
-                                                                  <td className="text-center text-green-600 border-b border-gray-300">
+                                                                  <td className={"text-center text-green-600 border-b border-gray-300 " + blurstatus}>
                                                                     {sub.submission_payment}%
                                                                   </td>
 
-                                                                  <td className="text-center border-b border-gray-300">
+                                                                  <td className={"text-center border-b border-gray-300 " + blurstatus}>
                                                                     ₹ {submissionAmount.toFixed(2)} L
                                                                   </td>
 
-                                                                  <td className="text-center border-b border-gray-300">{subRaised}</td>
-                                                                  <td className="text-center border-b border-gray-300">{subReceived}</td>
-                                                                  <td className="text-center text-red-500 border-b border-gray-300">
+                                                                  <td className={"text-center border-b border-gray-300 " + blurstatus}>{subRaised.toFixed(2)} L
+                                                                    {
+                                                                      subRaised > 0 &&
+                                                                      <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                        model: true,
+                                                                        data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "submission") || [],
+                                                                        title: "Raised Stage Documents"
+                                                                      })} />
+                                                                    }
+                                                                  </td>
+                                                                  <td className={"text-center border-b border-gray-300 " + blurstatus}>{subReceived.toFixed(2)} L
+                                                                    {
+                                                                      subReceived > 0 &&
+                                                                      <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                        model: true,
+                                                                        data: sub?.payment_stages?.filter((stage) => stage.to_status == "Received" && stage.stage_type == "submission") || [],
+                                                                        title: "Received Stage Documents"
+                                                                      })} />
+                                                                    }
+                                                                  </td>
+                                                                  <td className={"text-center text-red-500 border-b border-gray-300 " + blurstatus}>
                                                                     {subRemaining.toFixed(2)} L
                                                                   </td>
 
-                                                                  <td className="text-center border-b border-gray-300 p-2">
+                                                                  <td className={"text-center border-b border-gray-300 p-1 " + blurstatus}>
                                                                     <select
                                                                       value={submissionStatus}
-                                                                      onChange={(e) =>
-                                                                        handleSubmissionStatus(sub, e.target.value)
-                                                                      }
-                                                                      className="text-xs border m-1 rounded bg-white"
+                                                                      disabled={submissionStatus == "Waiting"}
+                                                                      onChange={(e) => {
+                                                                        handleSubmissionapproveStatus("submission", sub, e.target.value, submissionAmount.toFixed(2))
+                                                                        submissionStatus = e.target.value;
+                                                                      }}
+                                                                      className={`text-xs border m-1 rounded  cursor-pointer w-[80px] p-1 
+                                                                        ${submissionStatus === "Pending" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
+                                                                          submissionStatus === "Raised" ? "bg-blue-100 text-blue-600 border-blue-200" :
+                                                                            submissionStatus === "Received" ? "bg-green-100 text-green-600 border-green-200" :
+                                                                              submissionStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
+                                                                                "bg-gray-100 text-gray-600 border-gray-200"}`}
                                                                     >
-                                                                      <option>Pending</option>
-                                                                      <option>Submitted</option>
-                                                                      <option>Completed</option>
+                                                                      <option value="Waiting" disabled>Waiting</option>
+                                                                      <option value="Pending" disabled>Pending</option>
+                                                                      <option value="Raised">Raised</option>
+                                                                      <option value="Received" disabled={submissionStatus === "Raised" ? false : true}>Received</option>
                                                                     </select>
                                                                   </td>
                                                                 </>
                                                               }
                                                               {
                                                                 isUser &&
-                                                                <td rowSpan="2" className="text-right px-2 py-2">
-                                                                  <button className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full "
+                                                                <td rowSpan="2" className={"text-right px-2 py-2 "}>
+                                                                  <button className={"text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full " + (changeStatus == "Submitted" ? "!cursor-no-drop opacity-50" : "hover:bg-blue-200")}
+                                                                    disabled={changeStatus == "Submitted"}
                                                                     onClick={() => {
                                                                       setSelectedTaskfortimelog({
                                                                         id: sub.id,
@@ -2112,7 +2602,7 @@ const ProjectList = () => {
                                                             {
                                                               !isUser &&
                                                                 sub.approval_payment > 0 ? (
-                                                                <tr className=" text-[12px] border-b">
+                                                                <tr className={" text-[12px] border-b " + (approvalStatus === "Waiting" ? "opacity-50" : "")}>
                                                                   <td className="text-center font-semibold text-blue-600 border-l border-gray-300">
                                                                     Approval
                                                                   </td>
@@ -2125,23 +2615,49 @@ const ProjectList = () => {
                                                                     ₹ {approvalAmount.toFixed(2)} L
                                                                   </td>
 
-                                                                  <td className="text-center">{apprRaised}</td>
-                                                                  <td className="text-center">{apprReceived}</td>
+                                                                  <td className="text-center">{apprRaised.toFixed(2)} L
+                                                                    {
+                                                                      apprRaised > 0 &&
+                                                                      <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                        model: true,
+                                                                        data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "approval") || [],
+                                                                        title: "Raised Stage Documents"
+                                                                      })} />
+                                                                    }
+                                                                  </td>
+                                                                  <td className="text-center">{apprReceived.toFixed(2)} L
+                                                                    {
+                                                                      apprReceived > 0 &&
+                                                                      <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                        model: true,
+                                                                        data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "approval") || [],
+                                                                        title: "Raised Stage Documents"
+                                                                      })} />
+                                                                    }
+                                                                  </td>
                                                                   <td className="text-center text-red-500">
                                                                     {apprRemaining.toFixed(2)} L
                                                                   </td>
 
-                                                                  <td className="text-center p-2">
+                                                                  <td className="text-center  p-1 ">
                                                                     <select
                                                                       value={approvalStatus}
-                                                                      // onChange={(e) =>
-                                                                      //   handleApprovalStatus(sub, e.target.value)
-                                                                      // }
-                                                                      className="text-xs m-1 border rounded bg-white"
+                                                                      disabled={approvalStatus == "Waiting"}
+                                                                      onChange={(e) => {
+                                                                        handleSubmissionapproveStatus("approval", sub, e.target.value, approvalAmount.toFixed(2))
+                                                                        approvalStatus = e.target.value;
+                                                                      }}
+                                                                      className={`text-xs border m-1 rounded cursor-pointer w-[80px] p-1 
+                                                                        ${approvalStatus === "Pending" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
+                                                                          approvalStatus === "Raised" ? "bg-blue-100 text-blue-600 border-blue-200" :
+                                                                            approvalStatus === "Received" ? "bg-green-100 text-green-600 border-green-200" :
+                                                                              approvalStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
+                                                                                "bg-gray-100 text-gray-600 border-gray-200"}`}
                                                                     >
-                                                                      <option>Pending</option>
-                                                                      <option>Submitted</option>
-                                                                      <option>Completed</option>
+                                                                      <option value="Waiting" disabled>Waiting</option>
+                                                                      <option value="Pending" disabled>Pending</option>
+                                                                      <option value="Raised">Raised</option>
+                                                                      <option value="Received" disabled={approvalStatus === "Raised" ? false : true}>Received</option>
                                                                     </select>
                                                                   </td>
 
@@ -2181,7 +2697,7 @@ const ProjectList = () => {
                                                                         className="bg-green-500 h-2 rounded-full"
                                                                         style={{ width: `${sub.work_done || 0}%` }}
                                                                       ></div>
-                                                                    </div> */}
+                                                                </div> */}
 
                                                                     {/* TIME LOG HEADER */}
                                                                     <div className="flex justify-between text-xs font-medium text-gray-500 border-b pb-2 mb-2">
@@ -2265,7 +2781,7 @@ const ProjectList = () => {
 
                                                                   </div>
 
-                                                                </td>
+                                                                </td >
                                                               </tr>
                                                             )}
                                                           </>
@@ -2282,36 +2798,39 @@ const ProjectList = () => {
                                     })}
                                   </div>
                                 </div>
-                              )}
+                              )
+                              }
 
                               {/* Assigned Personnel Section */}
-                              {project.assigned_to && (
-                                <div className="mt-6 bg-gray-50 rounded-xl p-4">
-                                  <h4 className="font-semibold mb-3 text-gray-800 flex items-center gap-2">
-                                    <UserCheck
-                                      size={18}
-                                      className="text-blue-600"
-                                    />
-                                    Assigned Personnel
-                                  </h4>
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold">
-                                      {project.assigned_to
-                                        ?.charAt(0)
-                                        ?.toUpperCase() || "U"}
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-medium text-gray-800">
-                                        {project.assigned_to_detail?.name ||
-                                          project.assigned_to}
-                                      </p>
-                                      <p className="text-xs text-gray-500">
-                                        Project Supervisor
-                                      </p>
+                              {
+                                project.assigned_to && (
+                                  <div className="mt-6 bg-gray-50 rounded-xl p-4">
+                                    <h4 className="font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                                      <UserCheck
+                                        size={18}
+                                        className="text-blue-600"
+                                      />
+                                      Assigned Personnel
+                                    </h4>
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold">
+                                        {project.assigned_to
+                                          ?.charAt(0)
+                                          ?.toUpperCase() || "U"}
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-800">
+                                          {project.assigned_to_detail?.name ||
+                                            project.assigned_to}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          Project Owner
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              )}
+                                )
+                              }
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -2319,12 +2838,12 @@ const ProjectList = () => {
                     </motion.div>
                   );
                 })}
-              </motion.div>
+              </motion.div >
             )}
-          </AnimatePresence>
+          </AnimatePresence >
         </>
       )}
-    </motion.div>
+    </motion.div >
   );
 };
 
