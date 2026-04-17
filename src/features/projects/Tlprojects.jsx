@@ -44,6 +44,8 @@ import {
 import { getProjectStatusInfo, getDaysUntilDeadline } from "../../utils/deadlineUtils";
 import {
     fetchProjects,
+    fetchOnlyProjectsList,
+    fetchProjectDetails,
     deleteProject,
     fetchCompanies,
     fetchSubCompanies,
@@ -63,7 +65,16 @@ const TlProjectList = () => {
     const dispatch = useDispatch();
 
     // Get projects and user from Redux store
-    const { projects = [], loading: apiLoading = false, companies = [], subCompanies = [], sectors = [], clients = [] } = useSelector((state) => state.api || {});
+    const {
+        projects = [],
+        projectsOnly = [],
+        projectDetails = {},
+        loading: apiLoading = false,
+        companies = [],
+        subCompanies = [],
+        sectors = [],
+        clients = []
+    } = useSelector((state) => state.api || {});
     const { user } = useSelector((state) => state.auth);
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -106,6 +117,9 @@ const TlProjectList = () => {
     //     description: ''
     // });
 
+    const [expandedProjectDetails, setExpandedProjectDetails] = useState({});
+    const [loadingProjectDetails, setLoadingProjectDetails] = useState({});
+
     // Create lookup maps for IDs to names
     const companyMap = useMemo(() => {
         const map = {};
@@ -147,24 +161,6 @@ const TlProjectList = () => {
         return map;
     }, [clients]);
 
-    const getWeightedProgress = (project) => {
-        const activities = getActivities(project);
-        if (!activities.length) return 0;
-        let totalWeight = 0;
-        let completedWeight = 0;
-        activities.forEach((activity) => {
-            const weight = Number(activity.weightage) || 0;
-            const subs = activity.subactivities || [];
-            if (!subs.length) return;
-            const completedSubs = subs.filter(s => s.is_completed || s.status === "Complete").length;
-            const activityProgress = completedSubs / subs.length;
-            totalWeight += weight;
-            completedWeight += weight * activityProgress;
-        });
-        if (totalWeight === 0) return 0;
-        return Math.round((completedWeight / totalWeight) * 100);
-    };
-
     // Load all data in a single loading session
     useEffect(() => {
         const loadAllData = async () => {
@@ -173,11 +169,11 @@ const TlProjectList = () => {
             setLoadingSubMessage("Fetching project data...");
             try {
                 await Promise.all([
-                    // dispatch(fetchCompanies()).unwrap(),
-                    // dispatch(fetchSubCompanies()).unwrap(),
-                    // dispatch(fetchSectors()).unwrap(),
-                    // dispatch(fetchClients()).unwrap(),
-                    dispatch(fetchProjects()).unwrap()
+                    dispatch(fetchCompanies()).unwrap(),
+                    dispatch(fetchSectors()).unwrap(),
+                    dispatch(fetchClients()).unwrap(),
+                    // dispatch(fetchProjects()).unwrap()
+                    dispatch(fetchOnlyProjectsList()).unwrap(),
                 ]);
             } catch (error) {
                 console.error("Error loading data:", error);
@@ -199,11 +195,11 @@ const TlProjectList = () => {
         setLoadingSubMessage("Fetching latest data...");
         try {
             await Promise.all([
-                // dispatch(fetchCompanies()).unwrap(),
-                // dispatch(fetchSubCompanies()).unwrap(),
-                // dispatch(fetchSectors()).unwrap(),
-                // dispatch(fetchClients()).unwrap(),
-                dispatch(fetchProjects()).unwrap()
+                dispatch(fetchCompanies()).unwrap(),
+                dispatch(fetchSectors()).unwrap(),
+                dispatch(fetchClients()).unwrap(),
+                // dispatch(fetchProjects()).unwrap(),
+                dispatch(fetchOnlyProjectsList()).unwrap(),
             ]);
             dispatch(showSnackbar({
                 message: "Data refreshed successfully",
@@ -334,8 +330,8 @@ const TlProjectList = () => {
 
     // Filter and sort projects
     const filteredProjects = useMemo(() => {
-        if (!projects || !Array.isArray(projects)) return [];
-        let filtered = [...projects];
+        if (!projectsOnly || !Array.isArray(projectsOnly)) return [];
+        let filtered = [...projectsOnly];
         if (searchTerm) {
             filtered = filtered.filter(project => {
                 const name = (project.project_name || project.name || "").toLowerCase();
@@ -369,32 +365,76 @@ const TlProjectList = () => {
             return 0;
         });
         return filtered;
-    }, [projects, searchTerm, filterStatus, sortBy]);
+    }, [projectsOnly, searchTerm, filterStatus, sortBy]);
 
     const stats = useMemo(() => {
-        if (!projects || !Array.isArray(projects)) {
+        if (!projectsOnly || !Array.isArray(projectsOnly)) {
             return { total: 0, delayed: 0, critical: 0, completed: 0, ongoing: 0 };
         }
         return {
-            total: projects.length,
-            delayed: projects.filter(p => {
+            total: projectsOnly.length,
+            delayed: projectsOnly.filter(p => {
                 const status = p.status || "ONGOING";
                 const progress = p.progress || 0;
                 const daysLeft = getDaysUntilDeadline(p.completion_date || p.completionDate);
                 return (status === "DELAYED" || daysLeft < 0) && progress < 100;
             }).length,
-            critical: projects.filter(p => {
+            critical: projectsOnly.filter(p => {
                 const progress = p.progress || 0;
                 const daysLeft = getDaysUntilDeadline(p.completion_date || p.completionDate);
                 return daysLeft <= 2 && daysLeft >= 0 && progress < 100;
             }).length,
-            completed: projects.filter(p => (p.progress || 0) === 100 || (p.status || "ONGOING") === "COMPLETED").length,
-            ongoing: projects.filter(p => {
+            completed: projectsOnly.filter(p => (p.progress || 0) === 100 || (p.status || "ONGOING") === "COMPLETED").length,
+            ongoing: projectsOnly.filter(p => {
                 const progress = p.progress || 0;
                 return progress > 0 && progress < 100;
             }).length
         };
-    }, [projects]);
+    }, [projectsOnly]);
+
+    const ProjectListStats = useMemo(() => {
+        if (!projectsOnly || !Array.isArray(projectsOnly)) {
+            return { total: 0, delayed: 0, critical: 0, completed: 0, ongoing: 0, notStarted: 0 };
+        }
+
+        return {
+            total: projectsOnly.length,
+
+            // Delayed: projectsOnly where completion date is past AND progress < 100
+            delayed: projectsOnly.filter(p => {
+                const progress = p.overall_progress || p.progress || 0;
+                const completionDate = p.completion_date;
+                const daysLeft = getDaysUntilDeadline(completionDate);
+                return daysLeft < 0 && progress < 100;
+            }).length,
+
+            // Critical: projectsOnly with 0-2 days left AND progress < 100
+            critical: projectsOnly.filter(p => {
+                const progress = p.overall_progress || p.progress || 0;
+                const completionDate = p.completion_date;
+                const daysLeft = getDaysUntilDeadline(completionDate);
+                return daysLeft <= 2 && daysLeft >= 0 && progress < 100;
+            }).length,
+
+            // Completed: projectsOnly with 100% progress
+            completed: projectsOnly.filter(p => {
+                const progress = p.overall_progress || p.progress || 0;
+                return progress === 100;
+            }).length,
+
+            // Ongoing: projectsOnly with progress > 0 and < 100
+            ongoing: projectsOnly.filter(p => {
+                const progress = p.overall_progress || p.progress || 0;
+                return progress > 0 && progress < 100;
+            }).length,
+
+            // Not Started: projectsOnly with 0% progress
+            notStarted: projectsOnly.filter(p => {
+                const progress = p.overall_progress || p.progress || 0;
+                return progress === 0;
+            }).length,
+        };
+    }, [projectsOnly]);
 
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
@@ -497,7 +537,6 @@ const TlProjectList = () => {
     const getLoaDate = (project) => project.loa_date || project.loaDate;
     // const getDirectorProposalDate = (project) => project.director_proposal_date || project.directorProposalDate;
     // const getProjectConfirmationDate = (project) => project.project_confirmation_date || project.projectConfirmationDate;
-    const getActivities = (project) => project.activities_detail || project.activities || [];
 
     // const handleProjectNavigation = (projectId, e) => {
     //     if (e) e.stopPropagation();
@@ -508,10 +547,41 @@ const TlProjectList = () => {
     //     }
     // };
 
+
+    // Add this function before the return statement
+    const fetchProjectDetailsIfNeeded = useCallback(async (projectId) => {
+        // // Don't fetch if already fetched or currently fetching
+        // if (expandedProjectDetails[projectId] || loadingProjectDetails[projectId]) {
+        //   return;
+        // }
+
+        setLoadingProjectDetails(prev => ({ ...prev, [projectId]: true }));
+
+        try {
+            const result = await dispatch(fetchProjectDetails(projectId)).unwrap();
+            setExpandedProjectDetails(prev => ({ ...prev, [projectId]: result }));
+        } catch (error) {
+            console.error("Failed to fetch project details:", error);
+            dispatch(
+                showSnackbar({
+                    message: "Failed to load project details",
+                    type: "error",
+                })
+            );
+        } finally {
+            setLoadingProjectDetails(prev => ({ ...prev, [projectId]: false }));
+        }
+    }, [dispatch, expandedProjectDetails, loadingProjectDetails]);
+
+
     const showLoading = isInitialLoading || refreshing || deleteInProgress;
+    const [loder, setloder] = useState(false)
 
     const handleSubmitProof = async () => {
+        setloder(true)
         const response = await dispatch(tlSubactivitySubmitwithProof(proofData)).unwrap();
+        await fetchProjectDetailsIfNeeded(proofData.projectId);
+        setloder(false)
         setProofData({
             documents: [],
             subactivity: "",
@@ -523,6 +593,8 @@ const TlProjectList = () => {
         });
         setShowProofModal(false);
     };
+
+
 
     return (
         <motion.div
@@ -691,7 +763,7 @@ const TlProjectList = () => {
                                     remarks: "",
                                     document_type: "ref_doc",
                                     client_remarks: ""
-                                })
+                                });
                             }}
                         >
                             <motion.div
@@ -825,7 +897,7 @@ const TlProjectList = () => {
 
                                     <button
                                         onClick={handleSubmitProof}
-                                        disabled={!proofData?.documents?.length}
+                                        disabled={(!proofData?.documents?.length || loder)}
                                         className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                                     >
                                         Submit Proof
@@ -1056,12 +1128,7 @@ const TlProjectList = () => {
                                     <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
-                                        className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${isACCOUNT
-                                            ? "bg-purple-100 text-purple-600"
-                                            : isAdmin
-                                                ? "bg-blue-100 text-blue-600"
-                                                : "bg-green-100 text-green-600"
-                                            }`}
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 bg-blue-100 text-blue-600`}
                                     >
                                         {getRoleIcon()}
                                         {getRoleDisplay()}
@@ -1100,31 +1167,71 @@ const TlProjectList = () => {
                                 variants={containerVariants}
                                 initial="hidden"
                                 animate="visible"
-                                className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8"
+                                className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8"
                             >
-                                <motion.div variants={itemVariants} whileHover={{ scale: 1.05, y: -5 }} className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
+                                {/* Total Projects - Primary/Overview */}
+                                <motion.div
+                                    variants={itemVariants}
+                                    whileHover={{ scale: 1.05, y: -5 }}
+                                    className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl"
+                                >
                                     <FolderOpen size={24} className="mb-2 opacity-80" />
-                                    <p className="text-3xl font-bold">{stats.total}</p>
+                                    <p className="text-3xl font-bold">{ProjectListStats.total}</p>
                                     <p className="text-sm opacity-90">Total Projects</p>
                                 </motion.div>
-                                <motion.div variants={itemVariants} whileHover={{ scale: 1.05, y: -5 }} className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl">
-                                    <CheckCircle2 size={24} className="mb-2 opacity-80" />
-                                    <p className="text-3xl font-bold">{stats.completed}</p>
-                                    <p className="text-sm opacity-90">Completed</p>
+
+                                {/* Not Started - Neutral/Waiting */}
+                                <motion.div
+                                    variants={itemVariants}
+                                    whileHover={{ scale: 1.05, y: -5 }}
+                                    className="bg-gradient-to-br from-slate-500 to-slate-600 rounded-2xl p-6 text-white shadow-xl"
+                                >
+                                    <Clock size={24} className="mb-2 opacity-80" />
+                                    <p className="text-3xl font-bold">{ProjectListStats.notStarted}</p>
+                                    <p className="text-sm opacity-90">Not Started</p>
                                 </motion.div>
-                                <motion.div variants={itemVariants} whileHover={{ scale: 1.05, y: -5 }} className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl p-6 text-white shadow-xl">
+
+                                {/* In Progress - Active/Working */}
+                                <motion.div
+                                    variants={itemVariants}
+                                    whileHover={{ scale: 1.05, y: -5 }}
+                                    className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl"
+                                >
                                     <TrendingUp size={24} className="mb-2 opacity-80" />
-                                    <p className="text-3xl font-bold">{stats.ongoing}</p>
+                                    <p className="text-3xl font-bold">{ProjectListStats.ongoing}</p>
                                     <p className="text-sm opacity-90">In Progress</p>
                                 </motion.div>
-                                <motion.div variants={itemVariants} whileHover={{ scale: 1.05, y: -5 }} className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
+
+                                {/* Completed - Success/Green */}
+                                <motion.div
+                                    variants={itemVariants}
+                                    whileHover={{ scale: 1.05, y: -5 }}
+                                    className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-xl"
+                                >
+                                    <CheckCircle2 size={24} className="mb-2 opacity-80" />
+                                    <p className="text-3xl font-bold">{ProjectListStats.completed}</p>
+                                    <p className="text-sm opacity-90">Completed</p>
+                                </motion.div>
+
+                                {/* Critical - Warning/Urgent */}
+                                <motion.div
+                                    variants={itemVariants}
+                                    whileHover={{ scale: 1.05, y: -5 }}
+                                    className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white shadow-xl"
+                                >
                                     <AlertCircle size={24} className="mb-2 opacity-80" />
-                                    <p className="text-3xl font-bold">{stats.critical}</p>
+                                    <p className="text-3xl font-bold">{ProjectListStats.critical}</p>
                                     <p className="text-sm opacity-90">Critical</p>
                                 </motion.div>
-                                <motion.div variants={itemVariants} whileHover={{ scale: 1.05, y: -5 }} className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-xl">
+
+                                {/* Delayed - Danger/Blocked */}
+                                <motion.div
+                                    variants={itemVariants}
+                                    whileHover={{ scale: 1.05, y: -5 }}
+                                    className="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-6 text-white shadow-xl"
+                                >
                                     <XCircle size={24} className="mb-2 opacity-80" />
-                                    <p className="text-3xl font-bold">{stats.delayed}</p>
+                                    <p className="text-3xl font-bold">{ProjectListStats.delayed}</p>
                                     <p className="text-sm opacity-90">Delayed</p>
                                 </motion.div>
                             </motion.div>
@@ -1145,14 +1252,14 @@ const TlProjectList = () => {
                                         placeholder="Search projects by name or code..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500"
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
                                 <div className="relative">
                                     <select
                                         value={filterStatus}
                                         onChange={(e) => setFilterStatus(e.target.value)}
-                                        className="appearance-none pl-4 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 bg-white min-w-[160px]"
+                                        className="appearance-none pl-4 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
                                     >
                                         <option value="all">All Projects</option>
                                         <option value="ongoing">Ongoing</option>
@@ -1166,7 +1273,7 @@ const TlProjectList = () => {
                                     <select
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
-                                        className="appearance-none pl-4 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 bg-white min-w-[160px]"
+                                        className="appearance-none pl-4 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white min-w-[160px]"
                                     >
                                         <option value="deadline">Sort by Deadline</option>
                                         <option value="progress">Sort by Progress</option>
@@ -1179,7 +1286,7 @@ const TlProjectList = () => {
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => navigate("/projects/create")}
-                                        className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-6 py-3 rounded-xl hover:shadow-xl transition-all flex items-center gap-2"
+                                        className="bg-gradient-to-r from-blue-600 to-amber-600 text-white px-6 py-3 rounded-xl hover:shadow-xl transition-all flex items-center gap-2"
                                     >
                                         <Plus size={20} />
                                         New Project
@@ -1194,7 +1301,7 @@ const TlProjectList = () => {
                                     <FolderOpen size={64} className="mx-auto mb-4 text-gray-300" />
                                     <p className="text-2xl font-semibold text-gray-700 mb-2">No projects found</p>
                                     {isAdmin && (
-                                        <button onClick={() => navigate("/projects/create")} className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-8 py-4 rounded-xl hover:shadow-xl transition-all inline-flex items-center gap-2 text-lg">
+                                        <button onClick={() => navigate("/projects/create")} className="bg-gradient-to-r from-blue-600 to-amber-600 text-white px-8 py-4 rounded-xl hover:shadow-xl transition-all inline-flex items-center gap-2 text-lg">
                                             <Plus size={24} /> Create New Project
                                         </button>
                                     )}
@@ -1210,13 +1317,12 @@ const TlProjectList = () => {
                                         const progress = getProgress(project);
                                         const location = getLocation(project);
                                         const daysLeft = getDaysUntilDeadline(completionDate);
-                                        const activities = getActivities(project);
                                         const isCompleted = progress === 100;
-                                        const weightedProgress = getWeightedProgress(project);
+                                        const weightedProgress = project.overall_progress || 0;
                                         const statusInfo = getProjectStatusInfo({
-                                            status: project.status || "ONGOING",
+                                            // status: project.status || "ONGOING",
                                             completionDate: completionDate,
-                                            progress: progress
+                                            progress: project.overall_progress,
                                         });
                                         const isExpanded = expandedCard === projectId;
 
@@ -1226,22 +1332,32 @@ const TlProjectList = () => {
                                                 variants={itemVariants}
                                                 layout
                                                 className={`bg-white rounded-3xl shadow-lg hover:shadow-2xl border-2 transition-all duration-300 relative group
-                          ${isCompleted ? "border-green-200 hover:border-green-300" :
+                                                    ${isCompleted ? "border-green-200 hover:border-green-300" :
                                                         statusInfo.status === "DELAYED" ? "border-red-200 hover:border-red-300" :
-                                                            statusInfo.status === "DUE_TODAY" ? "border-orange-200 hover:border-orange-300" :
+                                                            statusInfo.status === "DUE_TODAY" ? "border-blue-200 hover:border-blue-300" :
                                                                 statusInfo.status === "CRITICAL" ? "border-yellow-200 hover:border-yellow-300" :
-                                                                    "border-gray-100 hover:border-orange-200"}`}
+                                                                    "border-gray-100 hover:border-blue-200"}`}
                                             >
-                                                <div className="p-6 cursor-pointer" onClick={() => setExpandedCard(isExpanded ? null : projectId)}>
+                                                <div
+                                                    className="p-6 cursor-pointer"
+                                                    // onClick={() => setExpandedCard(isExpanded ? null : projectId)}
+                                                    onClick={() => {
+                                                        const newExpandedState = isExpanded ? null : projectId;
+                                                        setExpandedCard(newExpandedState);
+                                                        if (!isExpanded) {
+                                                            fetchProjectDetailsIfNeeded(projectId);
+                                                        }
+                                                    }}
+                                                >
                                                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                                                         {/* LEFT SECTION */}
                                                         <div className="flex-1">
                                                             <div className="flex flex-wrap items-center gap-3 mb-3">
-                                                                <h3 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center gap-2">
+                                                                <h3 className="text-lg md:text-lg font-semibold text-gray-800 flex items-center gap-2">
                                                                     {projectName}
                                                                 </h3>
                                                                 <motion.span whileHover={{ scale: 1.05 }} className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1
-                                  ${isCompleted ? "bg-green-100 text-green-700" : `${statusInfo.colors.bg} ${statusInfo.colors.text}`}`}>
+                                                                     ${isCompleted ? "bg-green-100 text-green-700" : `${statusInfo.colors.bg} ${statusInfo.colors.text}`}`}>
                                                                     {isCompleted ? <CheckCircle size={14} /> : statusInfo.icon}
                                                                     {isCompleted ? "Completed" : statusInfo.label}
                                                                 </motion.span>
@@ -1255,7 +1371,7 @@ const TlProjectList = () => {
                                                                 </motion.span>
                                                             </div>
 
-                                                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                                                 <div className="flex items-center gap-2">
                                                                     <div className="p-2 bg-blue-50 rounded-lg"><Calendar size={16} className="text-blue-600" /></div>
                                                                     <div><p className="text-xs text-gray-500">Start</p><p className="text-sm font-semibold">{formatDate(getLoaDate(project))}</p></div>
@@ -1295,7 +1411,9 @@ const TlProjectList = () => {
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${weightedProgress}%` }}
                                                                 transition={{ duration: 0.8 }}
-                                                                className={`h-2 rounded-full ${weightedProgress === 100 ? "bg-green-500" : weightedProgress > 70 ? "bg-blue-500" : weightedProgress > 40 ? "bg-yellow-500" : "bg-red-500"}`}
+                                                                // className={`h-2 rounded-full ${weightedProgress === 100 ? "bg-green-500" : weightedProgress > 70 ? "bg-blue-500" : weightedProgress > 40 ? "bg-yellow-500" : "bg-red-500"}`}
+                                                                className={`h-2 rounded-full bg-blue-500`}
+
                                                             />
                                                         </div>
                                                     </div>
@@ -1310,7 +1428,7 @@ const TlProjectList = () => {
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
                                                                 {/* Key Metrics Dashboard */}
-                                                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                                                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3">
                                                                         <p className="text-xs text-gray-500 mb-1">Total Length</p>
                                                                         <p className="text-xl font-bold text-blue-700">{getTotalLength(project)} <span className="text-sm font-normal">{getSectorUnit(project)}</span></p>
@@ -1326,10 +1444,6 @@ const TlProjectList = () => {
                                                                     <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-3">
                                                                         <p className="text-xs text-gray-500 mb-1">Total with GST</p>
                                                                         <p className="text-xl font-bold text-teal-700">₹{calculateTotalWithGST(project)} <span className="text-sm font-normal">Lakhs</span></p>
-                                                                    </div>
-                                                                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3">
-                                                                        <p className="text-xs text-gray-500 mb-1">Total Activities</p>
-                                                                        <p className="text-xl font-bold text-purple-700">{activities.length}</p>
                                                                     </div>
                                                                 </div>
 
@@ -1376,7 +1490,8 @@ const TlProjectList = () => {
                                                                                 <span className="text-sm font-medium text-gray-800">{project?.client_detail?.client_name || getClientName(project)}</span>
                                                                             </div>
                                                                             {project.clientbranch && (() => {
-                                                                                const matchedBranch = project.client_detail?.branches?.find(b => b.gst?.trim() === project.clientbranch?.trim());
+                                                                                // const matchedBranch = project.client_detail?.branches?.find(b => b.gst?.trim() === project.clientbranch?.trim());
+                                                                                const matchedBranch = project.client_detail?.branches
                                                                                 return (
                                                                                     <>
                                                                                         <div className="flex items-center py-2 border-b border-gray-200">
@@ -1433,194 +1548,239 @@ const TlProjectList = () => {
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Activities Section */}
-                                                                {activities.length > 0 && (
-                                                                    <div className="mt-6">
-                                                                        <h4 className="font-semibold mb-4 text-gray-800 flex items-center gap-2">
-                                                                            <Briefcase size={18} className="text-blue-600" />
-                                                                            Activities & Sub-Activities ({activities.length})
-                                                                        </h4>
-                                                                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                                                                            {activities.map((activity, actIndex) => {
-                                                                                const subs = activity.subactivities || [];
-                                                                                const isActivityExpanded = expandedActivities[activity.id];
-                                                                                const activityProgress = subs.length > 0 ? (subs.filter(s => s.is_completed || s.status === "Complete").length / subs.length) * 100 : 0;
-                                                                                const daysLeft = calculateDaysLeft(activity?.end_date || activity.endDate);
-                                                                                return (
-                                                                                    <div key={activity.id || actIndex} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
-                                                                                        <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={(e) => toggleActivity(activity.id, e)}>
-                                                                                            <div className="flex-1">
-                                                                                                <div className="flex items-center gap-3 flex-wrap">
-                                                                                                    <h5 className="font-semibold text-gray-800">{activity.activity_name}</h5>
-                                                                                                    <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600">Weightage: {activity.weightage || 0}%</span>
-                                                                                                    <span className="text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-600">{subs.length} tasks</span>
-                                                                                                    <span className={`text-xs px-2 py-1 rounded-full ${activityProgress == 100 ? "bg-green-100 text-green-600" : daysLeft < 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
-                                                                                                        {activityProgress == 100 ? "Completed" : daysLeft < 0 ? "Delayed" : "Ongoing"}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                                <div className="mt-2">
-                                                                                                    <div className="flex justify-between text-xs mb-1">
-                                                                                                        <span className="text-gray-500">Activity Progress</span>
-                                                                                                        <span className="font-medium text-blue-600">{Math.round(activityProgress)}%</span>
-                                                                                                    </div>
-                                                                                                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                                                                                                        <motion.div initial={{ width: 0 }} animate={{ width: `${activityProgress}%` }} className="h-full bg-gradient-to-r from-blue-500 to-indigo--500 rounded-full" />
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                                {activity.start_date && activity.end_date && (
-                                                                                                    <p className="text-xs text-gray-400 mt-2">{formatDate(activity.start_date)} → {formatDate(activity.end_date)}</p>
-                                                                                                )}
-                                                                                            </div>
-                                                                                            <button className="p-2 hover:bg-white rounded-lg transition-colors">
-                                                                                                {isActivityExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                                                                                            </button>
-                                                                                        </div>
+                                                                {/* Show loading indicator while fetching */}
+                                                                {loadingProjectDetails[projectId] ? (
+                                                                    <div className="flex justify-center items-center py-12">
+                                                                        <Loader2 size={32} className="animate-spin text-blue-600" />
+                                                                        <span className="ml-3 text-gray-600">Loading project details...</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <>
+                                                                        {/* Use expandedProjectDetails[projectId] data if available, fallback to original project data */}
+                                                                        {(() => {
+                                                                            const projectData = expandedProjectDetails[projectId] || project;
+                                                                            return (
+                                                                                <>
 
-                                                                                        <AnimatePresence>
-                                                                                            {isActivityExpanded && (
-                                                                                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-gray-200">
-                                                                                                    <div className="overflow-x-auto bg-white rounded-xl border shadow-sm">
-                                                                                                        <table className="w-full text-sm">
-                                                                                                            <thead className="bg-gray-100 text-[10px] uppercase text-gray-600">
-                                                                                                                <tr>
-                                                                                                                    <th className="px-2 py-3"></th>
-                                                                                                                    <th className="px-2 py-3 text-left">Sub Activity</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Chainage</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Qty</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Area</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Status</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Action</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Stage</th>
-                                                                                                                    <th className="px-2 py-3 text-center">%</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Amount ₹</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Raised</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Received</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Remaining</th>
-                                                                                                                    <th className="px-2 py-3 text-center">Account Status</th>
-                                                                                                                    {/* <th className="px-2 py-3 text-center">Action</th> */}
-                                                                                                                </tr>
-                                                                                                            </thead>
-                                                                                                            <tbody>
-                                                                                                                {subs.map((sub, i) => {
-                                                                                                                    const stages = sub?.payment_stages || [];
+                                                                                    {/* Activities Section */}
+                                                                                    {projectData?.activities_detail.length > 0 && (
+                                                                                        <div className="mt-6">
+                                                                                            <h4 className="font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                                                                                                <Briefcase size={18} className="text-blue-600" />
+                                                                                                Activities & Sub-Activities ({projectData?.activities_detail.length})
+                                                                                            </h4>
+                                                                                            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                                                                                                {/* {projectData?.activities_detail?.sort((a, b) => (a.sorting_var || 0) - (b.sorting_var || 0)).map((activity, actIndex) => { */}
+                                                                                                {[...(projectData?.activities_detail || [])]
+                                                                                                    .sort((a, b) => (a.sorting_var || 0) - (b.sorting_var || 0))
+                                                                                                    .map((activity, actIndex) => {
+                                                                                                        const subs = activity.subactivities || [];
+                                                                                                        const isActivityExpanded = expandedActivities[activity.id];
+                                                                                                        // const activityProgress = subs.length > 0 ? (subs.filter(s => s.is_completed || s.status === "Complete").length / subs.length) * 100 : 0;
+                                                                                                        const activityProgress = activity.activity_progress || 0
+                                                                                                        const daysLeft = calculateDaysLeft(activity?.end_date || activity.endDate);
+                                                                                                        return (
+                                                                                                            <div key={activity.id || actIndex} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                                                                                                                <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={(e) => toggleActivity(activity.id, e)}>
+                                                                                                                    <div className="flex-1">
+                                                                                                                        <div className="flex items-center gap-3 flex-wrap">
+                                                                                                                            <h5 className="font-semibold text-gray-800">{activity.activity_name}</h5>
+                                                                                                                            <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600">Weightage: {activity.weightage || 0}%</span>
+                                                                                                                            <span className="text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-600">{subs.length} tasks</span>
+                                                                                                                            <span className={`text-xs px-2 py-1 rounded-full ${activityProgress == 100 ? "bg-green-100 text-green-600" : daysLeft < 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                                                                                                                                {activityProgress == 100 ? "Completed" : daysLeft < 0 ? "Delayed" : "Ongoing"}
+                                                                                                                            </span>
+                                                                                                                        </div>
+                                                                                                                        <div className="mt-2">
+                                                                                                                            <div className="flex justify-between text-xs mb-1">
+                                                                                                                                <span className="text-gray-500">Activity Progress</span>
+                                                                                                                                <span className="font-medium text-blue-600">{Math.round(activityProgress)}%</span>
+                                                                                                                            </div>
+                                                                                                                            <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                                                                                                                <motion.div initial={{ width: 0 }} animate={{ width: `${activityProgress}%` }}
+                                                                                                                                    // className="h-full bg-gradient-to-r from-blue-500 to-indigo--500 rounded-full" 
+                                                                                                                                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                                                                                                                                />
+                                                                                                                            </div>
+                                                                                                                        </div>
+                                                                                                                        {activity.start_date && activity.end_date && (
+                                                                                                                            <p className="text-xs text-gray-400 mt-2">{formatDate(activity.start_date)} → {formatDate(activity.end_date)}</p>
+                                                                                                                        )}
+                                                                                                                    </div>
+                                                                                                                    <button className="p-2 hover:bg-white rounded-lg transition-colors">
+                                                                                                                        {isActivityExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                                                                                    </button>
+                                                                                                                </div>
 
-                                                                                                                    // helper function
-                                                                                                                    const getAmount = (type, status, key) =>
-                                                                                                                        stages.find(
-                                                                                                                            (s) => s.stage_type === type && s.to_status === status
-                                                                                                                        )?.[key] || 0;
-                                                                                                                    const submissionAmount = (((project?.workorder_cost || 0) * (sub?.submission_payment || 0)) / 100) * 1.18;
-                                                                                                                    const approvalAmount = (((project?.workorder_cost || 0) * (sub?.approval_payment || 0)) / 100) * 1.18;
-                                                                                                                    // submission
-                                                                                                                    const subRaised = getAmount("submission", "Raised", "raised_amount");
-                                                                                                                    const subReceived = getAmount("submission", "Received", "received_amount");
-                                                                                                                    const subRemaining = submissionAmount - subReceived;
+                                                                                                                <AnimatePresence>
+                                                                                                                    {isActivityExpanded && (
+                                                                                                                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-gray-200">
+                                                                                                                            <div className="overflow-x-auto bg-white rounded-xl border shadow-sm">
+                                                                                                                                <table className="w-full text-sm">
+                                                                                                                                    <thead className="bg-gray-100 text-[10px] uppercase text-gray-600">
+                                                                                                                                        <tr>
+                                                                                                                                            <th className="px-2 py-3"></th>
+                                                                                                                                            <th className="px-2 py-3 text-left">Sub Activity</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Chainage</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Qty</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Area</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Status</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Action</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Stage</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">%</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Amount ₹</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Raised</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Received</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Remaining</th>
+                                                                                                                                            <th className="px-2 py-3 text-center">Account Status</th>
+                                                                                                                                            {/* <th className="px-2 py-3 text-center">Action</th> */}
+                                                                                                                                        </tr>
+                                                                                                                                    </thead>
+                                                                                                                                    <tbody>
+                                                                                                                                        {subs.map((sub, i) => {
+                                                                                                                                            const stages = sub?.payment_stages || [];
 
-                                                                                                                    // approval
-                                                                                                                    const apprRaised = getAmount("approval", "Raised", "raised_amount");
-                                                                                                                    const apprReceived = getAmount("approval", "Received", "received_amount");
+                                                                                                                                            const getAmount = (type, status, key) => {
+                                                                                                                                                return stages
+                                                                                                                                                    .filter(
+                                                                                                                                                        (s) => s.stage_type === type && s.to_status === status
+                                                                                                                                                    )
+                                                                                                                                                    .reduce((sum, item) => sum + (item?.[key] || 0), 0);
+                                                                                                                                            };
+                                                                                                                                            const submissionAmount = (((project?.workorder_cost || 0) * (sub?.submission_payment || 0)) / 100) * 1.18;
+                                                                                                                                            const approvalAmount = (((project?.workorder_cost || 0) * (sub?.approval_payment || 0)) / 100) * 1.18;
+                                                                                                                                            // submission
+                                                                                                                                            const subRaised = getAmount("submission", "Raised", "raised_amount");
+                                                                                                                                            const subReceived = getAmount("submission", "Received", "received_amount");
+                                                                                                                                            const subRemaining = submissionAmount - subReceived;
 
-                                                                                                                    const apprRemaining = approvalAmount - apprReceived;
-                                                                                                                    const submissionStatus = sub?.submission_status;
-                                                                                                                    const approvalStatus = sub?.approval_status;
-                                                                                                                    const changeStatus = (sub.status || "Pending");
-                                                                                                                    const blurstatus = sub?.submission_status === "Waiting" && sub.status != "Submitted" ? "opacity-50" : "";
-                                                                                                                    return (
-                                                                                                                        <Fragment key={sub.id}>
-                                                                                                                            <tr className="border-t text-[13px] ">
-                                                                                                                                <td rowSpan="2" className="px-2 text-center align-center text-lg">
-                                                                                                                                    {(sub.work_summary?.users.length > 0) && (
-                                                                                                                                        <button onClick={() => setExpandedRow(expandedRow === sub.id ? null : sub.id)}>
-                                                                                                                                            {expandedRow === sub.id ? "−" : "+"}
-                                                                                                                                        </button>
-                                                                                                                                    )}
-                                                                                                                                </td>
-                                                                                                                                <td rowSpan="2" className="px-2 font-medium align-center">{sub.subactivity_name}</td>
-                                                                                                                                <td rowSpan="2" className="text-center">{sub.chainage_start}</td>
-                                                                                                                                <td rowSpan="2" className="text-center">{sub.total_quantity}</td>
-                                                                                                                                <td rowSpan="2" className="text-center">{sub.covered_area}</td>
-                                                                                                                                <td rowSpan="2" className="text-center">
-                                                                                                                                    <div className="relative inline-block p-2 !flex items-center">
-                                                                                                                                        <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
+                                                                                                                                            // approval
+                                                                                                                                            const apprRaised = getAmount("approval", "Raised", "raised_amount");
+                                                                                                                                            const apprReceived = getAmount("approval", "Received", "received_amount");
+
+                                                                                                                                            const apprRemaining = approvalAmount - apprReceived;
+                                                                                                                                            const submissionStatus = sub?.submission_status;
+                                                                                                                                            const approvalStatus = sub?.approval_status;
+                                                                                                                                            const changeStatus = (sub.status || "Pending");
+                                                                                                                                            const blurstatus = sub?.submission_status === "Waiting" && sub.status != "Submitted" ? "opacity-50" : "";
+                                                                                                                                            return (
+                                                                                                                                                <Fragment key={sub.id}>
+                                                                                                                                                    <tr className="border-t text-[13px] ">
+                                                                                                                                                        {/* <td rowSpan="2" className="px-2 text-center align-center text-lg">
+                                                                                                                                                            {(sub.work_summary?.users.length > 0) && (
+                                                                                                                                                                <button onClick={() => setExpandedRow(expandedRow === sub.id ? null : sub.id)}>
+                                                                                                                                                                    {expandedRow === sub.id ? "−" : "+"}
+                                                                                                                                                                </button>
+                                                                                                                                                            )}
+                                                                                                                                                        </td> */}
+                                                                                                                                                        <td rowSpan="2" className="px-2 text-center align-middle">
+                                                                                                                                                            {(sub.work_summary?.users?.length > 0) ? (
+                                                                                                                                                                <motion.button
+                                                                                                                                                                    onClick={() => setExpandedRow(expandedRow === sub.id ? null : sub.id)}
+                                                                                                                                                                    whileHover={{ scale: 1.1 }}
+                                                                                                                                                                    whileTap={{ scale: 0.95 }}
+                                                                                                                                                                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 ${expandedRow === sub.id
+                                                                                                                                                                        ? "bg-red-100 text-red-600 hover:bg-red-200"
+                                                                                                                                                                        : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                                                                                                                                                                        }`}
+                                                                                                                                                                    title={expandedRow === sub.id ? "Collapse" : "Expand"}
+                                                                                                                                                                >
+                                                                                                                                                                    {expandedRow === sub.id ? (
+                                                                                                                                                                        <ChevronUp size={14} />
+                                                                                                                                                                    ) : (
+                                                                                                                                                                        <ChevronDown size={14} />
+                                                                                                                                                                    )}
+                                                                                                                                                                </motion.button>
+                                                                                                                                                            ) : (
+                                                                                                                                                                <div className="w-6 h-6 opacity-0 pointer-events-none"></div>
+                                                                                                                                                            )}
+                                                                                                                                                        </td>
+                                                                                                                                                        <td rowSpan="2" className="px-2 font-medium align-center">{sub.subactivity_name}</td>
+                                                                                                                                                        <td rowSpan="2" className="text-center">{sub.chainage_start}</td>
+                                                                                                                                                        <td rowSpan="2" className="text-center">{sub.total_quantity}</td>
+                                                                                                                                                        <td rowSpan="2" className="text-center">{sub.covered_area}</td>
+                                                                                                                                                        <td rowSpan="2" className="text-center">
+                                                                                                                                                            <div className="relative inline-block p-2 !inline-flex items-center">
+                                                                                                                                                                <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
                                                                                                                                                 ${changeStatus === "Inprogress" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
-                                                                                                                                                changeStatus === "Submitted" ? "bg-green-100 text-green-600 border-green-200" :
-                                                                                                                                                    changeStatus === "Rejected" ? "bg-red-100 text-red-600 border-red-200" :
-                                                                                                                                                        changeStatus === "Approved" ? "bg-blue-100 text-blue-600 border-blue-200" :
-                                                                                                                                                            changeStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
-                                                                                                                                                                "bg-gray-100 text-gray-600 border-gray-200"
-                                                                                                                                            }`}>
-                                                                                                                                            {changeStatus}
-                                                                                                                                        </span>
-                                                                                                                                        {
-                                                                                                                                            sub?.submission_stages[0] &&
-                                                                                                                                            <FileText className="inline-block ml-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
-                                                                                                                                                model: true,
-                                                                                                                                                data: sub?.submission_stages?.filter((stage) => stage.to_status == changeStatus) || [],
-                                                                                                                                                title: (changeStatus == "Submitted" ? "Submission" : "Approval") + " Stage Documents"
-                                                                                                                                            })} />
-                                                                                                                                        }
-                                                                                                                                    </div>
-                                                                                                                                </td>
-                                                                                                                                <td rowSpan="2" className="text-center">.
-                                                                                                                                    {
+                                                                                                                                                                        changeStatus === "Submitted" ? "bg-green-100 text-green-600 border-green-200" :
+                                                                                                                                                                            changeStatus === "Rejected" ? "bg-red-100 text-red-600 border-red-200" :
+                                                                                                                                                                                changeStatus === "Approved" ? "bg-blue-100 text-blue-600 border-blue-200" :
+                                                                                                                                                                                    changeStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
+                                                                                                                                                                                        "bg-gray-100 text-gray-600 border-gray-200"
+                                                                                                                                                                    }`}>
+                                                                                                                                                                    {changeStatus}
+                                                                                                                                                                </span>
+                                                                                                                                                                {
+                                                                                                                                                                    sub?.submission_stages[0] &&
+                                                                                                                                                                    <FileText className="inline-block ml-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                                        model: true,
+                                                                                                                                                                        data: sub?.submission_stages?.filter((stage) => stage.to_status == changeStatus) || [],
+                                                                                                                                                                        title: (changeStatus == "Submitted" ? "Submission" : "Approval") + " Stage Documents"
+                                                                                                                                                                    })} />
+                                                                                                                                                                }
+                                                                                                                                                            </div>
+                                                                                                                                                        </td>
+                                                                                                                                                        <td rowSpan="2" className="text-center">
+                                                                                                                                                            {
 
-                                                                                                                                        <button
-                                                                                                                                            onClick={() => {
-                                                                                                                                                setShowProofModal(true)
-                                                                                                                                                setProofData({ ...proofData, subactivity: sub.id, to_status: changeStatus != "Submitted" ? "Submitted" : "Approved" })
-                                                                                                                                            }}
-                                                                                                                                            disabled={changeStatus == "Pending" || changeStatus == "Approved"}
-                                                                                                                                            className={`text-xs px-1.5 pt-1.5 text-green-600 ` +
-                                                                                                                                                (changeStatus == "Pending" || changeStatus == "Approved" ? "!cursor-no-drop opacity-30" : "")}
-                                                                                                                                            title={changeStatus == "Pending" ? "Submit" : "Approval"}>
-                                                                                                                                            {
-                                                                                                                                                changeStatus != "Submitted" ?
-                                                                                                                                                    <CheckCircle size={20} /> :
-                                                                                                                                                    <Handshake size={20} className="text-blue-600" />}
-                                                                                                                                            {/* <EllipsisVertical size={18} /> */}
-                                                                                                                                        </button>
-                                                                                                                                    }
-                                                                                                                                </td>
-                                                                                                                                {
-                                                                                                                                    sub.submission_payment > 0 ? (
-                                                                                                                                        <>
-                                                                                                                                            <td className={`text-center font-semibold text-green-600 border-b border-gray-300 border-l ${blurstatus}`}>Submission</td>
-                                                                                                                                            <td className={`text-center text-green-600 border-b border-gray-300 ${blurstatus}`}>{sub.submission_payment}%</td>
-                                                                                                                                            <td className={`text-center border-b border-gray-300 ${blurstatus}`}>₹ {submissionAmount.toFixed(2)} L</td>
-                                                                                                                                            <td className={`text-center border-b border-gray-300 ${blurstatus}`}>{subRaised.toFixed(2)} L
-                                                                                                                                                {
-                                                                                                                                                    subRaised > 0 &&
-                                                                                                                                                    <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
-                                                                                                                                                        model: true,
-                                                                                                                                                        data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "submission") || [],
-                                                                                                                                                        title: "Raised Stage Documents"
-                                                                                                                                                    })} />
-                                                                                                                                                }
-                                                                                                                                            </td>
-                                                                                                                                            <td className={`text-center border-b border-gray-300 ${blurstatus}`}>{subReceived.toFixed(2)} L
-                                                                                                                                                {
-                                                                                                                                                    subReceived > 0 &&
-                                                                                                                                                    <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
-                                                                                                                                                        model: true,
-                                                                                                                                                        data: sub?.payment_stages?.filter((stage) => stage.to_status == "Received" && stage.stage_type == "submission") || [],
-                                                                                                                                                        title: "Received Stage Documents"
-                                                                                                                                                    })} />
-                                                                                                                                                }
-                                                                                                                                            </td>
-                                                                                                                                            <td className={`text-center text-red-500 border-b border-gray-300 ${blurstatus}`}>{subRemaining.toFixed(2)} L</td>
-                                                                                                                                            <td className={`text-center border-b border-gray-300 ${blurstatus}`}>
-                                                                                                                                                <div className="relative inline-block p-2 ${blurstatus}">
-                                                                                                                                                    <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
+                                                                                                                                                                <button
+                                                                                                                                                                    onClick={() => {
+                                                                                                                                                                        setShowProofModal(true)
+                                                                                                                                                                        setProofData({ ...proofData, subactivity: sub.id, to_status: changeStatus != "Submitted" ? "Submitted" : "Approved" })
+                                                                                                                                                                    }}
+                                                                                                                                                                    disabled={changeStatus == "Pending" || changeStatus == "Approved"}
+                                                                                                                                                                    className={`text-xs px-1.5 pt-1.5 text-green-600 ` +
+                                                                                                                                                                        (changeStatus == "Pending" || changeStatus == "Approved" ? "!cursor-no-drop opacity-30" : "")}
+                                                                                                                                                                    title={changeStatus == "Pending" ? "Submit" : "Approval"}>
+                                                                                                                                                                    {
+                                                                                                                                                                        changeStatus != "Submitted" ?
+                                                                                                                                                                            <CheckCircle size={20} /> :
+                                                                                                                                                                            <Handshake size={20} className="text-blue-600" />}
+                                                                                                                                                                    {/* <EllipsisVertical size={18} /> */}
+                                                                                                                                                                </button>
+                                                                                                                                                            }
+                                                                                                                                                        </td>
+                                                                                                                                                        {
+                                                                                                                                                            sub.submission_payment > 0 ? (
+                                                                                                                                                                <>
+                                                                                                                                                                    <td className={`text-center font-semibold text-green-600 border-b border-gray-300 border-l ${blurstatus}`}>Submission</td>
+                                                                                                                                                                    <td className={`text-center text-green-600 border-b border-gray-300 ${blurstatus}`}>{sub.submission_payment}%</td>
+                                                                                                                                                                    <td className={`text-center border-b border-gray-300 ${blurstatus}`}>₹ {submissionAmount.toFixed(2)} L</td>
+                                                                                                                                                                    <td className={`text-center border-b border-gray-300 ${blurstatus}`}>{subRaised.toFixed(2)} L
+                                                                                                                                                                        {
+                                                                                                                                                                            subRaised > 0 &&
+                                                                                                                                                                            <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                                                model: true,
+                                                                                                                                                                                data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "submission") || [],
+                                                                                                                                                                                title: "Raised Stage Documents"
+                                                                                                                                                                            })} />
+                                                                                                                                                                        }
+                                                                                                                                                                    </td>
+                                                                                                                                                                    <td className={`text-center border-b border-gray-300 ${blurstatus}`}>{subReceived.toFixed(2)} L
+                                                                                                                                                                        {
+                                                                                                                                                                            subReceived > 0 &&
+                                                                                                                                                                            <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                                                model: true,
+                                                                                                                                                                                data: sub?.payment_stages?.filter((stage) => stage.to_status == "Received" && stage.stage_type == "submission") || [],
+                                                                                                                                                                                title: "Received Stage Documents"
+                                                                                                                                                                            })} />
+                                                                                                                                                                        }
+                                                                                                                                                                    </td>
+                                                                                                                                                                    <td className={`text-center text-red-500 border-b border-gray-300 ${blurstatus}`}>{subRemaining.toFixed(2)} L</td>
+                                                                                                                                                                    <td className={`text-center border-b border-gray-300 ${blurstatus}`}>
+                                                                                                                                                                        <div className="relative inline-block p-2 ${blurstatus}">
+                                                                                                                                                                            <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
                                                                                                                                                    ${submissionStatus === "Pending" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
-                                                                                                                                                            submissionStatus === "Raised" ? "bg-blue-100 text-blue-600 border-blue-200" :
-                                                                                                                                                                submissionStatus === "Received" ? "bg-green-100 text-green-600 border-green-200" :
-                                                                                                                                                                    submissionStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
-                                                                                                                                                                        "bg-gray-100  border-gray-200"
-                                                                                                                                                        }`}>
-                                                                                                                                                        {submissionStatus}
-                                                                                                                                                    </span>
-                                                                                                                                                </div>
-                                                                                                                                                {/* <div className="relative inline-block p-2">
+                                                                                                                                                                                    submissionStatus === "Raised" ? "bg-blue-100 text-blue-600 border-blue-200" :
+                                                                                                                                                                                        submissionStatus === "Received" ? "bg-green-100 text-green-600 border-green-200" :
+                                                                                                                                                                                            submissionStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
+                                                                                                                                                                                                "bg-gray-100  border-gray-200"
+                                                                                                                                                                                }`}>
+                                                                                                                                                                                {submissionStatus}
+                                                                                                                                                                            </span>
+                                                                                                                                                                        </div>
+                                                                                                                                                                        {/* <div className="relative inline-block p-2">
 
                                                                                                                                                     <select
                                                                                                                                                         value={handleApprovalStatus}
@@ -1647,10 +1807,10 @@ const TlProjectList = () => {
                                                                                                                                                         <ChevronDown size={13} />
                                                                                                                                                     </span>
                                                                                                                                                 </div> */}
-                                                                                                                                            </td>
-                                                                                                                                        </>
-                                                                                                                                    ) : (<tr className="border-b border-gray-300"></tr>)}
-                                                                                                                                {/* <td className="text-right px-2 py-2 border-b border-gray-300">
+                                                                                                                                                                    </td>
+                                                                                                                                                                </>
+                                                                                                                                                            ) : (<tr className="border-b border-gray-300"></tr>)}
+                                                                                                                                                        {/* <td className="text-right px-2 py-2 border-b border-gray-300">
                                                                                                                                     <button
                                                                                                                                         className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded hover:bg-green-300 transition"
                                                                                                                                     // onClick={() => {
@@ -1672,157 +1832,175 @@ const TlProjectList = () => {
                                                                                                                                         Submit
                                                                                                                                     </button>
                                                                                                                                 </td> */}
-                                                                                                                            </tr>
-                                                                                                                            {
-                                                                                                                                sub.approval_payment > 0 ? (
-                                                                                                                                    <tr className={`text-[13px] border-b bg-blue-50 ` + (approvalStatus === "Waiting" ? "opacity-50" : "")}>
-                                                                                                                                        <td className="text-center font-semibold text-blue-600 border-l border-gray-300">Approval</td>
-                                                                                                                                        <td className="text-center text-blue-600">{sub.approval_payment}%</td>
-                                                                                                                                        <td className="text-center">₹ {approvalAmount.toFixed(2)} L</td>
-                                                                                                                                        <td className="text-center">{apprRaised.toFixed(2)} L
-                                                                                                                                            {
-                                                                                                                                                apprRaised > 0 &&
-                                                                                                                                                <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
-                                                                                                                                                    model: true,
-                                                                                                                                                    data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "approval") || [],
-                                                                                                                                                    title: "Raised Stage Documents"
-                                                                                                                                                })} />
-                                                                                                                                            }
-                                                                                                                                        </td>
-                                                                                                                                        <td className="text-center">{apprReceived.toFixed(2)} L
-                                                                                                                                            {
-                                                                                                                                                apprReceived > 0 &&
-                                                                                                                                                <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
-                                                                                                                                                    model: true,
-                                                                                                                                                    data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "approval") || [],
-                                                                                                                                                    title: "Raised Stage Documents"
-                                                                                                                                                })} />
-                                                                                                                                            }
-                                                                                                                                        </td>
-                                                                                                                                        <td className="text-center text-red-500">{apprRemaining.toFixed(2)} L</td>
-                                                                                                                                        <td className="text-center">
-                                                                                                                                            <div className="relative inline-block p-2">
-                                                                                                                                                <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
-                                                                                                                                                   ${approvalStatus === "Pending" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
-                                                                                                                                                        approvalStatus === "Raised" ? "bg-blue-100 text-blue-600 border-blue-200" :
-                                                                                                                                                            approvalStatus === "Received" ? "bg-green-100 text-green-600 border-green-200" :
-                                                                                                                                                                approvalStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
-                                                                                                                                                                    "bg-gray-100 text-gray-600 border-gray-200"
-                                                                                                                                                    }`}>
-                                                                                                                                                    {approvalStatus}
-                                                                                                                                                </span>
-                                                                                                                                            </div>
-                                                                                                                                            {/* <div className="relative inline-block p-2">
+                                                                                                                                                    </tr>
+                                                                                                                                                    {
+                                                                                                                                                        sub.approval_payment > 0 ? (
+                                                                                                                                                            <tr className={`text-[13px] border-b bg-blue-50 ` + (approvalStatus === "Waiting" ? "opacity-50" : "")}>
+                                                                                                                                                                <td className="text-center font-semibold text-blue-600 border-l border-gray-300">Approval</td>
+                                                                                                                                                                <td className="text-center text-blue-600">{sub.approval_payment}%</td>
+                                                                                                                                                                <td className="text-center">₹ {approvalAmount.toFixed(2)} L</td>
+                                                                                                                                                                <td className="text-center">{apprRaised.toFixed(2)} L
+                                                                                                                                                                    {
+                                                                                                                                                                        apprRaised > 0 &&
+                                                                                                                                                                        <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                                            model: true,
+                                                                                                                                                                            data: sub?.payment_stages?.filter((stage) => stage.to_status == "Raised" && stage.stage_type == "approval") || [],
+                                                                                                                                                                            title: "Raised Stage Documents"
+                                                                                                                                                                        })} />
+                                                                                                                                                                    }
+                                                                                                                                                                </td>
+                                                                                                                                                                <td className="text-center">{apprReceived.toFixed(2)} L
+                                                                                                                                                                    {
+                                                                                                                                                                        apprReceived > 0 &&
+                                                                                                                                                                        <FileText className="inline-block ml-1 -mt-1 text-red-500" size={13} title="Raised Files" onClick={(e) => setViewDocumentModel({
+                                                                                                                                                                            model: true,
+                                                                                                                                                                            data: sub?.payment_stages?.filter((stage) => stage.to_status == "Received" && stage.stage_type == "approval") || [],
+                                                                                                                                                                            title: "Received Stage Documents"
+                                                                                                                                                                        })} />
+                                                                                                                                                                    }
+                                                                                                                                                                </td>
+                                                                                                                                                                <td className={"text-center " + (apprRemaining > 0 ? "text-red-500" : apprRemaining < 0 ? "text-Green-500" : "text-black-500")}>{apprRemaining.toFixed(2)} L</td>
+                                                                                                                                                                <td className="text-center">
+                                                                                                                                                                    <div className="relative inline-block p-2">
+                                                                                                                                                                        <span className={`min-w-[80px] text-center appearance-none text-[11px] font-medium px-3 py-1 block rounded-full border
+                                                                                                                                                                            ${approvalStatus === "Pending" ? "bg-yellow-100 text-yellow-600 border-yellow-600" :
+                                                                                                                                                                                approvalStatus === "Raised" ? "bg-blue-100 text-blue-600 border-blue-200" :
+                                                                                                                                                                                    approvalStatus === "Received" ? "bg-green-100 text-green-600 border-green-200" :
+                                                                                                                                                                                        approvalStatus === "Completed" ? "bg-purple-100 text-purple-600 border-purple-200" :
+                                                                                                                                                                                            "bg-gray-100 text-gray-600 border-gray-200"
+                                                                                                                                                                            }`}>
+                                                                                                                                                                            {approvalStatus}
+                                                                                                                                                                        </span>
+                                                                                                                                                                    </div>
+                                                                                                                                                                    {/* <div className="relative inline-block p-2">
 
-                                                                                                                                            <select
-                                                                                                                                                value={approvalStatus}
-                                                                                                                                                onChange={(e) =>
-                                                                                                                                                    handleApprovalStatus(sub, e.target.value)
-                                                                                                                                                }
-                                                                                                                                                className={`appearance-none text-[11px] font-medium px-3 py-1 pr-6 rounded-full border
+                                                                                                                                                                        <select
+                                                                                                                                                                            value={approvalStatus}
+                                                                                                                                                                            onChange={(e) =>
+                                                                                                                                                                                handleApprovalStatus(sub, e.target.value)
+                                                                                                                                                                            }
+                                                                                                                                                                            className={`appearance-none text-[11px] font-medium px-3 py-1 pr-6 rounded-full border
     ${approvalStatus === "Completed"
-                                                                                                                                                        ? "bg-green-100 text-green-600 border-green-200"
-                                                                                                                                                        : approvalStatus === "Submitted"
-                                                                                                                                                            ? "bg-blue-100 text-blue-600 border-blue-200"
-                                                                                                                                                            : "bg-gray-100 text-gray-600 border-gray-200"
-                                                                                                                                                    }
+                                                                                                                                                                                    ? "bg-green-100 text-green-600 border-green-200"
+                                                                                                                                                                                    : approvalStatus === "Submitted"
+                                                                                                                                                                                        ? "bg-blue-100 text-blue-600 border-blue-200"
+                                                                                                                                                                                        : "bg-gray-100 text-gray-600 border-gray-200"
+                                                                                                                                                                                }
   `}
-                                                                                                                                            >
-                                                                                                                                                <option>Pending</option>
-                                                                                                                                                <option>Submitted</option>
-                                                                                                                                                <option>Completed</option>
-                                                                                                                                            </select>
+                                                                                                                                                                        >
+                                                                                                                                                                            <option>Pending</option>
+                                                                                                                                                                            <option>Submitted</option>
+                                                                                                                                                                            <option>Completed</option>
+                                                                                                                                                                        </select>
 
-                                                                                                                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">
-                                                                                                                                                <ChevronDown size={13} />
-                                                                                                                                            </span>
-                                                                                                                                        </div> */}
-                                                                                                                                        </td>
-                                                                                                                                        {/* <td className="text-right px-2 py-2">
-                                                                                                                                        <button
-                                                                                                                                            className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-300 transition"
-                                                                                                                                        // onClick={() => {
-                                                                                                                                        //     setSelectedTaskfortimelog({
-                                                                                                                                        //         id: sub.id,
-                                                                                                                                        //         project_id: project.id || project.project_id,
-                                                                                                                                        //         subactivity_name: sub.subactivity_name,
-                                                                                                                                        //         project_name: project.shortName || project.short_name,
-                                                                                                                                        //     });
-                                                                                                                                        //     setTimeLogData({
-                                                                                                                                        //         date: new Date().toISOString().split("T")[0],
-                                                                                                                                        //         startTime: "",
-                                                                                                                                        //         endTime: "",
-                                                                                                                                        //         description: "",
-                                                                                                                                        //     });
-                                                                                                                                        //     setShowTimeLogModal(true);
-                                                                                                                                        // }}
-                                                                                                                                        >
-                                                                                                                                            Submit
-                                                                                                                                        </button>
-                                                                                                                                    </td> */}
-                                                                                                                                    </tr>
-                                                                                                                                ) : (
-                                                                                                                                    <tr className="text-[12px] border-b">
-                                                                                                                                    </tr>)
-                                                                                                                            }
-                                                                                                                            {
-                                                                                                                                expandedRow === sub.id && (
-                                                                                                                                    <tr className="bg-gray-50">
-                                                                                                                                        <td colSpan="14" className="px-4 py-4 w-full">
-                                                                                                                                            <div className="bg-white border rounded-xl shadow-sm p-4">
-                                                                                                                                                <div className="flex justify-between text-xs font-medium text-gray-500 border-b pb-2 mb-2">
-                                                                                                                                                    <span>User</span>
-                                                                                                                                                    <span>Time Spent</span>
-                                                                                                                                                </div>
-                                                                                                                                                <div className="max-h-40 overflow-y-auto space-y-1">
-                                                                                                                                                    {/* {worklogreturned?.filter(d => d.id == sub.id)?.map((log, i) => (
-                                                                                                                                                    <div key={i} className="flex justify-between items-center text-xs px-2 py-2 rounded-md hover:bg-gray-50 transition">
-                                                                                                                                                        <div className="flex items-center gap-2">
-                                                                                                                                                            <div className="w-6 h-6 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-[10px] font-semibold">
-                                                                                                                                                                {log.name?.charAt(0) || "U"}
-                                                                                                                                                            </div>
-                                                                                                                                                            <span className="text-gray-700">{log.name || "You"}</span>
-                                                                                                                                                        </div>
-                                                                                                                                                        <span className="font-medium text-blue-600">
-                                                                                                                                                            {calculateHours(log.startTime, log.endTime).toFixed(2)} h
-                                                                                                                                                        </span>
-                                                                                                                                                    </div>
-                                                                                                                                                ))} */}
-                                                                                                                                                    {sub.work_summary?.users?.length > 0 && sub.work_summary.users.map((log, i) => (
-                                                                                                                                                        <div key={i} className="flex justify-between items-center text-xs px-2 py-2 rounded-md hover:bg-gray-50 transition">
-                                                                                                                                                            <div className="flex items-center gap-2">
-                                                                                                                                                                <div className="w-6 h-6 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-[10px] font-semibold">
-                                                                                                                                                                    {log.name?.charAt(0)}
+                                                                                                                                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none">
+                                                                                                                                                                            <ChevronDown size={13} />
+                                                                                                                                                                        </span>
+                                                                                                                                                                    </div> */}
+                                                                                                                                                                </td>
+                                                                                                                                                                {/* <td className="text-right px-2 py-2">
+                                                                                                                                                            <button
+                                                                                                                                                                className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-300 transition"
+                                                                                                                                                            // onClick={() => {
+                                                                                                                                                            //     setSelectedTaskfortimelog({
+                                                                                                                                                            //         id: sub.id,
+                                                                                                                                                            //         project_id: project.id || project.project_id,
+                                                                                                                                                            //         subactivity_name: sub.subactivity_name,
+                                                                                                                                                            //         project_name: project.shortName || project.short_name,
+                                                                                                                                                            //     });
+                                                                                                                                                            //     setTimeLogData({
+                                                                                                                                                            //         date: new Date().toISOString().split("T")[0],
+                                                                                                                                                            //         startTime: "",
+                                                                                                                                                            //         endTime: "",
+                                                                                                                                                            //         description: "",
+                                                                                                                                                            //     });
+                                                                                                                                                            //     setShowTimeLogModal(true);
+                                                                                                                                                            // }}
+                                                                                                                                                            >
+                                                                                                                                                                Submit
+                                                                                                                                                            </button>
+                                                                                                                                                        </td> */}
+                                                                                                                                                            </tr>
+                                                                                                                                                        ) : (
+                                                                                                                                                            <tr className="text-[12px] border-b">
+                                                                                                                                                            </tr>)
+                                                                                                                                                    }
+                                                                                                                                                    {/* 🔽 EXPAND ROW - Minimalist Version */}
+                                                                                                                                                    {expandedRow === sub.id && (
+                                                                                                                                                        <tr className="bg-gray-50">
+                                                                                                                                                                <td colSpan="14" className="px-4 py-4 w-full">
+                                                                                                                                                                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+
+                                                                                                                                                                    {/* Header */}
+                                                                                                                                                                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                                                                                                                                                                        <div className="flex items-center gap-2">
+                                                                                                                                                                            <Clock size={16} className="text-blue-500" />
+                                                                                                                                                                            <span className="text-sm font-medium text-gray-700">Time Logs</span>
+                                                                                                                                                                        </div>
+                                                                                                                                                                        <span className="text-xs text-gray-500">
+                                                                                                                                                                            Total: {sub.work_summary?.total_hours || "00:00:00"}
+                                                                                                                                                                        </span>
+                                                                                                                                                                    </div>
+
+                                                                                                                                                                    {/* Time Log Entries */}
+                                                                                                                                                                    <div className="divide-y divide-gray-100">
+                                                                                                                                                                        {sub.work_summary?.users?.length > 0 ? (
+                                                                                                                                                                            sub.work_summary.users.map((log, i) => (
+                                                                                                                                                                                <div key={i} className="px-4 py-2.5 flex justify-between items-center hover:bg-gray-50">
+                                                                                                                                                                                    <div className="flex items-center gap-2">
+                                                                                                                                                                                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-medium">
+                                                                                                                                                                                            {log.name?.charAt(0)?.toUpperCase()}
+                                                                                                                                                                                        </div>
+                                                                                                                                                                                        <span className="text-sm text-gray-700">{log.name}</span>
+                                                                                                                                                                                    </div>
+                                                                                                                                                                                    <div className="flex items-center gap-3">
+                                                                                                                                                                                        <span className="text-xs text-gray-400">{log.days_worked} day(s)</span>
+                                                                                                                                                                                        <span className="text-sm font-mono font-medium text-blue-600">
+                                                                                                                                                                                            {log.total_time_spent}
+                                                                                                                                                                                        </span>
+                                                                                                                                                                                    </div>
+                                                                                                                                                                                </div>
+                                                                                                                                                                            ))
+                                                                                                                                                                        ) : (
+                                                                                                                                                                            <div className="px-4 py-6 text-center text-sm text-gray-400">
+                                                                                                                                                                                No time logs recorded
+                                                                                                                                                                            </div>
+                                                                                                                                                                        )}
+                                                                                                                                                                    </div>
+
+                                                                                                                                                                    {/* Collapse Button */}
+                                                                                                                                                                    <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-center">
+                                                                                                                                                                        <button
+                                                                                                                                                                            onClick={() => setExpandedRow(null)}
+                                                                                                                                                                            className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 mx-auto"
+                                                                                                                                                                        >
+                                                                                                                                                                            <ChevronUp size={12} />
+                                                                                                                                                                            Collapse
+                                                                                                                                                                        </button>
+                                                                                                                                                                    </div>
                                                                                                                                                                 </div>
-                                                                                                                                                                <span className="text-gray-700">{log.name}</span>
-                                                                                                                                                            </div>
-                                                                                                                                                            <span className="font-medium text-blue-600">{log.total_time_spent} h</span>
-                                                                                                                                                        </div>
-                                                                                                                                                    ))}
-                                                                                                                                                    {(
-                                                                                                                                                        !sub.work_summary?.users?.length) && (
-                                                                                                                                                            <p className="text-xs text-gray-400 text-center py-3">No work logs available</p>
-                                                                                                                                                        )}
-                                                                                                                                                </div>
-                                                                                                                                            </div>
-                                                                                                                                        </td>
-                                                                                                                                    </tr>
-                                                                                                                                )
-                                                                                                                            }
-                                                                                                                        </Fragment>
-                                                                                                                    );
-                                                                                                                })}
-                                                                                                            </tbody>
-                                                                                                        </table>
-                                                                                                    </div>
-                                                                                                </motion.div>
-                                                                                            )}
-                                                                                        </AnimatePresence>
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                    </div>
+                                                                                                                                                            </td>
+                                                                                                                                                        </tr>
+                                                                                                                                                    )}
+                                                                                                                                                </Fragment>
+                                                                                                                                            );
+                                                                                                                                        })}
+                                                                                                                                    </tbody>
+                                                                                                                                </table>
+                                                                                                                            </div>
+                                                                                                                        </motion.div>
+                                                                                                                    )}
+                                                                                                                </AnimatePresence>
+                                                                                                            </div>
+                                                                                                        );
+                                                                                                    })}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </>
+                                                                            );
+                                                                        })()}
+                                                                    </>
                                                                 )}
 
                                                                 {/* Assigned Personnel Section */}

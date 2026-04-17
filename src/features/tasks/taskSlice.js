@@ -206,6 +206,20 @@ export const fetchUserSubmittedTask = createAsyncThunk(
   }
 );
 
+// fecth user submitted task
+export const fetchAllEmployeesReport = createAsyncThunk(
+  'tasks/fetchAllEmployeesReport',
+  async (empCode, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/tl-project-work-report/?emp_code=${empCode}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user work summary:', error);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 // Add these to your taskSlice.js
 
 export const updateSubmissionStatus = createAsyncThunk(
@@ -247,6 +261,8 @@ const taskSlice = createSlice({
     userWorkLogs: [],
     userWorkSummary: null,
     userSubmittedTask: [],
+    userReportData: null,
+    allEmployeesReport: null,
     loading: false,
     updating: false,
     error: null,
@@ -335,6 +351,20 @@ const taskSlice = createSlice({
         state.userSubmittedTask = action.payload;
       })
       .addCase(fetchUserSubmittedTask.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      //Fetch  user report summary
+      .addCase(fetchAllEmployeesReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllEmployeesReport.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allEmployeesReport = action.payload;
+      })
+      .addCase(fetchAllEmployeesReport.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

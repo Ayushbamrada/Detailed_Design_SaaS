@@ -21,6 +21,7 @@ import UserWorkLogs from "../features/tasks/UserWorkLogs";
 import ErrorBoundary from "../components/ErrorBoundary";
 import TlProjectList from "../features/projects/Tlprojects";
 import SubmittedTasks from "../features/tasks/SubmittedTask";
+import EmployeeReport from "../features/projects/empreport";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -140,6 +141,12 @@ export default function AppRoutes() {
         <Route path="/submitted-task" element={
           <ProtectedRoute allowedRoles={["TL"]}>
             <SubmittedTasks />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/employee-report" element={
+          <ProtectedRoute allowedRoles={["TL"]}>
+            <EmployeeReport />
           </ProtectedRoute>
         } />
       </Route>

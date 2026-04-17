@@ -171,7 +171,7 @@ const SubmittedTasks = () => {
 
     const handleDownloadDocument = (doc) => {
         // Implement document download logic
-        window.open(doc.document_url, '_blank');
+        window.open(doc.document, '_blank');
     };
 
     // Transform your JSON data to a more usable format
@@ -358,7 +358,7 @@ const SubmittedTasks = () => {
                                                     </p>
                                                 </div>
 
-                                                {subactivity?.approval_status === 'Waiting' && (
+                                                {/* {subactivity?.approval_status === 'Waiting' && (
                                                     <div className="flex gap-2">
                                                         <motion.button
                                                             whileHover={{ scale: 1.05 }}
@@ -380,7 +380,7 @@ const SubmittedTasks = () => {
                                                             <span className="text-sm">Reject</span>
                                                         </motion.button>
                                                     </div>
-                                                )}
+                                                )} */}
 
                                                 <button
                                                     onClick={() => toggleTaskExpand(submission.id)}
@@ -416,11 +416,11 @@ const SubmittedTasks = () => {
                                                         </div>
                                                         <div>
                                                             <p className="text-xs text-gray-500">Submission Payment</p>
-                                                            <p className="text-sm font-medium text-green-600">₹{subactivity?.submission_payment}</p>
+                                                            <p className="text-sm font-medium text-green-600">{subactivity?.submission_payment}%</p>
                                                         </div>
                                                         <div>
                                                             <p className="text-xs text-gray-500">Approval Payment</p>
-                                                            <p className="text-sm font-medium text-blue-600">₹{subactivity?.approval_payment}</p>
+                                                            <p className="text-sm font-medium text-blue-600">{subactivity?.approval_payment}%</p>
                                                         </div>
                                                         <div>
                                                             <p className="text-xs text-gray-500">Status Change</p>

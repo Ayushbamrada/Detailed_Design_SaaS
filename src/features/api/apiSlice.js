@@ -22,6 +22,8 @@ const initialState = {
   subActivities: [],
   projectWorkSummary: null,
   projects: [],
+  projectsOnly: [],
+  projectDetails: null,
   loading: false,
   error: null,
 };
@@ -367,6 +369,21 @@ export const fetchProjects = createAsyncThunk(
   }
 );
 
+export const fetchOnlyProjectsList = createAsyncThunk(
+  'api/fetchOnlyProjectsList',
+  async (_, { rejectWithValue, getState }) => {
+    try {
+      const { auth } = getState();
+      const user = auth.user;
+
+      const response = await projectService.getProjectsLessDetails(user);
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 export const fetchProjectsWithDetails = createAsyncThunk(
   'api/fetchProjectWithDetails',
   async (_, { rejectWithValue, getState }) => {
@@ -384,13 +401,11 @@ export const fetchProjectsWithDetails = createAsyncThunk(
 
 export const fetchProjectDetails = createAsyncThunk(
   'api/fetchProjectDetails',
-  async (_, { rejectWithValue, getState }) => {
+  async (projectId, { rejectWithValue }) => {
     try {
-      const { auth } = getState();
-      const user = auth.user;
-
-      const response = await getProjectDetails.getProjects(user);
-      return Array.isArray(response) ? response : [];
+      const response = await projectService.getProjectDetails(projectId);
+      return response;
+      // return Array.isArray(response) ? response : [];
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -399,7 +414,7 @@ export const fetchProjectDetails = createAsyncThunk(
 
 
 export const createProject = createAsyncThunk(
-  'api/createProject',
+  'api/createProjectx',
   async (projectData, { rejectWithValue }) => {
     try {
       const response = await projectService.createProject(projectData);
@@ -494,6 +509,9 @@ const apiSlice = createSlice({
     },
     clearProjects: (state) => {
       state.projects = [];
+    },
+    clearProjectDetails: (state) => {
+      state.projectDetails = null;
     },
     clearActivityTemplates: (state) => {
       state.activityTemplates = [];
@@ -704,13 +722,26 @@ const apiSlice = createSlice({
         state.error = action.payload;
       })
 
+      .addCase(fetchOnlyProjectsList.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchOnlyProjectsList.fulfilled, (state, action) => {
+        state.loading = false;
+        state.projectsOnly = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchOnlyProjectsList.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
       .addCase(fetchProjectDetails.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchProjectDetails.fulfilled, (state, action) => {
+       .addCase(fetchProjectDetails.fulfilled, (state, action) => {
         state.loading = false;
-        state.projects = Array.isArray(action.payload) ? action.payload : [];
+        state.projectDetails = action.payload;
       })
       .addCase(fetchProjectDetails.rejected, (state, action) => {
         state.loading = false;

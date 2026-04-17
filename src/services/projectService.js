@@ -35,6 +35,25 @@ export const projectService = {
     }
   },
 
+  getProjectsLessDetails: async (user) => {
+    try {
+      let url;
+      let emp_code = sessionStorage.getItem('emp_code')
+      // 🔥 Role-based API logic
+      if (user?.role === 'TL') {
+        url = `user-assigned-projects-nodetails/${emp_code}/`;
+      } else {
+        url = '/get-projects-list/';
+      }
+
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      throw error;
+    }
+  },
+
   getProjectsWithDetails: async (user) => {
     try {
       let url;
@@ -54,7 +73,7 @@ export const projectService = {
     }
   },
 
-  getProjectDetails: async (user) => {
+  getProjectDetails: async (projectId) => {
     try {
       const response = await api.get(`/get-projectdetails-byid/${projectId}/`);
       return response.data;
@@ -63,7 +82,6 @@ export const projectService = {
       throw error;
     }
   },
-
 
   getProject: async (projectId) => {
     try {

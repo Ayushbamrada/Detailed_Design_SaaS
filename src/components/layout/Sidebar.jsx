@@ -60,25 +60,6 @@ const Sidebar = () => {
       description: "Overview & Analytics",
     },
 
-    // Work Logs - Different for User vs Admin
-    // Admin sees all logs, User sees only their own logs
-    {
-      name: "Daily Logs",
-      icon: ClipboardList,
-      path: "/daily-logs",
-      roles: ["ACCOUNT", "ADMIN"],
-      badge: null,
-      description: "All project logs",
-    },
-    {
-      name: "My Work Logs",
-      icon: Clock,
-      path: "/my-work-logs",
-      roles: ["USER"],
-      badge: null,
-      description: "My work hours & logs",
-    },
-
     // All Projects - For everyone to pick tasks
     {
       name: "All Projects",
@@ -98,13 +79,21 @@ const Sidebar = () => {
       description: "My Projects",
     },
 
+    // {
+    //   name: "Submitted Task",
+    //   icon: FolderKanban,
+    //   path: "/submitted-task",
+    //   roles: ["TL"],
+    //   badge: null,
+    //   description: "Submitted Task",
+    // },
     {
-      name: "Submitted Task",
-      icon: FolderKanban,
-      path: "/submitted-task",
+      name: "Employee Report",
+      icon: CheckCircle,
+      path: "/employee-report",
       roles: ["TL"],
       badge: null,
-      description: "Submitted Task",
+      description: "Employee Report",
     },
 
     // My Tasks - For users to manage picked tasks
@@ -115,6 +104,25 @@ const Sidebar = () => {
       roles: ["USER"],
       badge: null,
       description: "View and manage your picked tasks",
+    },
+
+    // Work Logs - Different for User vs Admin
+    // Admin sees all logs, User sees only their own logs
+    {
+      name: "Daily Logs",
+      icon: ClipboardList,
+      path: "/daily-logs",
+      roles: ["ACCOUNT", "ADMIN"],
+      badge: null,
+      description: "All project logs",
+    },
+    {
+      name: "My Work Logs",
+      icon: Clock,
+      path: "/my-work-logs",
+      roles: ["USER"],
+      badge: null,
+      description: "My work hours & logs",
     },
 
     // User specific - My Projects
@@ -192,7 +200,7 @@ const Sidebar = () => {
 
   // Separate menu sections for better organization
   const mainMenu = filteredMenu.filter(item =>
-    ["Dashboard", "Daily Logs", "My Work Logs", "All Projects", "My Tasks", "My Projects", "Submitted Task"].includes(item.name)
+    ["Dashboard", "My Work Logs", "All Projects", "My Tasks", "My Projects", "Submitted Task", "Employee Report", "Daily Logs"].includes(item.name)
   );
 
   const managementMenu = filteredMenu.filter(item =>

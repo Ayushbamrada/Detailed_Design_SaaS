@@ -98,7 +98,7 @@ export const getDeadlineColors = (status) => {
  * @param {object} project - Project object
  * @returns {object} - Status badge info
  */
-export const getProjectStatusInfo = (project) => {
+export const getProjectStatusInfoBackup = (project) => {
   const deadlineStatus = getDeadlineStatus(project.completionDate);
   const daysLeft = getDaysUntilDeadline(project.completionDate);
   
@@ -175,6 +175,108 @@ export const getProjectStatusInfo = (project) => {
           gradient: "from-gray-500 to-gray-600"
         },
         icon: "🔄"
+      };
+  }
+};
+
+export const getProjectStatusInfo = (project) => {
+  // Use overall_progress from API, fallback to progress
+  const progress = project.overall_progress || project.progress || 0;
+
+  // console.log('project.overall_progress-',project.overall_progress)
+  // console.log('project.progress-',project.progress)
+  // console.log('progress-',progress)
+  // console.log('project-',project)
+  const completionDate = project.completion_date || project.completionDate;
+  const daysLeft = getDaysUntilDeadline(completionDate);
+  const deadlineStatus = getDeadlineStatus(completionDate);
+  
+  // If project is completed (100% progress)
+  if (progress === 100) {
+    return {
+      status: "COMPLETED",
+      label: "Completed",
+      colors: {
+        text: "text-green-600",
+        bg: "bg-green-100",
+        gradient: "from-green-500 to-green-600"
+      },
+      icon: "✅"
+    };
+  }
+  
+  // If project is delayed (past deadline and not completed)
+  if (deadlineStatus === "OVERDUE" && progress < 100) {
+    return {
+      status: "DELAYED",
+      label: "Delayed",
+      colors: {
+        text: "text-red-600",
+        bg: "bg-red-100",
+        gradient: "from-red-500 to-red-600"
+      },
+      icon: "⚠️"
+    };
+  }
+  
+  // Check deadline status for active projects
+  switch(deadlineStatus) {
+    case "TODAY":
+      return {
+        status: "DUE_TODAY",
+        label: "Due Today",
+        colors: {
+          text: "text-orange-600",
+          bg: "bg-orange-100",
+          gradient: "from-orange-500 to-orange-600"
+        },
+        icon: "⏰"
+      };
+    case "CRITICAL":
+      return {
+        status: "CRITICAL",
+        label: `${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} left`,
+        colors: {
+          text: "text-yellow-600",
+          bg: "bg-yellow-100",
+          gradient: "from-yellow-500 to-yellow-600"
+        },
+        icon: "⚡"
+      };
+    case "WARNING":
+      return {
+        status: "WARNING",
+        label: `${daysLeft} days left`,
+        colors: {
+          text: "text-blue-600",
+          bg: "bg-blue-100",
+          gradient: "from-blue-500 to-blue-600"
+        },
+        icon: "📅"
+      };
+    default:
+      // For projects with no deadline issues
+      if (progress === 0) {
+        return {
+          status: "NOT_STARTED",
+          label: "Not Started",
+          colors: {
+            text: "text-gray-600",
+            bg: "bg-gray-100",
+            gradient: "from-gray-500 to-gray-600"
+          },
+          icon: "🔄"
+        };
+      }
+      return {
+        status: "ONGOING",
+        label: "In Progress",
+        colors: {
+          text: "text-blue-600",
+          bg: "bg-blue-100",
+          gradient: "from-blue-500 to-blue-600"
+        },
+        icon: "📊"
       };
   }
 };
